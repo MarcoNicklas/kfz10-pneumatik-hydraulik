@@ -72,6 +72,14 @@ table.legend td{border-bottom:1px solid var(--line);padding:5px 6px}
 .air{stroke:var(--air)!important}
 .airf{fill:var(--air)!important}
 .slide{transition:transform .35s ease}
+.oil{stroke:#e67e22!important}
+.oilf{fill:#e67e22!important}
+.appsvg > svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:10px;margin:10px 0}
+.tagchip{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:700;border-radius:999px;padding:2px 10px;margin-bottom:6px}
+h3.sub{font-size:1rem;margin:18px 0 6px}
+ol.tasks{margin:0;padding-left:22px}
+ol.tasks li{margin:3px 0}
+#appChips{display:flex;flex-wrap:wrap;gap:8px}
 </style>
 </head>
 <body>
@@ -86,7 +94,8 @@ table.legend td{border-bottom:1px solid var(--line);padding:5px 6px}
   <button data-s="s2">2 · Betätigung</button>
   <button data-s="s3">3 · Sperrventile</button>
   <button data-s="s4">4 · Simulation</button>
-  <button data-s="s5">5 · Quiz</button>
+  <button data-s="sA">5 · Anwendungen</button>
+  <button data-s="s5">6 · Quiz</button>
 </nav>
 <main>
 
@@ -188,10 +197,20 @@ table.legend td{border-bottom:1px solid var(--line);padding:5px 6px}
   </div>
 </section>
 
+<!-- ANWENDUNGEN -->
+<section id="sA">
+  <div class="card">
+    <h2>Aufgabe 5 – Anwendungen in Kfz und Nutzfahrzeug</h2>
+    <p class="task">Wähle eine Anwendung. Analysiere die Schaltung mit der Simulation (Druckluft = <span style="color:var(--air);font-weight:700">blau</span>, Hydrauliköl = <span style="color:#e67e22;font-weight:700">orange</span>) und beantworte anschließend die Fragen.</p>
+    <div id="appChips"></div>
+  </div>
+  <div class="card" id="appCard"></div>
+</section>
+
 <!-- QUIZ -->
 <section id="s5">
   <div class="card" id="a5">
-    <h2>Aufgabe 5 – Abschlussquiz</h2>
+    <h2>Aufgabe 6 – Abschlussquiz</h2>
     <p class="task">Wähle jeweils die richtige Antwort.</p>
     <div id="quiz"></div>
     <div class="btns"><button class="btn" data-check="a5">Auswerten</button><button class="btn sec" data-reset="a5">Neu starten</button></div>
@@ -306,7 +325,7 @@ document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
 });
 
 /* ---------- Punktestand ---------- */
-const score = { a1: [0, 0, 'Benennung'], a2: [0, 0, 'Betätigung'], a3: [0, 0, 'Sperrventile'], a4: [0, 0, 'Tabellen'], a5: [0, 0, 'Quiz'] };
+const score = { a1: [0, 0, 'Benennung'], a2: [0, 0, 'Betätigung'], a3: [0, 0, 'Sperrventile'], a4: [0, 0, 'Tabellen'], a6: [0, 0, 'Anwendungen'], a5: [0, 0, 'Quiz'] };
 function renderScore() {
   let g = 0, m = 0, html = '';
   for (const k in score) { const [a, b, n] = score[k]; g += a; m += b; html += `<span class="chip">${n}: ${b ? a + '/' + b : '–'}</span>`; }
@@ -517,6 +536,281 @@ document.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => {
 });
 
 Object.values(BUILD).forEach(f => f());
+/* ---------- Aufgabe 5: Anwendungen in Kfz und Nfz ---------- */
+function pipe(pts, on, kind) { return `<polyline class="s ${on ? (kind === 'oil' ? 'oil' : 'air') : ''}" points="${pts.map(p => p.join(',')).join(' ')}"/>`; }
+function port(key, ox, oy, l) {
+  const v = VALVES[key], rx = ox + v.rest * W, t = v.top.find(p => p[1] === l);
+  if (t) return [rx + t[0], oy - 14];
+  const b = v.bot.find(p => p[1] === l); return [rx + b[0], oy + H + 14];
+}
+function valveG(key, ox, oy, s, L, R, labels) {
+  const v = VALVES[key], sh = (v.rest - s) * W; let lab = '';
+  (labels || []).forEach((t, i) => lab += `<text class="t" text-anchor="middle" x="${ox + i * W + 30}" y="${oy + H + 32}" style="font-size:11px">${t}</text>`);
+  return `<g transform="translate(${sh},0)">${boxes(v, ox, oy)}${drawAct(L, ox, oy + H / 2, -1)}${drawAct(R, ox + v.boxes.length * W, oy + H / 2, 1)}${lab}</g>${ports(v, ox, oy)}`;
+}
+function zig(x1, x2, y, a) { const p = [], n = 8; for (let i = 0; i <= n; i++) p.push(`${x1 + (x2 - x1) * i / n},${i === 0 || i === n ? y : y + (i % 2 ? -a : a)}`); return `<polyline class="s" style="stroke-width:1.5" points="${p.join(' ')}"/>`; }
+function cylH(x, y, w, h, pos, o = {}) {
+  const travel = w - 22, px = x + 4 + pos * travel, rl = o.rod || w, c = o.oil ? 'oilf' : 'airf';
+  let s = `<rect class="s" x="${x}" y="${y}" width="${w}" height="${h}"/>`;
+  if (o.fL) s += `<rect class="${c}" opacity=".3" x="${x + 1}" y="${y + 1}" width="${px - x - 1}" height="${h - 2}"/>`;
+  if (o.fR) s += `<rect class="${c}" opacity=".3" x="${px + 10}" y="${y + 1}" width="${Math.max(0, x + w - px - 11)}" height="${h - 2}"/>`;
+  if (o.spL) s += zig(x + 2, px, y + h / 2, h / 2 - 5);
+  if (o.spR) s += zig(px + 10, x + w - 2, y + h / 2, h / 2 - 5);
+  return s + `<rect class="f" x="${px}" y="${y + 2}" width="10" height="${h - 4}"/><rect class="f" x="${px + 10}" y="${y + h / 2 - 3}" width="${rl}" height="6"/>`;
+}
+function chk(x, y, ang, open) { const bx = open ? 6 : 1; return `<g transform="translate(${x},${y}) rotate(${ang})"><polyline class="s" points="3,-9 -10,0 3,9"/><circle class="s" cx="${bx}" cy="0" r="6" style="fill:var(--card)"/>${open ? '' : ''}</g>`; }
+function src(x, y) { return `<circle class="s" cx="${x}" cy="${y}" r="9"/><polygon class="s" points="${x},${y - 6} ${x - 4},${y + 2} ${x + 4},${y + 2}"/>`; }
+function pump(x, y) { return `<circle class="s" cx="${x}" cy="${y}" r="14"/><polygon class="f" points="${x},${y - 13} ${x - 6},${y - 3} ${x + 6},${y - 3}"/>`; }
+function tankSym(x, y) { return `<path class="s" d="M${x - 12} ${y} L${x - 12} ${y + 10} L${x + 12} ${y + 10} L${x + 12} ${y}"/>`; }
+function btn(x, y, label, on) { return `<rect x="${x - 16}" y="${y - 11}" width="32" height="22" rx="5" class="s" style="fill:${on ? 'var(--air)' : 'var(--card)'}"/><text class="t" text-anchor="middle" x="${x}" y="${y + 30}">${label}</text>`; }
+function nest(str, x, y, w, h) { return str.replace('<svg ', `<svg x="${x}" y="${y}" width="${w}" height="${h}" `); }
+const T = (x, y, txt, st = '') => `<text class="t" x="${x}" y="${y}" style="${st}">${txt}</text>`;
+const TC = (x, y, txt, st = '') => `<text class="t" text-anchor="middle" x="${x}" y="${y}" style="${st}">${txt}</text>`;
+
+const APPS = [
+  { tag: 'Nutzfahrzeug', title: 'Druckluftbremse (Lkw) – Vorrat und Betriebsbremse',
+    intro: 'Ein Kompressor füllt über ein Rückschlagventil den Vorratsbehälter. Beim Treten des Bremspedals schaltet das Bremsventil und Druckluft strömt in den Bremszylinder.',
+    init: () => ({ comp: false, pedal: false, leak: false, nochk: false, p: 0, prev: false }),
+    controls: [{ k: 'comp', label: 'Kompressor einschalten', labelOn: 'Kompressor ausschalten', type: 'toggle' }, { k: 'pedal', label: 'Bremspedal treten (gedrückt halten)', type: 'hold' }, { k: 'leak', label: 'Leitung vor dem Behälter undicht machen', labelOn: 'Leitung reparieren', type: 'toggle' }, { k: 'nochk', label: 'Rückschlagventil ausbauen (Gedankenexperiment)', labelOn: 'Rückschlagventil wieder einbauen', type: 'toggle' }],
+    tick(st) { const o = st.p; if (st.comp && !st.leak && st.p < 8) st.p = Math.min(8, st.p + .12); if (st.leak && st.nochk) st.p = Math.max(0, st.p - .25); if (st.pedal && !st.prev) st.p = Math.max(0, st.p - .5); const ch = st.pedal !== st.prev; st.prev = st.pedal; return ch || o !== st.p; },
+    svg(st) {
+      const ox = 330, oy = 190, s = st.pedal ? 0 : 1, tankOn = st.p > .3, brake = st.pedal && tankOn;
+      const p1 = port('v32', ox, oy, '1'), p2 = port('v32', ox, oy, '2');
+      const onA = !st.leak && (st.comp || (st.nochk && tankOn));
+      let g = src(50, 70) + `<circle class="s" cx="50" cy="70" r="18"/>` + TC(50, 108, 'Kompressor') + pipe([[68, 70], [116, 70]], onA);
+      if (st.leak) g += T(70, 56, '✕ undicht', 'fill:var(--bad);font-weight:700');
+      g += st.nochk ? pipe([[116, 70], [180, 70]], tankOn && !st.leak) : chk(130, 70, 0, st.comp && !st.leak && st.p < 8) + TC(130, 96, 'Rückschlag-', 'font-size:10px') + TC(130, 107, 'ventil', 'font-size:10px') + pipe([[140, 70], [180, 70]], tankOn);
+      g += `<rect class="airf" opacity="${(st.p / 8 * .45).toFixed(2)}" x="181" y="46" width="108" height="48" rx="17"/><rect class="s" x="180" y="45" width="110" height="50" rx="18"/>` + TC(235, 36, 'Vorratsbehälter') + TC(235, 76, st.p.toFixed(1) + ' bar', 'font-weight:700;font-size:14px') + T(244, 118, 'Abschaltdruck ca. 8 bar', 'font-size:10px');
+      g += pipe([[235, 95], [235, 300], [p1[0], 300], [p1[0], p1[1]]], tankOn);
+      g += valveG('v32', ox, oy, s, ['pedal'], ['feder']) + T(445, 284, '3 → Entlüftung', 'font-size:10px') + TC(345, 172, 'Bremsventil', 'font-size:11px');
+      g += pipe([[p2[0], p2[1]], [p2[0], 140], [452, 140], [452, 95]], brake);
+      g += cylH(440, 55, 90, 40, brake ? 1 : 0, { fL: brake, spR: true, rod: 50 }) + TC(485, 45, 'Bremszylinder');
+      if (brake) g += TC(520, 168, 'Rad wird gebremst', 'fill:var(--ok);font-weight:700');
+      return `<svg viewBox="0 0 590 320">${g}</svg>`;
+    },
+    info(st) {
+      const tankOn = st.p > .3;
+      if (st.leak && st.nochk) return 'Ohne Rückschlagventil entweicht die Druckluft aus dem Behälter über die undichte Leitung – der Druck fällt, die Bremse wird unwirksam!';
+      if (st.leak) return 'Die Leitung vor dem Behälter ist undicht. Das <b>Rückschlagventil sperrt</b> – die Druckluft im Behälter bleibt erhalten, der Fahrer kann noch bremsen.';
+      if (st.pedal && tankOn) return '<b>Bremsventil in Stellung a: 1 → 2.</b> Druckluft strömt in den Bremszylinder, das Rad wird gebremst. Dabei wird Vorratsluft verbraucht.';
+      if (st.pedal) return 'Kein Vorratsdruck – trotz getretenem Pedal keine Bremswirkung!';
+      return '<b>Bremsventil in Ruhestellung: 2 → 3.</b> Der Bremszylinder ist entlüftet, die Feder hält den Kolben zurück. ' + (st.comp ? 'Der Kompressor füllt den Behälter.' : 'Schalte den Kompressor ein.');
+    },
+    tasks: ['Schalte den Kompressor ein und beobachte den Behälterdruck.', 'Tritt mehrmals auf das Bremspedal. Was passiert jedes Mal mit dem Behälterdruck?', 'Schalte den Kompressor aus und mache die Leitung undicht. Bleibt der Druck erhalten?', 'Baue jetzt gedanklich das Rückschlagventil aus. Was ändert sich?'],
+    qs: [
+      ['Welche Aufgabe hat das Rückschlagventil zwischen Kompressor und Vorratsbehälter?', ['Es regelt den Druck auf 8 bar', 'Es verhindert, dass die Druckluft aus dem Behälter zurückströmt', 'Es entlüftet den Bremszylinder'], 1],
+      ['Welches Wegeventil wird hier als Bremsventil dargestellt?', ['2/2-Wegeventil, handbetätigt', '3/2-Wegeventil, fußbetätigt mit Rückstellfeder', '4/2-Wegeventil, elektromagnetisch betätigt'], 1],
+      ['Was passiert, wenn der Fahrer das Bremspedal loslässt?', ['Die Feder schaltet das Ventil zurück, der Bremszylinder wird über Anschluss 3 entlüftet', 'Der Bremszylinder bleibt belüftet, bis der Motor abgestellt wird', 'Der Kompressor schaltet ab'], 0],
+      ['Warum sinkt der Behälterdruck bei jeder Bremsung?', ['Weil das Rückschlagventil öffnet', 'Weil Druckluft in den Bremszylinder strömt und beim Lösen ins Freie entlüftet wird', 'Weil der Druckregler Luft ablässt'], 1]] },
+
+  { tag: 'Nutzfahrzeug', title: 'Federspeicher-Feststellbremse (Lkw)',
+    intro: 'Bei der Feststellbremse von Nutzfahrzeugen erzeugt eine starke Feder die Bremskraft. Druckluft wird benötigt, um die Bremse zu <b>lösen</b>. Gesteuert wird mit dem Handbremsventil.',
+    init: () => ({ drive: false, loss: false }),
+    controls: [{ k: 'drive', label: 'Hebel in Fahrstellung legen', labelOn: 'Hebel in Parkstellung legen', type: 'toggle' }, { k: 'loss', label: 'Druckverlust im Vorrat simulieren', labelOn: 'Vorrat wieder füllen', type: 'toggle' }],
+    svg(st) {
+      const ox = 150, oy = 170, s = st.drive ? 0 : 1, sup = !st.loss, air = st.drive && sup;
+      const p1 = port('v32', ox, oy, '1'), p2 = port('v32', ox, oy, '2');
+      let g = `<rect class="${sup ? 'airf' : ''}" opacity=".3" x="31" y="41" width="98" height="42" rx="15" style="fill:${sup ? '' : 'transparent'}"/><rect class="s" x="30" y="40" width="100" height="44" rx="16"/>` + TC(80, 30, 'Vorrat') + TC(80, 67, sup ? '8 bar' : '0 bar', 'font-weight:700');
+      g += pipe([[80, 84], [80, 275], [p1[0], 275], [p1[0], p1[1]]], sup);
+      g += valveG('v32', ox, oy, s, ['hebel'], ['raste'], ['Fahrt', 'Parken']) + TC(150, 150, 'Handbremsventil', 'font-size:11px');
+      g += pipe([[p2[0], p2[1]], [p2[0], 125], [440, 125], [440, 95]], air);
+      g += cylH(330, 50, 120, 45, air ? 0 : 1, { spL: true, fR: air, rod: 140 }) + TC(390, 40, 'Federspeicherzylinder') + T(520, 66, 'zur Bremse', 'font-size:10px');
+      g += air ? TC(420, 175, 'Feststellbremse GELÖST', 'fill:var(--ok);font-weight:700;font-size:14px') : TC(420, 175, 'Feststellbremse ANGEZOGEN', 'fill:var(--bad);font-weight:700;font-size:14px');
+      return `<svg viewBox="0 0 600 300">${g}</svg>`;
+    },
+    info(st) {
+      if (st.drive && st.loss) return '<b>Druckverlust!</b> Ohne Druckluft kann der Kolben die Feder nicht mehr zusammendrücken – die Feststellbremse wird automatisch angezogen. Das Fahrzeug bleibt in einem <b>sicheren Zustand</b>.';
+      if (st.drive) return '<b>Fahrstellung: 1 → 2.</b> Druckluft drückt den Kolben gegen die Feder – die Feststellbremse ist gelöst.';
+      return '<b>Parkstellung: 2 → 3.</b> Der Federspeicher wird entlüftet, die Feder drückt die Kolbenstange heraus – das Fahrzeug ist gebremst. Die Raste hält den Hebel in dieser Stellung.';
+    },
+    tasks: ['Lege den Hebel in Fahrstellung. Was passiert mit dem Federspeicher?', 'Simuliere einen Druckverlust während der Fahrt.', 'Begründe, warum diese Bauweise besonders sicher ist.'],
+    qs: [
+      ['Womit wird beim Federspeicher die Bremskraft erzeugt?', ['Mit Druckluft', 'Mit Federkraft', 'Mit Hydrauliköl'], 1],
+      ['Was passiert bei vollständigem Druckverlust?', ['Die Feststellbremse löst sich', 'Die Feststellbremse wird automatisch angezogen', 'Nichts – der Kolben bleibt stehen'], 1],
+      ['Wozu dient die Raste am Handbremsventil?', ['Sie hält das Ventil in der gewählten Stellung, ohne dass man den Hebel festhalten muss', 'Sie begrenzt den Druck', 'Sie entlüftet den Vorratsbehälter'], 0],
+      ['Benenne das Handbremsventil im Schaltplan.', ['3/2-Wegeventil, Handhebel mit Raste', '5/2-Wegeventil, druckbetätigt', '2/2-Wegeventil mit Rückstellfeder'], 0]] },
+
+  { tag: 'Nutzfahrzeug', title: 'Kippermulde (Hydraulik)',
+    intro: 'Die Mulde eines Kippers wird hydraulisch angehoben. Eine Pumpe am Nebenabtrieb fördert Öl, der Fahrer steuert den Kippzylinder mit einem Handhebel-Ventil.',
+    init: () => ({ up: false, down: false, ang: 0 }),
+    controls: [{ k: 'up', label: 'Hebel: Heben (gedrückt halten)', type: 'hold' }, { k: 'down', label: 'Hebel: Senken (gedrückt halten)', type: 'hold' }],
+    st3: st => st.up && !st.down ? 0 : st.down && !st.up ? 2 : 1,
+    tick(st) { const o = st.ang, s = APPS[2].st3(st); if (s === 0) st.ang = Math.min(50, st.ang + 1.2); if (s === 2) st.ang = Math.max(0, st.ang - 1.2); return o !== st.ang; },
+    svg(st) {
+      const ox = 180, oy = 190, s = APPS[2].st3(st);
+      const p1 = port('v43', ox, oy, '1'), p3 = port('v43', ox, oy, '3'), p2 = port('v43', ox, oy, '2'), p4 = port('v43', ox, oy, '4');
+      let g = pump(100, 298) + pipe([[100, 312], [100, 324]], true, 'oil') + tankSym(100, 324) + TC(100, 270, 'Pumpe', 'font-size:11px');
+      g += pipe([[114, 298], [p1[0], 298], [p1[0], p1[1]]], true, 'oil') + pipe([[p3[0], p3[1]], [p3[0], 318]], s !== 1, 'oil') + tankSym(p3[0], 318);
+      g += valveG('v43', ox, oy, s, ['feder', 'hebel'], ['feder'], ['Heben', 'Halten', 'Senken']);
+      g += pipe([[p2[0], p2[1]], [p2[0], 150], [470, 150], [470, 296], [536, 296], [536, 262]], s === 0, 'oil');
+      g += pipe([[p4[0], p4[1]], [p4[0], 162], [462, 162], [462, 304], [546, 304], [546, 262]], s === 2, 'oil');
+      const th = st.ang * Math.PI / 180, A = [540, 252], B = [490 + 110 * Math.cos(th), 242 - 110 * Math.sin(th)];
+      const dx = B[0] - A[0], dy = B[1] - A[1], L = Math.hypot(dx, dy), k = Math.min(1, 42 / L);
+      g += `<line class="s" style="stroke-width:5" x1="480" y1="254" x2="670" y2="254"/><circle class="s" cx="512" cy="270" r="14"/><circle class="s" cx="632" cy="270" r="14"/><rect class="box" x="625" y="192" width="44" height="56" rx="5"/>`;
+      g += `<g transform="rotate(${-st.ang},490,242)"><rect class="box" x="490" y="208" width="128" height="34"/>${TC(554, 230, 'Mulde', 'font-size:11px')}</g>`;
+      g += `<line class="s" style="stroke-width:3" x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}"/><line class="s" style="stroke-width:10;stroke-linecap:butt" x1="${A[0]}" y1="${A[1]}" x2="${A[0] + dx * k}" y2="${A[1] + dy * k}"/>`;
+      g += TC(575, 330, `Kippwinkel: ${Math.round(st.ang)}°`, 'font-weight:700');
+      return `<svg viewBox="0 110 680 235">${g}</svg>`;
+    },
+    info(st) {
+      const s = APPS[2].st3(st);
+      if (s === 0) return '<b>Stellung „Heben“: 1 → 2, 4 → 3.</b> Das Öl drückt den Kippzylinder aus, die Mulde hebt sich.';
+      if (s === 2) return '<b>Stellung „Senken“: 1 → 4, 2 → 3.</b> Die Mulde senkt sich, das Öl aus dem Zylinder fließt zurück in den Tank.';
+      return '<b>Mittelstellung (federzentriert): alle Anschlüsse gesperrt.</b> Das Öl im Zylinder ist eingeschlossen – die Mulde bleibt in jeder Höhe stehen. Die Pumpe fördert über ein Druckbegrenzungsventil (nicht gezeichnet) zurück in den Tank.';
+    },
+    tasks: ['Hebe die Mulde auf ca. 25° an und lass den Hebel los.', 'Beobachte, welche Leitungen Öl unter Druck führen (orange).', 'Senke die Mulde wieder ab.'],
+    qs: [
+      ['Welches Ventil steuert den Kippzylinder?', ['4/3-Wegeventil, handbetätigt, federzentriert', '3/2-Wegeventil mit Raste', 'Zweidruckventil'], 0],
+      ['Warum bleibt die Mulde stehen, wenn der Fahrer den Hebel loslässt?', ['Die Pumpe schaltet ab', 'Die Federn schalten das Ventil in die Mittelstellung, alle Anschlüsse sind gesperrt', 'Ein Rückschlagventil öffnet'], 1],
+      ['Wohin fließt das Öl aus Anschluss 3?', ['In den Zylinder', 'Zurück in den Tank (Rücklauf)', 'Ins Freie'], 1],
+      ['Warum verwendet man hier Hydraulik statt Pneumatik?', ['Öl ist kaum zusammendrückbar – große Kräfte, die Last bleibt genau stehen', 'Hydraulik ist leiser', 'Öl ist leichter als Luft'], 0]] },
+
+  { tag: 'Nutzfahrzeug', title: 'Türsteuerung im Linienbus',
+    intro: 'Die Bustür kann vom Fahrer <b>oder</b> von außen geöffnet werden. Ein Wechselventil verknüpft beide Taster. Ein 5/2-Impulsventil steuert den doppeltwirkenden Türzylinder.',
+    init: () => ({ tF: false, tA: false, close: false, v: 1, door: 0 }),
+    controls: [{ k: 'tF', label: 'Fahrer-Taster „Tür auf“', type: 'toggle' }, { k: 'tA', label: 'Taster außen „Tür auf“', type: 'toggle' }, { k: 'close', label: 'Fahrer-Taster „Tür zu“', type: 'toggle' }],
+    tick(st) { const o = st.door, ov = st.v, op = st.tF || st.tA; if (op && !st.close) st.v = 0; if (st.close && !op) st.v = 1; const t = st.v === 0 ? 1 : 0; st.door = st.door < t ? Math.min(t, st.door + .08) : Math.max(t, st.door - .08); return o !== st.door || ov !== st.v; },
+    svg(st) {
+      const ox = 400, oy = 200, s = st.v, sh = (1 - s) * W, op = st.tF || st.tA;
+      let g = nest(symWechsel(st.tF, st.tA), 110, 150, 140, 70) + TC(180, 240, 'Wechselventil', 'font-size:11px');
+      g += btn(60, 192, 'Fahrer', st.tF) + pipe([[76, 192], [113, 192]], st.tF) + btn(300, 192, 'außen', st.tA) + pipe([[284, 192], [247, 192]], st.tA);
+      g += pipe([[180, 156], [180, 125], [340, 125], [340, 230], [ox - 32 + sh, 230]], op);
+      g += btn(630, 110, '', st.close) + TC(630, 90, 'Tür zu') + pipe([[630, 121], [630, 230], [ox + 152 + sh, 230]], st.close);
+      g += valveG('v52', ox, oy, s, ['druck'], ['druck']) + TC(460, 322, '5/2-Impulsventil', 'font-size:11px');
+      const p1 = port('v52', ox, oy, '1'), p4 = port('v52', ox, oy, '4'), p2 = port('v52', ox, oy, '2');
+      g += src(p1[0], p1[1] + 14) + pipe([[p1[0], p1[1] + 5], [p1[0], p1[1]]], true);
+      g += pipe([[p4[0], p4[1]], [p4[0], 160], [390, 160], [390, 104]], s === 0) + pipe([[p2[0], p2[1]], [p2[0], 150], [520, 150], [520, 104]], s === 1);
+      g += cylH(380, 70, 150, 34, st.door, { fL: s === 0, fR: s === 1, rod: 50 }) + T(380, 64, 'Türzylinder', 'font-size:11px');
+      const wL = 80 * (1 - st.door * .85);
+      g += `<rect class="s" x="400" y="6" width="160" height="44"/><rect class="box" x="400" y="7" width="${wL}" height="42"/><rect class="box" x="${560 - wL}" y="7" width="${wL}" height="42"/>` + T(570, 32, st.door > .95 ? 'Tür offen' : st.door < .05 ? 'Tür zu' : '…', 'font-weight:700');
+      return `<svg viewBox="0 0 660 330">${g}</svg>`;
+    },
+    info(st) {
+      const op = st.tF || st.tA;
+      if (op && st.close) return 'Beide Steuersignale liegen an – das Impulsventil schaltet <b>nicht</b> um, es bleibt in der alten Stellung.';
+      if (st.v === 0) return '<b>Stellung a: 1 → 4, 2 → 3.</b> Die Tür öffnet. Lässt man den Taster los, bleibt das Ventil in dieser Stellung – ein Impulsventil hat <b>keine Rückstellfeder</b>.';
+      return '<b>Stellung b: 1 → 2, 4 → 5.</b> Die Tür ist geschlossen bzw. schließt.';
+    },
+    tasks: ['Öffne die Tür mit dem Fahrer-Taster und schalte den Taster danach wieder aus.', 'Schließe die Tür und öffne sie mit dem Taster außen.', 'Schalte „Tür auf“ und „Tür zu“ gleichzeitig ein.'],
+    qs: [
+      ['Warum ist ein Wechselventil eingebaut?', ['Damit die Tür nur öffnet, wenn beide Taster gedrückt sind', 'Damit die Tür von zwei Stellen geöffnet werden kann (ODER), ohne dass die Luft über den anderen Taster entweicht', 'Damit die Tür langsamer öffnet'], 1],
+      ['Die Tür bleibt offen, obwohl der Taster losgelassen wurde. Warum?', ['Das 5/2-Ventil ist beidseitig druckbetätigt (Impulsventil) und hat keine Rückstellfeder', 'Das Wechselventil hält den Druck', 'Der Zylinder ist einfachwirkend'], 0],
+      ['Welcher Zylinder bewegt die Tür?', ['Einfachwirkender Zylinder', 'Doppeltwirkender Zylinder', 'Federspeicherzylinder'], 1]] },
+
+  { tag: 'Kfz-Werkstatt', title: 'Lager-Einpresse mit Zweihandbedienung',
+    intro: 'In der Werkstatt werden Radlager mit einer pneumatischen Presse eingepresst. Damit niemand in den Pressbereich greift, fährt der Stempel nur aus, wenn <b>beide</b> Taster betätigt sind.',
+    init: () => ({ tL: false, tR: false, pos: 0 }),
+    controls: [{ k: 'tL', label: 'Taster links', type: 'toggle' }, { k: 'tR', label: 'Taster rechts', type: 'toggle' }],
+    tick(st) { const o = st.pos, t = st.tL && st.tR ? 1 : 0; st.pos = st.pos < t ? Math.min(1, st.pos + .06) : Math.max(0, st.pos - .08); return o !== st.pos; },
+    svg(st) {
+      const ox = 380, oy = 230, sig = st.tL && st.tR, s = sig ? 0 : 1, sh = (1 - s) * W;
+      let g = nest(symZwei(st.tL, st.tR), 110, 150, 140, 70) + TC(180, 240, 'Zweidruckventil', 'font-size:11px') + T(20, 30, 'Zweihand-Sicherheitsschaltung', 'font-weight:700');
+      g += btn(60, 192, 'links', st.tL) + pipe([[76, 192], [113, 192]], st.tL) + btn(300, 192, 'rechts', st.tR) + pipe([[284, 192], [247, 192]], st.tR);
+      g += pipe([[180, 156], [180, 130], [330, 130], [330, 260], [ox - 32 + sh, 260]], sig);
+      g += valveG('v32', ox, oy, s, ['druck'], ['feder']);
+      const p1 = port('v32', ox, oy, '1'), p2 = port('v32', ox, oy, '2');
+      g += src(p1[0], p1[1] + 14) + pipe([[p1[0], p1[1] + 5], [p1[0], p1[1]]], true);
+      g += pipe([[p2[0], p2[1]], [p2[0], 205], [530, 205], [530, 4], [460, 4], [460, 10]], sig);
+      const py = 14 + st.pos * 50;
+      g += `<rect class="airf" opacity="${sig ? .3 : 0}" x="441" y="11" width="38" height="${py - 11}"/><rect class="s" x="440" y="10" width="40" height="80"/><rect class="f" x="442" y="${py}" width="36" height="8"/><rect class="f" x="456" y="${py + 8}" width="8" height="${96}"/>`;
+      g += `<line class="s" x1="400" y1="183" x2="520" y2="183"/><rect class="box" x="436" y="170" width="48" height="13"/>` + T(492, 180, 'Lager', 'font-size:11px') + `<text class="t" text-anchor="end" x="432" y="50" style="font-size:11px">Pressenstempel</text>`;
+      if (st.pos > .97) g += TC(460, 158, '', '') + T(330, 160, 'eingepresst ✓', 'fill:var(--ok);font-weight:700');
+      return `<svg viewBox="0 0 560 345">${g}</svg>`;
+    },
+    info(st) {
+      if (st.tL && st.tR) return 'Beide Taster betätigt: Das Zweidruckventil gibt das Signal an Ausgang 12 weiter, das 3/2-Ventil schaltet (1 → 2), der Stempel fährt aus.';
+      if (st.tL || st.tR) return 'Nur ein Taster betätigt – das Zweidruckventil <b>sperrt</b>. Der Stempel bleibt oben bzw. fährt zurück.';
+      return 'Kein Taster betätigt: Die Feder hält das 3/2-Ventil in Ruhestellung (2 → 3), der Zylinder ist entlüftet.';
+    },
+    tasks: ['Betätige nur einen Taster.', 'Betätige beide Taster – was passiert?', 'Schalte während des Pressens einen Taster aus.'],
+    qs: [
+      ['Welche logische Verknüpfung realisiert das Zweidruckventil?', ['ODER', 'UND', 'NICHT'], 1],
+      ['Warum werden bei Pressen zwei Taster verwendet?', ['Damit die Presse schneller arbeitet', 'Damit beide Hände an den Tastern sind und nicht in den Pressbereich greifen können', 'Damit Druckluft gespart wird'], 1],
+      ['Was passiert, wenn während des Pressens ein Taster losgelassen wird?', ['Der Stempel fährt weiter aus', 'Das Signal fällt weg, die Feder schaltet das 3/2-Ventil zurück und der Stempel fährt zurück', 'Der Stempel bleibt stehen'], 1]] },
+
+  { tag: 'Kfz-Werkstatt', title: 'Hydraulischer Wagenheber',
+    intro: 'Mit einer kleinen Handpumpe wird Öl in den Hubzylinder gedrückt. Zwei Rückschlagventile (Saugventil und Druckventil) sorgen dafür, dass das Öl nur in eine Richtung fließt. Zum Absenken wird das Ablassventil geöffnet.',
+    init: () => ({ rel: false, h: 0, phase: '' }),
+    controls: [{ k: 'pump', label: 'Pumphub ausführen', type: 'click', act(st) { if (st.phase) return; st.phase = 'saug'; renderApp(); setTimeout(() => { st.phase = 'druck'; if (!st.rel) st.h = Math.min(1, st.h + .1); renderApp(); setTimeout(() => { st.phase = ''; renderApp(); }, 450); }, 450); } }, { k: 'rel', label: 'Ablassventil öffnen', labelOn: 'Ablassventil schließen', type: 'toggle' }],
+    tick(st) { if (st.rel && st.h > 0) { st.h = Math.max(0, st.h - .02); return true; } return false; },
+    svg(st) {
+      const saug = st.phase === 'saug', druck = st.phase === 'druck', press = st.h > .01 || druck;
+      let g = `<rect class="oilf" opacity=".3" x="41" y="240" width="88" height="49"/><path class="s" d="M40 220 L40 290 L130 290 L130 220"/>` + TC(85, 308, 'Ölbehälter', 'font-size:11px');
+      g += pipe([[110, 270], [195, 270], [195, 238]], saug, 'oil') + chk(195, 226, -90, saug) + pipe([[195, 214], [195, 200]], saug || druck, 'oil') + T(206, 232, 'Saugventil', 'font-size:10px');
+      const pp = druck ? 168 : saug ? 128 : 145;
+      g += `<rect class="oilf" opacity="${saug || druck ? .3 : 0}" x="181" y="${pp + 8}" width="28" height="${199 - pp - 8}"/><rect class="s" x="180" y="120" width="30" height="80"/><rect class="f" x="182" y="${pp}" width="26" height="8"/><rect class="f" x="192" y="${pp - 45}" width="6" height="45"/><line class="s" style="stroke-width:4" x1="195" y1="${pp - 45}" x2="260" y2="${pp - 65}"/>` + TC(150, 112, 'Handpumpe', 'font-size:11px');
+      g += pipe([[210, 185], [250, 185]], druck, 'oil') + chk(262, 185, 0, druck) + TC(262, 170, 'Druckventil', 'font-size:10px') + pipe([[272, 185], [300, 185], [300, 262], [350, 262], [350, 240]], press, 'oil');
+      const py = 222 - st.h * 110;
+      g += `<rect class="oilf" opacity="${press ? .3 : 0}" x="321" y="${py + 8}" width="58" height="${239 - py - 8}"/><rect class="s" x="320" y="80" width="60" height="160"/><rect class="f" x="322" y="${py}" width="56" height="8"/><rect class="f" x="344" y="${py - 70}" width="12" height="70"/>`;
+      g += `<rect class="box" x="290" y="${py - 96}" width="120" height="26" rx="8"/><circle class="s" cx="312" cy="${py - 68}" r="8"/><circle class="s" cx="388" cy="${py - 68}" r="8"/>` + T(388, 160, 'Hubzylinder', 'font-size:11px');
+      g += pipe([[380, 225], [478, 225], [478, 236]], press, 'oil');
+      g += valveG('v22', 400, 250, st.rel ? 0 : 1, ['hebel'], ['feder']) + T(540, 330, 'Ablassventil', 'font-size:11px');
+      g += pipe([[478, 324], [478, 338], [85, 338], [85, 290]], st.rel && st.h > 0, 'oil');
+      return `<svg viewBox="0 0 620 350">${g}</svg>`;
+    },
+    info(st) {
+      if (st.phase === 'saug') return '<b>Hochziehen:</b> In der Pumpe entsteht Unterdruck – das <b>Saugventil öffnet</b>, Öl strömt aus dem Behälter nach. Das Druckventil ist geschlossen.';
+      if (st.phase === 'druck') return st.rel ? 'Pumpen bei offenem Ablassventil: Das Öl fließt sofort zurück in den Behälter – das Fahrzeug hebt sich nicht.' : '<b>Drücken:</b> Das Saugventil sperrt, das <b>Druckventil öffnet</b> – Öl wird in den Hubzylinder gedrückt, das Fahrzeug hebt sich.';
+      if (st.rel) return '<b>Ablassventil offen:</b> 2/2-Wegeventil in Durchflussstellung, das Öl fließt in den Behälter zurück – das Fahrzeug senkt sich.';
+      if (st.h > .01) return 'Das Druckventil (Rückschlagventil) sperrt den Rückfluss und das Ablassventil ist geschlossen – das Fahrzeug bleibt oben.';
+      return 'Führe einen Pumphub aus.';
+    },
+    tasks: ['Führe mehrere Pumphübe aus und beobachte die beiden Rückschlagventile.', 'Warte mit angehobenem Fahrzeug – sinkt es ab?', 'Öffne das Ablassventil und pumpe weiter.'],
+    qs: [
+      ['Warum bleibt das Fahrzeug oben, wenn man nicht mehr pumpt?', ['Das Druckventil (Rückschlagventil) verhindert den Rückfluss aus dem Hubzylinder', 'Die Pumpe hält den Druck', 'Das Saugventil ist offen'], 0],
+      ['Welche Aufgabe hat das Saugventil?', ['Es lässt beim Hochziehen Öl in die Pumpe und sperrt beim Drücken zum Behälter', 'Es senkt das Fahrzeug ab', 'Es begrenzt die Hubhöhe'], 0],
+      ['Was passiert, wenn bei geöffnetem Ablassventil gepumpt wird?', ['Das Fahrzeug hebt sich schneller', 'Das Öl fließt zurück in den Behälter, das Fahrzeug hebt sich nicht', 'Das Druckventil schließt'], 1],
+      ['Wie ist das Ablassventil im Schaltplan dargestellt?', ['2/2-Wegeventil, in Ruhestellung gesperrt', '3/2-Wegeventil, in Ruhestellung offen', 'Wechselventil'], 0]] }
+];
+
+let appIdx = 0;
+const appState = APPS.map(a => a.init()), appAns = APPS.map(() => ({})), appChecked = APPS.map(() => false), appPts = APPS.map(() => 0);
+score.a6[1] = APPS.reduce((s, a) => s + a.qs.length, 0);
+function renderApp() {
+  const a = APPS[appIdx], st = appState[appIdx];
+  document.getElementById('appSvg').innerHTML = a.svg(st);
+  document.getElementById('appInfo').innerHTML = a.info(st);
+  a.controls.forEach(c => { const b = document.getElementById('ctl_' + c.k); if (!b) return; b.classList.toggle('on', !!st[c.k] && c.type !== 'click'); b.textContent = st[c.k] && c.labelOn ? c.labelOn : c.label; });
+}
+function checkApp(i) {
+  let p = 0;
+  document.querySelectorAll('#appQ .q').forEach((q, j) => { const ok = appAns[i][j] === APPS[i].qs[j][2]; p += ok; q.className = 'q ' + (ok ? 'ok' : 'bad'); });
+  appPts[i] = p; appChecked[i] = true; score.a6[0] = appPts.reduce((s, x) => s + x, 0); renderScore();
+  const r = document.getElementById('appRes'), m = APPS[i].qs.length;
+  r.textContent = `${p} von ${m} Punkten` + (p === m ? ' – super!' : ' – nutze die Simulation und prüfe die roten Fragen noch einmal.');
+  r.style.color = p === m ? 'var(--ok)' : 'var(--ink)';
+  buildAppChips();
+}
+function buildAppChips() {
+  document.getElementById('appChips').innerHTML = APPS.map((a, i) => `<button class="toggle ${i === appIdx ? 'on' : ''}" data-app="${i}">${i + 1}. ${a.title.split(' (')[0].split(' – ')[0]}${appChecked[i] ? ` · ${appPts[i]}/${a.qs.length}` : ''}</button>`).join('');
+  document.querySelectorAll('[data-app]').forEach(b => b.onclick = () => { appIdx = +b.dataset.app; buildAppCard(); buildAppChips(); });
+}
+function buildAppCard() {
+  const a = APPS[appIdx], i = appIdx;
+  document.getElementById('appCard').innerHTML = `<span class="tagchip">${a.tag}</span><h2>${i + 1}. ${a.title}</h2><p class="task">${a.intro}</p>
+    <div class="appsvg" id="appSvg"></div><div class="btns" id="appCtrls"></div><div class="info" id="appInfo"></div>
+    <h3 class="sub">Analyse-Aufträge</h3><ol class="tasks">${a.tasks.map(t => `<li>${t}</li>`).join('')}</ol>
+    <h3 class="sub">Fragen</h3><div id="appQ">${a.qs.map(([q, o], j) => `<div class="q"><p>${j + 1}. ${q}</p>${o.map((t, k) => `<label><input type="radio" name="ap${i}_${j}" value="${k}" ${appAns[i][j] === k ? 'checked' : ''}> ${t}</label>`).join('')}</div>`).join('')}</div>
+    <div class="btns"><button class="btn" id="appCheck">Überprüfen</button>${i < APPS.length - 1 ? '<button class="btn sec" id="appNext">Nächste Anwendung →</button>' : ''}</div><div class="result" id="appRes"></div>`;
+  const ctl = document.getElementById('appCtrls'), st = appState[i];
+  a.controls.forEach(c => {
+    const b = document.createElement('button'); b.className = 'toggle'; b.id = 'ctl_' + c.k; b.textContent = c.label; ctl.appendChild(b);
+    if (c.type === 'hold') {
+      b.style.touchAction = 'none'; b.style.userSelect = 'none';
+      b.addEventListener('pointerdown', e => { e.preventDefault(); st[c.k] = true; renderApp(); });
+      ['pointerup', 'pointerleave', 'pointercancel'].forEach(t => b.addEventListener(t, () => { if (st[c.k]) { st[c.k] = false; renderApp(); } }));
+    } else if (c.type === 'toggle') b.onclick = () => { st[c.k] = !st[c.k]; renderApp(); };
+    else b.onclick = () => c.act(st);
+  });
+  document.querySelectorAll('#appQ input').forEach(inp => inp.onchange = () => { const [, j] = inp.name.split('_'); appAns[i][+j] = +inp.value; });
+  document.getElementById('appCheck').onclick = () => checkApp(i);
+  const nx = document.getElementById('appNext'); if (nx) nx.onclick = () => { appIdx++; buildAppCard(); buildAppChips(); document.getElementById('appCard').scrollIntoView({ behavior: 'smooth' }); };
+  if (appChecked[i]) document.querySelectorAll('#appQ .q').forEach((q, j) => q.className = 'q ' + (appAns[i][j] === a.qs[j][2] ? 'ok' : 'bad'));
+  renderApp();
+}
+setInterval(() => { if (!document.getElementById('sA').classList.contains('active')) return; const a = APPS[appIdx]; if (a.tick && a.tick(appState[appIdx])) renderApp(); }, 100);
+buildAppChips(); buildAppCard();
+
 renderScore(); renderEx(); renderSim();
 </script>
 </body>
