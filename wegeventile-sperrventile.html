@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wegeventile & Sperrventile</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --ink:#1d2733; --muted:#5d6b7a; --line:#d5dce3;
+  --accent:#1f6fb2; --accent-soft:#e3eef8; --ok:#1e8a4c; --ok-soft:#e2f4ea;
+  --bad:#c0392b; --bad-soft:#fbe6e3; --air:#1f8fe0; --sym:#1d2733; --valve:#fff7e6;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#12171d; --card:#1b232c; --ink:#e6edf3; --muted:#9aa8b6; --line:#2e3a46;
+  --accent:#5aa8ec; --accent-soft:#1d3346; --ok:#46c27a; --ok-soft:#173327;
+  --bad:#ef6f61; --bad-soft:#3a1f1c; --air:#4fb3ff; --sym:#e6edf3; --valve:#2a2a22;}
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:var(--accent);color:#fff;padding:18px 16px 14px}
+header h1{margin:0;font-size:1.35rem}
+header p{margin:2px 0 0;opacity:.9;font-size:.92rem}
+.scorebar{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.chip{background:rgba(255,255,255,.18);border-radius:999px;padding:3px 10px;font-size:.85rem}
+nav{display:flex;gap:6px;overflow-x:auto;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}
+nav button{flex:0 0 auto;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:999px;padding:6px 14px;font:inherit;font-size:.9rem;cursor:pointer}
+nav button.active{background:var(--accent);border-color:var(--accent);color:#fff}
+main{max-width:1000px;margin:0 auto;padding:16px}
+section{display:none}
+section.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-bottom:16px}
+h2{font-size:1.15rem;margin:0 0 6px}
+.task{color:var(--muted);margin:0 0 14px}
+.grid{display:grid;gap:12px;grid-template-columns:repeat(auto-fill,minmax(220px,1fr))}
+.item{border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.item.ok{border-color:var(--ok);background:var(--ok-soft)}
+.item.bad{border-color:var(--bad);background:var(--bad-soft)}
+.item svg{width:100%;height:auto;display:block;background:var(--card);border-radius:8px}
+label{display:block;font-size:.85rem;color:var(--muted);margin-top:8px}
+select,input[type=text]{width:100%;padding:7px 8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;font-size:.95rem}
+.row{display:flex;gap:8px}
+.row>div{flex:1}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}
+.btn{border:0;border-radius:8px;padding:9px 16px;font:inherit;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+.btn.sec{background:var(--accent-soft);color:var(--accent)}
+.result{margin-top:10px;font-weight:600}
+.hint{font-size:.85rem;color:var(--muted)}
+.sol{font-size:.85rem;color:var(--bad);margin-top:6px;display:none}
+.showsol .item.bad .sol{display:block}
+.info{background:var(--accent-soft);border-radius:10px;padding:10px 12px;font-size:.92rem;margin-top:12px}
+.explorer svg{width:100%;max-width:640px;height:auto;display:block;margin:0 auto;background:var(--card)}
+.big{font-size:1.05rem;padding:12px 22px;user-select:none;touch-action:none}
+.sim{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.sim svg{width:100%;height:auto;background:var(--card);border-radius:8px;border:1px solid var(--line)}
+.toggle{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;padding:6px 12px;font:inherit;font-weight:600;cursor:pointer}
+.toggle.on{border-color:var(--air);background:var(--air);color:#fff}
+.lamp{display:inline-block;width:14px;height:14px;border-radius:50%;background:var(--line);vertical-align:middle;margin-right:6px}
+.lamp.on{background:var(--air);box-shadow:0 0 8px var(--air)}
+.q{border-bottom:1px solid var(--line);padding:12px 0}
+.q:last-child{border-bottom:0}
+.q p{margin:0 0 6px;font-weight:600}
+.q label{display:flex;gap:8px;align-items:flex-start;color:var(--ink);font-size:.95rem;margin:4px 0;cursor:pointer}
+.q.ok p{color:var(--ok)} .q.bad p{color:var(--bad)}
+.q .fb{font-size:.88rem;color:var(--muted);display:none;margin-top:4px}
+.q.ok .fb,.q.bad .fb{display:block}
+table.legend{border-collapse:collapse;font-size:.9rem;width:100%}
+table.legend td{border-bottom:1px solid var(--line);padding:5px 6px}
+.s{stroke:var(--sym);fill:none;stroke-width:2}
+.f{fill:var(--sym)}
+.t{fill:var(--sym);font-size:12px;font-family:system-ui,sans-serif}
+.box{fill:var(--valve);stroke:var(--sym);stroke-width:2}
+.air{stroke:var(--air)!important}
+.airf{fill:var(--air)!important}
+.slide{transition:transform .35s ease}
+</style>
+</head>
+<body>
+<header>
+  <h1>Wegeventile &amp; Sperrventile</h1>
+  <p>Lernfeld 3 · Pneumatik/Hydraulik – interaktive Übung</p>
+  <div class="scorebar" id="scorebar"></div>
+</header>
+<nav id="nav">
+  <button data-s="s0" class="active">Einstieg</button>
+  <button data-s="s1">1 · Benennung</button>
+  <button data-s="s2">2 · Betätigung</button>
+  <button data-s="s3">3 · Sperrventile</button>
+  <button data-s="s4">4 · Simulation</button>
+  <button data-s="s5">5 · Quiz</button>
+</nav>
+<main>
+
+<!-- EINSTIEG -->
+<section id="s0" class="active">
+  <div class="card explorer">
+    <h2>Wegeventil-Explorer</h2>
+    <p class="task">Wähle ein Ventil und betätige es. Beobachte, wie sich die Kästchen verschieben und welche Leitungen Druck führen (<span style="color:var(--air);font-weight:700">blau</span>).</p>
+    <div class="row" style="max-width:640px;margin:0 auto 10px">
+      <div><select id="exSel">
+        <option value="v32">3/2-Wegeventil · Druckknopf/Feder · einfachwirkender Zylinder</option>
+        <option value="v42">4/2-Wegeventil · Hebel mit Raste · doppeltwirkender Zylinder</option>
+        <option value="v52">5/2-Wegeventil · Elektromagnet/Feder · doppeltwirkender Zylinder</option>
+      </select></div>
+    </div>
+    <div id="exSvg"></div>
+    <div class="btns" style="justify-content:center"><button class="btn big" id="exBtn">Gedrückt halten</button></div>
+    <div class="info" id="exInfo"></div>
+  </div>
+  <div class="card">
+    <h2>Merkwissen</h2>
+    <table class="legend">
+      <tr><td><b>x/y-Wegeventil</b></td><td>x = Anzahl der Anschlüsse, y = Anzahl der Schaltstellungen</td></tr>
+      <tr><td><b>Kästchen</b></td><td>Jedes Kästchen = eine Schaltstellung (a, b, ggf. 0 = Mittelstellung)</td></tr>
+      <tr><td><b>Anschlüsse</b></td><td>werden an der <b>Ruhestellung</b> (Grundstellung) eingezeichnet</td></tr>
+      <tr><td><b>1</b></td><td>Druckanschluss (Versorgung)</td></tr>
+      <tr><td><b>2, 4</b></td><td>Arbeitsanschlüsse (zum Verbraucher)</td></tr>
+      <tr><td><b>3, 5</b></td><td>Entlüftung (Pneumatik) bzw. Rücklauf (Hydraulik)</td></tr>
+      <tr><td><b>Pfeil / „T“</b></td><td>Durchflussrichtung / Anschluss gesperrt</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- AUFGABE 1 -->
+<section id="s1">
+  <div class="card" id="a1">
+    <h2>Aufgabe 1 – Wegeventile benennen</h2>
+    <p class="task">Zähle bei jedem Schaltzeichen die Anschlüsse (an der Ruhestellung) und die Schaltstellungen (Kästchen). Trage die Benennung im Format <b>x/y</b> ein.</p>
+    <div class="grid" id="a1grid"></div>
+    <div class="btns"><button class="btn" data-check="a1">Überprüfen</button><button class="btn sec" data-sol="a1">Lösung zeigen</button><button class="btn sec" data-reset="a1">Zurücksetzen</button></div>
+    <div class="result" id="a1res"></div>
+  </div>
+</section>
+
+<!-- AUFGABE 2 -->
+<section id="s2">
+  <div class="card" id="a2">
+    <h2>Aufgabe 2 – Betätigungsarten</h2>
+    <p class="task">Benenne die Betätigungsart der Wegeventile. Achte auf beide Seiten des Schaltzeichens!</p>
+    <div class="grid" id="a2grid"></div>
+    <div class="btns"><button class="btn" data-check="a2">Überprüfen</button><button class="btn sec" data-sol="a2">Lösung zeigen</button><button class="btn sec" data-reset="a2">Zurücksetzen</button></div>
+    <div class="result" id="a2res"></div>
+  </div>
+</section>
+
+<!-- AUFGABE 3 -->
+<section id="s3">
+  <div class="card" id="a3">
+    <h2>Aufgabe 3 – Sperrventile</h2>
+    <p class="task">Sperrventile sollen das Durchströmen in einer Richtung verhindern. Ordne jedem Schaltzeichen die Ventilart und die passende Erklärung des Durchflusses zu.</p>
+    <div class="grid" id="a3grid"></div>
+    <div class="btns"><button class="btn" data-check="a3">Überprüfen</button><button class="btn sec" data-sol="a3">Lösung zeigen</button><button class="btn sec" data-reset="a3">Zurücksetzen</button></div>
+    <div class="result" id="a3res"></div>
+  </div>
+</section>
+
+<!-- AUFGABE 4 -->
+<section id="s4">
+  <div class="card">
+    <h2>Aufgabe 4 – Sperrventile simulieren</h2>
+    <p class="task">Schalte die Eingänge ein und aus. Finde heraus, wann Ausgang 12 Druck erhält – und welche logische Verknüpfung (UND/ODER) das Ventil darstellt.</p>
+    <div class="sim">
+      <div>
+        <h3 style="margin:0 0 6px;font-size:1rem">Rückschlagventil</h3>
+        <div id="simR"></div>
+        <div class="btns"><button class="toggle" id="rL">Druck links</button><button class="toggle" id="rR">Druck rechts</button></div>
+        <p class="hint" id="rTxt"></p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 6px;font-size:1rem">Wechselventil</h3>
+        <div id="simW"></div>
+        <div class="btns"><button class="toggle" id="w10">Eingang 10</button><button class="toggle" id="w11">Eingang 11</button></div>
+        <p class="hint"><span class="lamp" id="wLamp"></span>Ausgang 12</p>
+      </div>
+      <div>
+        <h3 style="margin:0 0 6px;font-size:1rem">Zweidruckventil</h3>
+        <div id="simZ"></div>
+        <div class="btns"><button class="toggle" id="z10">Eingang 10</button><button class="toggle" id="z11">Eingang 11</button></div>
+        <p class="hint"><span class="lamp" id="zLamp"></span>Ausgang 12</p>
+      </div>
+    </div>
+  </div>
+  <div class="card" id="a4">
+    <h2>Wahrheitstabellen ausfüllen</h2>
+    <p class="task">Nutze die Simulation und trage ein, ob Ausgang 12 Druck hat (1) oder nicht (0).</p>
+    <div id="a4tab"></div>
+    <div class="btns"><button class="btn" data-check="a4">Überprüfen</button><button class="btn sec" data-sol="a4">Lösung zeigen</button><button class="btn sec" data-reset="a4">Zurücksetzen</button></div>
+    <div class="result" id="a4res"></div>
+  </div>
+</section>
+
+<!-- QUIZ -->
+<section id="s5">
+  <div class="card" id="a5">
+    <h2>Aufgabe 5 – Abschlussquiz</h2>
+    <p class="task">Wähle jeweils die richtige Antwort.</p>
+    <div id="quiz"></div>
+    <div class="btns"><button class="btn" data-check="a5">Auswerten</button><button class="btn sec" data-reset="a5">Neu starten</button></div>
+    <div class="result" id="a5res"></div>
+  </div>
+</section>
+</main>
+
+<script>
+/* ---------- SVG-Bausteine für Ventilsymbole ---------- */
+const W = 60, H = 60;
+function arr(x1, y1, x2, y2) {
+  const a = Math.atan2(y2 - y1, x2 - x1), ex = x2 - 3 * Math.cos(a), ey = y2 - 3 * Math.sin(a), L = 10, s = .38;
+  const p1 = [ex - L * Math.cos(a - s), ey - L * Math.sin(a - s)], p2 = [ex - L * Math.cos(a + s), ey - L * Math.sin(a + s)];
+  return `<line class="s" x1="${x1}" y1="${y1}" x2="${ex - 6 * Math.cos(a)}" y2="${ey - 6 * Math.sin(a)}"/><polygon class="f" points="${ex},${ey} ${p1} ${p2}"/>`;
+}
+function blk(x, side) {
+  const y0 = side === 'top' ? 0 : H, y1 = side === 'top' ? 14 : H - 14;
+  return `<line class="s" x1="${x}" y1="${y0}" x2="${x}" y2="${y1}"/><line class="s" x1="${x - 7}" y1="${y1}" x2="${x + 7}" y2="${y1}"/>`;
+}
+const A = (x1, y1, x2, y2) => ['a', x1, y1, x2, y2], B = (x, s) => ['b', x, s];
+const par42 = [A(18, 60, 18, 0), A(42, 0, 42, 60)], cross42 = [A(18, 60, 42, 0), A(18, 0, 42, 60)];
+const closed4 = [B(18, 'top'), B(42, 'top'), B(18, 'bottom'), B(42, 'bottom')];
+const p52a = [A(30, 60, 20, 0), A(40, 0, 50, 60), B(10, 'bottom')], p52b = [A(30, 60, 40, 0), A(20, 0, 10, 60), B(50, 'bottom')];
+const VALVES = {
+  v22: { name: '2/2', n: 2, s: 2, rest: 1, top: [[18, '2']], bot: [[18, '1']], boxes: [[A(18, 60, 18, 0)], [B(18, 'top'), B(18, 'bottom')]] },
+  v32: { name: '3/2', n: 3, s: 2, rest: 1, top: [[18, '2']], bot: [[18, '1'], [42, '3']], boxes: [[A(18, 60, 18, 0), B(42, 'bottom')], [A(18, 0, 42, 60), B(18, 'bottom')]] },
+  v42: { name: '4/2', n: 4, s: 2, rest: 1, top: [[18, '2'], [42, '4']], bot: [[18, '1'], [42, '3']], boxes: [par42, cross42] },
+  v43: { name: '4/3', n: 4, s: 3, rest: 1, top: [[18, '2'], [42, '4']], bot: [[18, '1'], [42, '3']], boxes: [par42, closed4, cross42] },
+  v52: { name: '5/2', n: 5, s: 2, rest: 1, top: [[20, '4'], [40, '2']], bot: [[10, '5'], [30, '1'], [50, '3']], boxes: [p52a, p52b] },
+  v53: { name: '5/3', n: 5, s: 3, rest: 1, top: [[20, '4'], [40, '2']], bot: [[10, '5'], [30, '1'], [50, '3']], boxes: [p52a, [B(20, 'top'), B(40, 'top'), B(10, 'bottom'), B(30, 'bottom'), B(50, 'bottom')], p52b] },
+  v32o: { name: '3/2', n: 3, s: 2, rest: 1, top: [[18, '2']], bot: [[18, '1'], [42, '3']], boxes: [[A(18, 0, 42, 60), B(18, 'bottom')], [A(18, 60, 18, 0), B(42, 'bottom')]] }
+};
+/* Betätigungen: liefern {svg, w}; d = -1 links, +1 rechts */
+const ACT = {
+  feder(x, y, d) { let p = `${x},${y}`; for (let i = 1; i <= 6; i++) p += ` ${x + d * i * 4.5},${i === 6 ? y : y + (i % 2 ? -7 : 7)}`; return { svg: `<polyline class="s" points="${p}"/>`, w: 30 }; },
+  knopf(x, y, d) { const k = x + d * 16, sw = d > 0 ? 1 : 0; return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${k}" y2="${y}"/><line class="s" x1="${k}" y1="${y - 9}" x2="${k}" y2="${y + 9}"/><path class="s" d="M${k} ${y - 9} A9 9 0 0 ${sw} ${k} ${y + 9}"/>`, w: 28 }; },
+  hebel(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 14}" y1="${y}" x2="${x + d * 26}" y2="${y - 14}"/><circle class="s" cx="${x + d * 28}" cy="${y - 16}" r="3.5"/>`, w: 32 }; },
+  magnet(x, y, d) { const rx = d > 0 ? x : x - 14; return { svg: `<rect class="s" x="${rx}" y="${y - 12}" width="14" height="24"/><line class="s" x1="${rx}" y1="${y + 12}" x2="${rx + 14}" y2="${y - 12}"/>`, w: 16 }; },
+  druck(x, y, d) { return { svg: `<polygon class="f" points="${x + d * 3},${y} ${x + d * 13},${y - 6} ${x + d * 13},${y + 6}"/><line class="s" stroke-dasharray="4 3" x1="${x + d * 13}" y1="${y}" x2="${x + d * 32}" y2="${y}"/>`, w: 34 }; },
+  rolle(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><circle class="s" cx="${x + d * 20}" cy="${y}" r="6"/>`, w: 28 }; },
+  raste(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 26}" y2="${y}"/><line class="s" x1="${x + d * 13}" y1="${y}" x2="${x + d * 13}" y2="${y - 5}"/><polyline class="s" points="${x + d * 4},${y - 12} ${x + d * 8.5},${y - 5} ${x + d * 13},${y - 12} ${x + d * 17.5},${y - 5} ${x + d * 22},${y - 12}"/>`, w: 30 }; },
+  pedal(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 10}" y1="${y + 10}" x2="${x + d * 24}" y2="${y - 8}"/>`, w: 30 }; }
+};
+function actW(list) { return (list || []).reduce((s, t) => s + ACT[t](0, 0, 1).w, 0); }
+function drawAct(list, x, y, d) { let out = '', c = x; (list || []).forEach(t => { const r = ACT[t](c, y, d); out += r.svg; c += d * r.w; }); return out; }
+function boxes(v, ox, oy) {
+  let g = '';
+  v.boxes.forEach((els, i) => {
+    const bx = ox + i * W;
+    g += `<rect class="box" x="${bx}" y="${oy}" width="${W}" height="${H}"/>`;
+    g += `<g transform="translate(${bx},${oy})">` + els.map(e => e[0] === 'a' ? arr(e[1], e[2], e[3], e[4]) : blk(e[1], e[2])).join('') + '</g>';
+  });
+  return g;
+}
+function ports(v, ox, oy, cls) {
+  const rx = ox + v.rest * W; let g = '';
+  v.top.forEach(([x, l]) => { g += `<line class="s ${cls && cls(l) ? 'air' : ''}" x1="${rx + x}" y1="${oy}" x2="${rx + x}" y2="${oy - 14}"/><text class="t" x="${rx + x + 4}" y="${oy - 6}">${l}</text>`; });
+  v.bot.forEach(([x, l]) => { g += `<line class="s ${cls && cls(l) ? 'air' : ''}" x1="${rx + x}" y1="${oy + H}" x2="${rx + x}" y2="${oy + H + 14}"/><text class="t" x="${rx + x + 4}" y="${oy + H + 16}">${l}</text>`; });
+  return g;
+}
+function valveSVG(key, L, R) {
+  const v = VALVES[key], lw = actW(L), rw = actW(R), ox = 12 + lw, oy = 26;
+  const w = ox + v.boxes.length * W + rw + 12, h = oy + H + 30;
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Schaltzeichen Wegeventil">` + boxes(v, ox, oy) +
+    drawAct(L, ox, oy + H / 2, -1) + drawAct(R, ox + v.boxes.length * W, oy + H / 2, 1) + ports(v, ox, oy) + '</svg>';
+}
+
+/* ---------- Sperrventil-Symbole ---------- */
+function symRueck(st) {
+  // st: 'off' | 'L' | 'R'
+  const open = st === 'L', a = c => (c ? 'air' : '');
+  const bx = open ? 76 : 62;
+  return `<svg viewBox="0 0 220 90" role="img" aria-label="Rückschlagventil">
+  <line class="s ${a(st === 'L')}" x1="10" y1="45" x2="40" y2="45"/>
+  <line class="s" x1="40" y1="45" x2="62" y2="29"/><line class="s" x1="40" y1="45" x2="62" y2="61"/>
+  <circle class="s" cx="${bx}" cy="45" r="10" style="transition:all .3s"/>
+  <polyline class="s" points="${bx + 10},45 ${bx + 14},38 ${bx + 19},52 ${bx + 24},38 ${bx + 29},52 ${bx + 34},38 ${bx + 38},45"/>
+  <line class="s ${a(st === 'R' || open)}" x1="${bx + 38}" y1="45" x2="210" y2="45"/>
+  ${open ? '<text class="t" x="100" y="80" style="fill:var(--air)">Durchfluss →</text>' : st === 'R' ? '<text class="t" x="70" y="80" style="fill:var(--bad)">gesperrt</text>' : ''}
+  </svg>`;
+}
+function symWechsel(i10, i11) {
+  const out = i10 || i11, a = c => (c ? 'air' : '');
+  const ball = i10 && !i11 ? 140 : i11 && !i10 ? 60 : 100;
+  return `<svg viewBox="0 0 200 100" role="img" aria-label="Wechselventil">
+  <line class="s ${a(out)}" x1="100" y1="40" x2="100" y2="8"/><text class="t" x="106" y="18">12</text>
+  <rect class="s" x="40" y="40" width="120" height="40"/>
+  <line class="s ${a(i10)}" x1="4" y1="60" x2="40" y2="60"/><text class="t" x="8" y="54">10</text>
+  <line class="s ${a(i11)}" x1="160" y1="60" x2="196" y2="60"/><text class="t" x="178" y="54">11</text>
+  <polyline class="s" points="58,48 44,60 58,72"/><polyline class="s" points="142,48 156,60 142,72"/>
+  <circle class="s ${a(out)}" cx="${ball}" cy="60" r="8" style="transition:all .3s"/>
+  </svg>`;
+}
+function symZwei(i10, i11) {
+  const out = i10 && i11, a = c => (c ? 'air' : '');
+  return `<svg viewBox="0 0 200 100" role="img" aria-label="Zweidruckventil">
+  <line class="s ${a(out)}" x1="100" y1="40" x2="100" y2="8"/><text class="t" x="106" y="18">12</text>
+  <rect class="s" x="40" y="40" width="120" height="40"/>
+  <line class="s ${a(i10)}" x1="4" y1="60" x2="40" y2="60"/><text class="t" x="8" y="54">10</text>
+  <line class="s ${a(i11)}" x1="160" y1="60" x2="196" y2="60"/><text class="t" x="178" y="54">11</text>
+  <line class="s" x1="56" y1="48" x2="56" y2="72"/><line class="s" x1="144" y1="48" x2="144" y2="72"/>
+  <line class="s" x1="56" y1="60" x2="144" y2="60"/>
+  </svg>`;
+}
+
+/* ---------- Navigation ---------- */
+document.querySelectorAll('#nav button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('#nav button').forEach(x => x.classList.toggle('active', x === b));
+  document.querySelectorAll('section').forEach(s => s.classList.toggle('active', s.id === b.dataset.s));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+});
+
+/* ---------- Punktestand ---------- */
+const score = { a1: [0, 0, 'Benennung'], a2: [0, 0, 'Betätigung'], a3: [0, 0, 'Sperrventile'], a4: [0, 0, 'Tabellen'], a5: [0, 0, 'Quiz'] };
+function renderScore() {
+  let g = 0, m = 0, html = '';
+  for (const k in score) { const [a, b, n] = score[k]; g += a; m += b; html += `<span class="chip">${n}: ${b ? a + '/' + b : '–'}</span>`; }
+  html += `<span class="chip" style="background:rgba(255,255,255,.32)"><b>Gesamt: ${g}/${m || '–'}</b></span>`;
+  document.getElementById('scorebar').innerHTML = html;
+}
+
+/* ---------- Explorer ---------- */
+const EX = {
+  v32: { L: ['knopf'], R: ['feder'], hold: true, btn: 'Druckknopf gedrückt halten', cyl: 'ew', map: { '2': 'L' },
+    air: s => s === 0 ? ['1', '2'] : ['1'],
+    txt: s => s === 0 ? '<b>Stellung a (betätigt):</b> 1 → 2 – der Zylinder wird belüftet und fährt aus. Anschluss 3 ist gesperrt.' : '<b>Ruhestellung b:</b> 2 → 3 – der Zylinder wird entlüftet, die Feder schiebt den Kolben zurück. Anschluss 1 ist gesperrt.' },
+  v42: { L: ['hebel'], R: ['raste'], hold: false, btn: 'Hebel umlegen', cyl: 'dw', map: { '2': 'L', '4': 'R' },
+    air: s => s === 0 ? ['1', '2'] : ['1', '4'],
+    txt: s => s === 0 ? '<b>Stellung a:</b> 1 → 2 und 4 → 3 – Kolben fährt aus. Die Raste hält das Ventil in dieser Stellung, auch wenn man loslässt.' : '<b>Stellung b:</b> 1 → 4 und 2 → 3 – Kolben fährt ein bzw. bleibt eingefahren.' },
+  v52: { L: ['magnet'], R: ['feder'], hold: true, btn: 'Spule bestromen (halten)', cyl: 'dw', map: { '4': 'L', '2': 'R' },
+    air: s => s === 0 ? ['1', '4'] : ['1', '2'],
+    txt: s => s === 0 ? '<b>Stellung a (Spule bestromt):</b> 1 → 4 und 2 → 3 – Kolben fährt aus, Anschluss 5 gesperrt.' : '<b>Ruhestellung b:</b> 1 → 2 und 4 → 5 – Kolben fährt ein, Anschluss 3 gesperrt.' }
+};
+let exKey = 'v32', exState = 1;
+function renderEx() {
+  const e = EX[exKey], v = VALVES[exKey], ox = 70, oy = 170, airs = e.air(exState);
+  const isAir = l => airs.includes(l);
+  const shift = (v.rest - exState) * W;
+  let lines = '';
+  v.top.forEach(([x, l]) => {
+    const side = e.map[l]; if (!side) return;
+    const px = ox + v.rest * W + x, tx = side === 'L' ? 55 : 205, ry = side === 'L' ? 128 : 112;
+    lines += `<polyline class="s ${isAir(l) ? 'air' : ''}" points="${px},${oy - 14} ${px},${ry} ${tx},${ry} ${tx},80"/>`;
+  });
+  const leftAir = Object.keys(e.map).some(l => e.map[l] === 'L' && isAir(l));
+  const P = leftAir ? 200 : 44;
+  const cyl = `<rect class="s" x="40" y="35" width="180" height="45"/>
+    <rect class="${leftAir ? 'airf' : ''}" x="41" y="36" width="${P - 41}" height="43" style="fill:transparent;opacity:.25;transition:all .35s"/>
+    <g class="slide" style="transform:translateX(${P - 44}px)"><rect class="f" x="44" y="38" width="10" height="39"/><rect class="f" x="54" y="54" width="200" height="7"/></g>
+    <text class="t" x="40" y="24">${e.cyl === 'ew' ? 'Einfachwirkender Zylinder (Federrückstellung)' : 'Doppeltwirkender Zylinder'}</text>`;
+  const bL = actW(e.L);
+  const svg = `<svg viewBox="0 0 440 270">${cyl}${lines}
+    <g class="slide" style="transform:translateX(${shift}px)">${boxes(v, ox, oy)}${drawAct(e.L, ox, oy + H / 2, -1)}${drawAct(e.R, ox + 2 * W, oy + H / 2, 1)}
+    <text class="t" x="${ox + 26}" y="${oy + H + 30}">a</text><text class="t" x="${ox + W + 26}" y="${oy + H + 30}">b</text></g>
+    ${ports(v, ox, oy, isAir)}
+    <text class="t" x="250" y="${oy + H + 16}">1 = Druckluft · 3/5 = Entlüftung</text></svg>`;
+  document.getElementById('exSvg').innerHTML = svg;
+  document.getElementById('exInfo').innerHTML = e.txt(exState);
+  document.getElementById('exBtn').textContent = e.hold ? e.btn : (exState === 0 ? 'Hebel zurücklegen' : e.btn);
+}
+const exBtn = document.getElementById('exBtn');
+exBtn.addEventListener('pointerdown', ev => { ev.preventDefault(); if (EX[exKey].hold) { exState = 0; renderEx(); } else { exState = exState ? 0 : 1; renderEx(); } });
+['pointerup', 'pointerleave', 'pointercancel'].forEach(t => exBtn.addEventListener(t, () => { if (EX[exKey].hold && exState === 0) { exState = 1; renderEx(); } }));
+exBtn.addEventListener('keydown', ev => { if (ev.key === ' ' || ev.key === 'Enter') { ev.preventDefault(); if (!EX[exKey].hold) { exState = exState ? 0 : 1; } else exState = 0; renderEx(); } });
+exBtn.addEventListener('keyup', ev => { if ((ev.key === ' ' || ev.key === 'Enter') && EX[exKey].hold) { exState = 1; renderEx(); } });
+document.getElementById('exSel').onchange = e => { exKey = e.target.value; exState = 1; renderEx(); };
+
+/* ---------- Aufgabe 1 ---------- */
+const A1 = [['v22', [], ['feder']], ['v42', [], []], ['v32', [], []], ['v43', [], []], ['v53', [], []], ['v52', [], []]];
+function buildA1() {
+  document.getElementById('a1grid').innerHTML = A1.map(([k, L, R], i) => {
+    const v = VALVES[k];
+    return `<div class="item" data-i="${i}">${valveSVG(k, L, R)}
+      <div class="row"><div><label>Anschlüsse</label><select data-f="n"><option value="">–</option>${[2, 3, 4, 5].map(n => `<option>${n}</option>`).join('')}</select></div>
+      <div><label>Schaltstellungen</label><select data-f="s"><option value="">–</option>${[2, 3].map(n => `<option>${n}</option>`).join('')}</select></div></div>
+      <label>Benennung</label><input type="text" data-f="b" placeholder="z. B. 3/2">
+      <div class="sol">Lösung: ${v.name}-Wegeventil · ${v.n} Anschlüsse · ${v.s} Schaltstellungen</div></div>`;
+  }).join('');
+  score.a1[1] = A1.length * 3;
+}
+function checkA1() {
+  let pts = 0;
+  document.querySelectorAll('#a1grid .item').forEach(it => {
+    const v = VALVES[A1[it.dataset.i][0]];
+    const n = it.querySelector('[data-f=n]').value, s = it.querySelector('[data-f=s]').value;
+    const b = it.querySelector('[data-f=b]').value.toLowerCase().replace(/wegeventil|[\s-]/g, '').replace('\\', '/');
+    const p = (n == v.n) + (s == v.s) + (b === v.name); pts += p;
+    it.className = 'item ' + (p === 3 ? 'ok' : 'bad');
+  });
+  return pts;
+}
+
+/* ---------- Aufgabe 2 ---------- */
+const A2OPT = ['Druckknopf mit Rückstellfeder', 'Handhebel mit Raste', 'Beidseitig elektromagnetisch betätigt', 'Beidseitig druckbetätigt, federzentriert', 'Rollenstößel mit Rückstellfeder', 'Elektromagnet mit Rückstellfeder', 'Fußpedal mit Rückstellfeder', 'Beidseitig druckbetätigt (ohne Feder)'];
+const A2 = [['v32', ['knopf'], ['feder'], 0], ['v42', ['hebel'], ['raste'], 1], ['v42', ['magnet'], ['magnet'], 2], ['v53', ['feder', 'druck'], ['feder', 'druck'], 3], ['v32', ['rolle'], ['feder'], 4], ['v52', ['magnet'], ['feder'], 5], ['v22', ['pedal'], ['feder'], 6], ['v52', ['druck'], ['druck'], 7]];
+const A2order = [0, 2, 4, 1, 3, 5, 7, 6];
+function buildA2() {
+  const opts = [...A2OPT].sort();
+  document.getElementById('a2grid').innerHTML = A2order.map(i => {
+    const [k, L, R, c] = A2[i];
+    return `<div class="item" data-i="${i}">${valveSVG(k, L, R)}<label>Betätigungsart</label>
+    <select><option value="">– bitte wählen –</option>${opts.map(o => `<option>${o}</option>`).join('')}</select>
+    <div class="sol">Lösung: ${A2OPT[c]}</div></div>`;
+  }).join('');
+  score.a2[1] = A2.length;
+}
+function checkA2() {
+  let pts = 0;
+  document.querySelectorAll('#a2grid .item').forEach(it => {
+    const ok = it.querySelector('select').value === A2OPT[A2[it.dataset.i][3]]; pts += ok;
+    it.className = 'item ' + (ok ? 'ok' : 'bad');
+  });
+  return pts;
+}
+
+/* ---------- Aufgabe 3 ---------- */
+const A3NAMES = ['Rückschlagventil', 'Wechselventil', 'Zweidruckventil', 'Drosselventil'];
+const A3EXPL = ['Wirkt der Druck entgegen der Federkraft, öffnet das Ventil – in Gegenrichtung sperrt es.', 'Ausgang 12 erhält Druck, wenn 10 ODER 11 mit Druck beaufschlagt wird.', 'Ausgang 12 erhält nur Druck, wenn 10 UND 11 mit Druck beaufschlagt werden.', 'Der Volumenstrom wird in beide Richtungen gleich stark gedrosselt.'];
+const A3 = [[() => symWechsel(false, false), 1], [() => symRueck('off'), 0], [() => symZwei(false, false), 2]];
+function buildA3() {
+  document.getElementById('a3grid').innerHTML = A3.map(([f, c], i) => `<div class="item" data-i="${i}">${f()}
+    <label>Ventilart</label><select data-f="n"><option value="">– bitte wählen –</option>${A3NAMES.map(o => `<option>${o}</option>`).join('')}</select>
+    <label>Erklärung Durchfluss</label><select data-f="e"><option value="">– bitte wählen –</option>${A3EXPL.map((o, j) => `<option value="${j}">${o}</option>`).join('')}</select>
+    <div class="sol">Lösung: ${A3NAMES[c]} – ${A3EXPL[c]}</div></div>`).join('');
+  score.a3[1] = A3.length * 2;
+}
+function checkA3() {
+  let pts = 0;
+  document.querySelectorAll('#a3grid .item').forEach(it => {
+    const c = A3[it.dataset.i][1];
+    const p = (it.querySelector('[data-f=n]').value === A3NAMES[c]) + (it.querySelector('[data-f=e]').value == c);
+    pts += p; it.className = 'item ' + (p === 2 ? 'ok' : 'bad');
+  });
+  return pts;
+}
+
+/* ---------- Simulation ---------- */
+const sim = { r: 'off', w10: 0, w11: 0, z10: 0, z11: 0 };
+function renderSim() {
+  document.getElementById('simR').innerHTML = symRueck(sim.r);
+  document.getElementById('rL').classList.toggle('on', sim.r === 'L');
+  document.getElementById('rR').classList.toggle('on', sim.r === 'R');
+  document.getElementById('rTxt').textContent = sim.r === 'L' ? 'Der Druck wirkt gegen die Federkraft und hebt die Kugel vom Sitz → Durchfluss.' : sim.r === 'R' ? 'Druck und Feder drücken die Kugel in den Sitz → das Ventil sperrt.' : 'Wähle eine Druckrichtung.';
+  document.getElementById('simW').innerHTML = symWechsel(sim.w10, sim.w11);
+  document.getElementById('simZ').innerHTML = symZwei(sim.z10, sim.z11);
+  ['w10', 'w11', 'z10', 'z11'].forEach(k => document.getElementById(k).classList.toggle('on', !!sim[k]));
+  document.getElementById('wLamp').classList.toggle('on', !!(sim.w10 || sim.w11));
+  document.getElementById('zLamp').classList.toggle('on', !!(sim.z10 && sim.z11));
+}
+document.getElementById('rL').onclick = () => { sim.r = sim.r === 'L' ? 'off' : 'L'; renderSim(); };
+document.getElementById('rR').onclick = () => { sim.r = sim.r === 'R' ? 'off' : 'R'; renderSim(); };
+['w10', 'w11', 'z10', 'z11'].forEach(k => document.getElementById(k).onclick = () => { sim[k] = sim[k] ? 0 : 1; renderSim(); });
+
+/* ---------- Aufgabe 4 (Wahrheitstabellen) ---------- */
+const COMB = [[0, 0], [1, 0], [0, 1], [1, 1]];
+function buildA4() {
+  const tab = (id, title) => `<div style="margin-bottom:14px"><b>${title}</b>
+    <table class="legend" style="max-width:420px;text-align:center"><tr><td><b>10</b></td><td><b>11</b></td><td><b>12</b></td></tr>
+    ${COMB.map((c, i) => `<tr><td>${c[0]}</td><td>${c[1]}</td><td><select data-t="${id}" data-i="${i}" style="width:70px"><option value="">?</option><option>0</option><option>1</option></select></td></tr>`).join('')}</table></div>`;
+  document.getElementById('a4tab').innerHTML = tab('w', 'Wechselventil') + tab('z', 'Zweidruckventil') +
+    `<label>Welche logische Verknüpfung stellt das Wechselventil dar?</label><select data-q="w" style="max-width:420px"><option value="">–</option><option>UND</option><option>ODER</option><option>NICHT</option></select>
+     <label>Welche logische Verknüpfung stellt das Zweidruckventil dar?</label><select data-q="z" style="max-width:420px"><option value="">–</option><option>UND</option><option>ODER</option><option>NICHT</option></select>
+     <div class="sol" id="a4sol">Lösung: Wechselventil 0-1-1-1 (ODER) · Zweidruckventil 0-0-0-1 (UND)</div>`;
+  score.a4[1] = 10;
+}
+function checkA4() {
+  let pts = 0;
+  document.querySelectorAll('#a4tab select[data-t]').forEach(s => {
+    const c = COMB[s.dataset.i], want = s.dataset.t === 'w' ? (c[0] || c[1]) : (c[0] && c[1]);
+    const ok = s.value === String(want); pts += ok;
+    s.style.borderColor = ok ? 'var(--ok)' : 'var(--bad)';
+  });
+  const qw = document.querySelector('[data-q=w]'), qz = document.querySelector('[data-q=z]');
+  [[qw, 'ODER'], [qz, 'UND']].forEach(([s, w]) => { const ok = s.value === w; pts += ok; s.style.borderColor = ok ? 'var(--ok)' : 'var(--bad)'; });
+  return pts;
+}
+
+/* ---------- Quiz ---------- */
+const QUIZ = [
+  ['Was bedeutet die Bezeichnung „5/3-Wegeventil“?', ['5 Schaltstellungen, 3 Anschlüsse', '5 Anschlüsse, 3 Schaltstellungen', '5 bar Betriebsdruck, 3 Anschlüsse'], 1, 'Erste Zahl = Anschlüsse, zweite Zahl = Schaltstellungen.'],
+  ['An welchem Kästchen werden die Anschlüsse eingezeichnet?', ['Immer am linken Kästchen', 'An der Ruhestellung (Grundstellung)', 'An jedem Kästchen'], 1, 'Die Leitungen werden an der Ruhestellung angeschlossen – bei federzentrierten 3-Stellungs-Ventilen an der Mittelstellung.'],
+  ['Welche Funktion hat Anschluss 1?', ['Arbeitsanschluss', 'Entlüftung', 'Druckanschluss (Versorgung)'], 2, '1 = Druck, 2/4 = Arbeitsanschlüsse, 3/5 = Entlüftung bzw. Rücklauf.'],
+  ['Was bedeutet ein „T“-Symbol im Kästchen?', ['Der Anschluss ist gesperrt', 'Hier ist ein Tank angeschlossen', 'Die Luft strömt in beide Richtungen'], 0, 'Das „T“ (Querstrich) bedeutet: Anschluss gesperrt.'],
+  ['Welche Aufgabe erfüllen Sperrventile?', ['Sie regeln den Druck', 'Sie verhindern das Durchströmen in eine Richtung', 'Sie verteilen den Volumenstrom auf mehrere Verbraucher'], 1, 'Sperrventile sperren den Durchfluss vorzugsweise in eine Richtung.'],
+  ['Ein 4/3-Wegeventil ist federzentriert. In welcher Stellung befindet es sich unbetätigt?', ['Stellung a', 'Mittelstellung', 'Stellung b'], 1, 'Die Federn auf beiden Seiten halten das Ventil in der Mittelstellung.'],
+  ['Eine Presse darf nur auslösen, wenn der Bediener zwei Taster gleichzeitig drückt (Zweihandbedienung). Welches Ventil verknüpft die Signale?', ['Wechselventil', 'Rückschlagventil', 'Zweidruckventil'], 2, 'Zweidruckventil = UND-Funktion: Ausgang 12 nur, wenn 10 UND 11 Druck haben.'],
+  ['Ein Zylinder soll von zwei verschiedenen Stellen aus angesteuert werden können. Welches Ventil benötigt man?', ['Wechselventil', 'Zweidruckventil', '2/2-Wegeventil'], 0, 'Wechselventil = ODER-Funktion – es verhindert zudem, dass die Luft über den anderen Eingang entweicht.'],
+  ['Wozu dient ein Rückschlagventil zwischen Kompressor und Druckluftbehälter (z. B. Lkw-Druckluftbremse)?', ['Damit der Behälter schneller entlüftet', 'Damit die Druckluft nicht zum Kompressor zurückströmen kann', 'Damit der Kompressor weniger Strom braucht'], 1, 'Der Vorrat im Behälter bleibt erhalten, auch wenn der Kompressor nicht fördert.'],
+  ['Wie viele Anschlüsse und Schaltstellungen hat das Ventil aus dem Explorer, das den einfachwirkenden Zylinder steuert?', ['3 Anschlüsse, 2 Schaltstellungen', '2 Anschlüsse, 3 Schaltstellungen', '4 Anschlüsse, 2 Schaltstellungen'], 0, '3/2-Wegeventil: 1 (Druck), 2 (Arbeit), 3 (Entlüftung).']
+];
+function buildQuiz() {
+  document.getElementById('quiz').innerHTML = QUIZ.map(([q, opts, , fb], i) => `<div class="q" data-i="${i}"><p>${i + 1}. ${q}</p>
+    ${opts.map((o, j) => `<label><input type="radio" name="q${i}" value="${j}"> ${o}</label>`).join('')}<div class="fb">${fb}</div></div>`).join('');
+  score.a5[1] = QUIZ.length;
+}
+function checkA5() {
+  let pts = 0;
+  document.querySelectorAll('#quiz .q').forEach(q => {
+    const sel = q.querySelector('input:checked'), ok = sel && +sel.value === QUIZ[q.dataset.i][2];
+    pts += !!ok; q.className = 'q ' + (ok ? 'ok' : 'bad');
+  });
+  return pts;
+}
+
+/* ---------- Buttons ---------- */
+const CHECK = { a1: checkA1, a2: checkA2, a3: checkA3, a4: checkA4, a5: checkA5 };
+const BUILD = { a1: buildA1, a2: buildA2, a3: buildA3, a4: buildA4, a5: buildQuiz };
+function feedback(k, p) {
+  const m = score[k][1], r = document.getElementById(k + 'res');
+  score[k][0] = p; renderScore();
+  r.textContent = `${p} von ${m} Punkten` + (p === m ? ' – super, alles richtig!' : ' – rote Felder noch einmal prüfen.');
+  r.style.color = p === m ? 'var(--ok)' : 'var(--ink)';
+}
+document.querySelectorAll('[data-check]').forEach(b => b.onclick = () => { const k = b.dataset.check; feedback(k, CHECK[k]()); });
+document.querySelectorAll('[data-sol]').forEach(b => b.onclick = () => {
+  const k = b.dataset.sol; CHECK[k](); document.getElementById(k).classList.add('showsol');
+  if (k === 'a4') document.getElementById('a4sol').style.display = 'block';
+});
+document.querySelectorAll('[data-reset]').forEach(b => b.onclick = () => {
+  const k = b.dataset.reset; document.getElementById(k).classList.remove('showsol');
+  BUILD[k](); score[k][0] = 0; document.getElementById(k + 'res').textContent = ''; renderScore();
+});
+
+Object.values(BUILD).forEach(f => f());
+renderScore(); renderEx(); renderSim();
+</script>
+</body>
+</html>
