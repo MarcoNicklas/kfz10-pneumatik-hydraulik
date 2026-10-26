@@ -8,12 +8,12 @@
 :root{
   --bg:#f4f6f8; --card:#fff; --ink:#1d2733; --muted:#5d6b7a; --line:#d5dce3;
   --accent:#1f6fb2; --accent-soft:#e3eef8; --ok:#1e8a4c; --ok-soft:#e2f4ea;
-  --bad:#c0392b; --bad-soft:#fbe6e3; --grid:#e6ebf0; --warn:#b26a00; --warn-soft:#fff3df;
+  --bad:#c0392b; --bad-soft:#fbe6e3; --grid:#e6ebf0; --warn:#b26a00; --warn-soft:#fff3df; --air:#1f8fe0;
 }
 @media (prefers-color-scheme: dark){
   :root{--bg:#12171d; --card:#1b232c; --ink:#e6edf3; --muted:#9aa8b6; --line:#2e3a46;
   --accent:#5aa8ec; --accent-soft:#1d3346; --ok:#46c27a; --ok-soft:#173327;
-  --bad:#ef6f61; --bad-soft:#3a1f1c; --grid:#222c36; --warn:#f0b04a; --warn-soft:#3a2c14;}
+  --bad:#ef6f61; --bad-soft:#3a1f1c; --grid:#222c36; --warn:#f0b04a; --warn-soft:#3a2c14; --air:#4fb3ff;}
 }
 *{box-sizing:border-box}
 html,body{margin:0}
@@ -67,7 +67,7 @@ details summary{cursor:pointer;font-weight:600}
 .ib:disabled{opacity:.4}
 .stage{position:relative;background:var(--card)}
 #cv{display:block;width:100%;height:62vh;min-height:380px;max-height:720px;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--card)}
-.status{position:absolute;left:8px;right:8px;top:8px;pointer-events:none;display:flex;justify-content:center}
+.status{position:absolute;left:8px;right:8px;bottom:8px;pointer-events:none;display:flex;justify-content:center}
 .status span{background:var(--ink);color:var(--card);border-radius:999px;padding:4px 12px;font-size:.82rem;opacity:.88;max-width:100%}
 .status span:empty{display:none}
 .sel{display:none;gap:6px;align-items:center;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--accent-soft)}
@@ -103,6 +103,25 @@ details summary{cursor:pointer;font-weight:600}
 #cv .ln.selln{stroke:var(--accent);stroke-width:3}
 #cv .gridl{stroke:var(--grid);stroke-width:1}
 #cv .jd,.solsvg .jd{fill:var(--ink)}
+#cv .ln.air{stroke:var(--air);stroke-width:2.8}
+#cv .flow{fill:none;stroke:#fff;stroke-width:1.3;stroke-dasharray:3 9;stroke-linecap:round;opacity:.9;animation:flow .7s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+#cv .chamber{fill:var(--air);opacity:.28}
+#cv .acton .s{stroke:var(--air);stroke-width:2.4}
+#cv .acton .f{fill:var(--air)}
+#cv .airs{stroke:var(--air)}
+#cv .vmove{transition:transform .25s ease}
+.editor.simon .pal,.editor.simon .sel,.editor.simon #bUndo,.editor.simon #bClear{display:none!important}
+#bSim,#bSimStop{display:none}
+.editor.simok:not(.simon) #bSim{display:inline-block;background:var(--ok);border-color:var(--ok);color:#fff}
+.editor.simon #bSimStop{display:inline-block;background:var(--bad-soft);color:var(--bad)}
+.simbar{display:none;gap:6px;align-items:center;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--accent-soft)}
+.editor.simon .simbar{display:flex}
+.editor.simon:not(.full) #cv{height:54vh;min-height:320px}
+.simbar .sb{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none}
+.simbar .sb.on{background:var(--air);border-color:var(--air);color:#fff}
+.simbar .leg{font-size:.78rem;color:var(--muted);width:100%}
+.simbar .leg i{display:inline-block;width:18px;height:4px;background:var(--air);vertical-align:middle;border-radius:2px;margin-right:4px}
 @media (max-width:560px){
   .levels{grid-template-columns:repeat(2,1fr)}
   header h1{font-size:1.2rem}
@@ -128,6 +147,8 @@ details summary{cursor:pointer;font-weight:600}
       <button class="ib" id="bZoomIn" title="Vergrößern">+</button>
       <button class="ib" id="bFit" title="Alles anzeigen">⤢</button>
       <span class="sp"></span>
+      <button class="ib" id="bSim">▶ Simulation</button>
+      <button class="ib" id="bSimStop">■ Bearbeiten</button>
       <button class="ib" id="bFull">Vollbild</button>
       <button class="ib" id="bClear" title="Alles löschen">🗑</button>
     </div>
@@ -136,6 +157,7 @@ details summary{cursor:pointer;font-weight:600}
       <div class="status"><span id="status"></span></div>
     </div>
     <div class="sel" id="selbar"></div>
+    <div class="simbar" id="simbar"></div>
     <div class="pal" id="pal"></div>
   </div>
 
@@ -235,30 +257,28 @@ const T = {
   },
   v32: {
     name: '3/2-Wegeventil', grp: 'Ventile', valve: true, W: 36, defL: 'knopf', defR: 'feder',
-    draw: c => {
+    draw: (c, st) => {
       const W = 36;
-      let s = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
-      s += arrow(12, 34, 12, 2) + blockB(24);                        // betätigt: 1→2, 3 gesperrt
-      s += blockB(W + 12) + arrow(W + 12, 2, W + 24, 34);            // Grundstellung: 1 gesperrt, 2→3
-      s += L(W + 12, 0, W + 12, -8) + L(W + 12, 36, W + 12, 44) + exhaust(W + 24);
-      s += num(W + 15, -2, '2') + num(W + 9, 52, '1', 'end') + num(W + 31, 50, '3');
-      s += valveActs(c, W);
-      return s;
+      let m = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      m += arrow(12, 34, 12, 2) + blockB(24);                        // betätigt: 1→2, 3 gesperrt
+      m += blockB(W + 12) + arrow(W + 12, 2, W + 24, 34);            // Grundstellung: 1 gesperrt, 2→3
+      let f = L(W + 12, 0, W + 12, -8) + L(W + 12, 36, W + 12, 44) + exhaust(W + 24);
+      f += num(W + 15, -2, '2') + num(W + 9, 52, '1', 'end') + num(W + 31, 50, '3');
+      return valveCompose(c, W, m, f, st);
     },
     ports: c => valvePorts(c, 36, [{ p: '2', x: 48, y: -8, dir: 'u' }, { p: '1', x: 48, y: 44, dir: 'd' }], '12', '10'),
     box: c => [-aw(c.la) - 2, -12, 72 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
   },
   v52: {
     name: '5/2-Wegeventil', grp: 'Ventile', valve: true, W: 48, defL: 'magnet', defR: 'feder',
-    draw: c => {
+    draw: (c, st) => {
       const W = 48;
-      let s = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
-      s += arrow(24, 34, 14, 2) + arrow(34, 2, 38, 34);              // betätigt: 1→4, 2→3
-      s += arrow(W + 24, 34, W + 34, 2) + arrow(W + 14, 2, W + 10, 34); // Grundstellung: 1→2, 4→5
-      s += L(W + 14, 0, W + 14, -8) + L(W + 34, 0, W + 34, -8) + L(W + 24, 36, W + 24, 44) + exhaust(W + 10) + exhaust(W + 38);
-      s += num(W + 11, -2, '4', 'end') + num(W + 37, -2, '2') + num(W + 27, 52, '1') + num(W + 3, 50, '5', 'end') + num(W + 45, 50, '3');
-      s += valveActs(c, W);
-      return s;
+      let m = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      m += arrow(24, 34, 14, 2) + arrow(34, 2, 38, 34);              // betätigt: 1→4, 2→3
+      m += arrow(W + 24, 34, W + 34, 2) + arrow(W + 14, 2, W + 10, 34); // Grundstellung: 1→2, 4→5
+      let f = L(W + 14, 0, W + 14, -8) + L(W + 34, 0, W + 34, -8) + L(W + 24, 36, W + 24, 44) + exhaust(W + 10) + exhaust(W + 38);
+      f += num(W + 11, -2, '4', 'end') + num(W + 37, -2, '2') + num(W + 27, 52, '1') + num(W + 3, 50, '5', 'end') + num(W + 45, 50, '3');
+      return valveCompose(c, W, m, f, st);
     },
     ports: c => valvePorts(c, 48, [{ p: '4', x: 62, y: -8, dir: 'u' }, { p: '2', x: 82, y: -8, dir: 'u' }, { p: '1', x: 72, y: 44, dir: 'd' }], '14', '12'),
     box: c => [-aw(c.la) - 2, -12, 96 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
@@ -290,13 +310,13 @@ const T = {
   },
   ew: {
     name: 'Zylinder einfachwirkend', grp: 'Antriebe',
-    draw: () => `<rect class="bx" x="-50" y="-14" width="100" height="28"/>` + `<line class="s" x1="-30" y1="-14" x2="-30" y2="14" stroke-width="3.5"/>` + `<line class="s" x1="-30" y1="0" x2="80" y2="0" stroke-width="3"/>` + springH(-27, 48) + L(-42, 14, -42, 22),
+    draw: (c, st) => cylDraw(st, true) + L(-42, 14, -42, 22),
     ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }],
     box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
   },
   dw: {
     name: 'Zylinder doppeltwirkend', grp: 'Antriebe',
-    draw: () => `<rect class="bx" x="-50" y="-14" width="100" height="28"/>` + `<line class="s" x1="-30" y1="-14" x2="-30" y2="14" stroke-width="3.5"/>` + `<line class="s" x1="-30" y1="0" x2="80" y2="0" stroke-width="3"/>` + L(-42, 14, -42, 22) + L(42, 14, 42, 22),
+    draw: (c, st) => cylDraw(st, false) + L(-42, 14, -42, 22) + L(42, 14, 42, 22),
     ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }, { p: 'B', x: 42, y: 22, dir: 'd' }],
     box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
   },
@@ -311,6 +331,16 @@ const T = {
     box: c => { const w = Math.max(24, (c.label || 'Text').length * 8 + 8); return [-w / 2, -13, w / 2, 5]; }, lab: null
   }
 };
+function cylDraw(st, spring) {
+  st = st || {};
+  const px = -30 + (st.s || 0) * 72;
+  let s = `<rect class="bx" x="-50" y="-14" width="100" height="28"/>`;
+  if (st.pA) s += `<rect class="chamber" x="-49" y="-13" width="${px + 49}" height="26"/>`;
+  if (st.pB) s += `<rect class="chamber" x="${px}" y="-13" width="${49 - px}" height="26"/>`;
+  if (spring) s += springH(px + 3, 48);
+  s += `<line class="s" x1="${px}" y1="-14" x2="${px}" y2="14" stroke-width="3.5"/><line class="s" x1="${px}" y1="0" x2="${px + 110}" y2="0" stroke-width="3"/>`;
+  return s;
+}
 function springH(x1, x2) {
   let p = `${x1},0`; const n = 10, st = (x2 - x1) / n;
   for (let i = 1; i < n; i++) p += ` ${x1 + i * st},${i % 2 ? -9 : 9}`;
@@ -318,12 +348,15 @@ function springH(x1, x2) {
 }
 function gateLegs() { return L(-26, 0, -36, 0) + L(-36, 0, -36, 14) + L(26, 0, 36, 0) + L(36, 0, 36, 14) + L(0, -10, 0, -18); }
 function gatePorts() { return [{ p: 'e1', x: -36, y: 14, dir: 'd', ctrl: true }, { p: 'e2', x: 36, y: 14, dir: 'd', ctrl: true }, { p: 'a', x: 0, y: -18, dir: 'u', ctrl: true }]; }
-function valveActs(c, W) {
-  let s = ACT[c.la || 'none'](0, 18, -1).svg + ACT[c.ra || 'none'](2 * W, 18, 1).svg;
-  const five = W === 48;
-  if (c.la === 'druck') s += num(-30, 12, five ? '14' : '12');
-  if (c.ra === 'druck') s += num(2 * W + 30, 12, five ? '12' : '10', 'end');
-  return s;
+function valveCompose(c, W, moving, fixed, st) {
+  st = st || {};
+  const off = (st.pos || 0) * W, five = W === 48;
+  const aL = ACT[c.la || 'none'](0, 18, -1).svg, aR = ACT[c.ra || 'none'](2 * W, 18, 1).svg;
+  moving += st.onL ? `<g class="acton">${aL}</g>` : aL;
+  moving += st.onR ? `<g class="acton">${aR}</g>` : aR;
+  if (c.la === 'druck') { fixed += num(-30, 12, five ? '14' : '12'); if (off) fixed += `<line class="s${st.onL ? ' airs' : ''}" stroke-dasharray="4 3" x1="-32" y1="18" x2="${-32 + off}" y2="18"/>`; }
+  if (c.ra === 'druck') fixed += num(2 * W + 30, 12, five ? '12' : '10', 'end');
+  return `<g class="vmove" transform="translate(${off},0)">${moving}</g>` + fixed;
 }
 function valvePorts(c, W, base, lname, rname) {
   const out = base.slice();
@@ -388,28 +421,33 @@ const isCtrl = (d, ln) => {
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 function renderDiagram(d, o = {}) {
   let s = '';
-  // Leitungen
+  const sim = o.sim;
   const used = new Set();
+  if (o.part !== 'comps') {
   d.lines.forEach(ln => {
     const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
     if (!a || !b) return;
     used.add(ln.a.c + ':' + ln.a.p); used.add(ln.b.c + ':' + ln.b.p);
     const pts = route(a, b).map(p => `${p.x},${p.y}`).join(' ');
     const sel = o.edit && o.sel && o.sel.kind === 'line' && o.sel.id === ln.id;
-    s += `<polyline class="ln${isCtrl(d, ln) ? ' ctrl' : ''}${sel ? ' selln' : ''}" points="${pts}"/>`;
+    const air = sim && sim.P.has(sim.N(ln.a.c + ':' + ln.a.p));
+    s += `<polyline class="ln${isCtrl(d, ln) ? ' ctrl' : ''}${sel ? ' selln' : ''}${air ? ' air' : ''}" points="${pts}"/>`;
+    if (air) s += `<polyline class="flow" points="${pts}"/>`;
     if (o.edit) s += `<polyline class="lnhit" data-line="${ln.id}" points="${pts}"/>`;
   });
+  }
+  if (o.part === 'lines') return s;
   // Bauteile
   d.comps.forEach(c => {
     const t = T[c.type];
     const tr = `translate(${c.x},${c.y})`;
     const b = t.box(c);
     s += `<g data-comp="${c.id}">`;
-    if (o.edit) {
+    if (o.edit || sim) {
       const [x1, y1, x2, y2] = bboxOf(c);
       s += `<rect class="hit" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/>`;
     }
-    s += `<g transform="${tr}${c.flip ? ' scale(1,-1)' : ''}">${t.draw(c)}</g>`;
+    s += `<g transform="${tr}${c.flip ? ' scale(1,-1)' : ''}">${t.draw(c, sim ? simStateOf(c) : undefined)}</g>`;
     if (c.type === 'abzweig') {
       const conn = d.lines.filter(l => (l.a.c === c.id) || (l.b.c === c.id)).length;
       if (conn >= 3 || !o.edit) s += `<circle class="jd" cx="${c.x}" cy="${c.y}" r="3.2"/>`;
@@ -585,14 +623,14 @@ const TASKS = [
     },
     sol: {
       comps: [
-        { id: 'z', type: 'dw', x: 364, y: 80, label: '1A1' },
-        { id: 'd', type: 'drv', x: 290, y: 170, label: '1V3' },
-        { id: 'v', type: 'v52', x: 260, y: 250, la: 'druck', ra: 'feder', label: '1V1' },
+        { id: 'z', type: 'dw', x: 374, y: 80, label: '1A1' },
+        { id: 'd', type: 'drv', x: 300, y: 170, label: '1V3' },
+        { id: 'v', type: 'v52', x: 270, y: 250, la: 'druck', ra: 'feder', label: '1V1' },
         { id: 'w', type: 'wechsel', x: 110, y: 340, label: '1V2' },
-        { id: 's1', type: 'v32', x: 40, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
-        { id: 's2', type: 'v32', x: 180, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
-        { id: 'j1', type: 'abzweig', x: 88, y: 520 }, { id: 'j2', type: 'abzweig', x: 228, y: 520 }, { id: 'j3', type: 'abzweig', x: 332, y: 520 },
-        { id: 'q', type: 'quelle', x: 332, y: 580, label: '0Z1' }
+        { id: 's1', type: 'v32', x: 20, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
+        { id: 's2', type: 'v32', x: 190, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
+        { id: 'j1', type: 'abzweig', x: 68, y: 520 }, { id: 'j2', type: 'abzweig', x: 238, y: 520 }, { id: 'j3', type: 'abzweig', x: 342, y: 520 },
+        { id: 'q', type: 'quelle', x: 342, y: 580, label: '0Z1' }
       ],
       lines: [['z', 'A', 'd', 'out'], ['d', 'in', 'v', '4'], ['v', '2', 'z', 'B'], ['w', 'a', 'v', '14'], ['s1', '2', 'w', 'e1'], ['s2', '2', 'w', 'e2'],
         ['s1', '1', 'j1', 'P'], ['s2', '1', 'j2', 'P'], ['v', '1', 'j3', 'P'], ['j1', 'P', 'j2', 'P'], ['j2', 'P', 'j3', 'P'], ['q', 'P', 'j3', 'P']]
@@ -626,16 +664,16 @@ const TASKS = [
     },
     sol: {
       comps: [
-        { id: 'z', type: 'dw', x: 364, y: 80, label: '1A1' },
-        { id: 'tx', type: 'text', x: 444, y: 66, label: '1S3' },
-        { id: 'd', type: 'drv', x: 374, y: 172, label: '1V3' },
-        { id: 'v', type: 'v52', x: 260, y: 250, la: 'druck', ra: 'druck', label: '1V1' },
+        { id: 'z', type: 'dw', x: 374, y: 80, label: '1A1' },
+        { id: 'tx', type: 'text', x: 454, y: 66, label: '1S3' },
+        { id: 'd', type: 'drv', x: 384, y: 172, label: '1V3' },
+        { id: 'v', type: 'v52', x: 270, y: 250, la: 'druck', ra: 'druck', label: '1V1' },
         { id: 'u', type: 'zweidruck', x: 110, y: 340, label: '1V2' },
-        { id: 's1', type: 'v32', x: 40, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
-        { id: 's2', type: 'v32', x: 180, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
-        { id: 's3', type: 'v32', x: 370, y: 420, la: 'rolle', ra: 'feder', label: '1S3' },
-        { id: 'j1', type: 'abzweig', x: 88, y: 520 }, { id: 'j2', type: 'abzweig', x: 228, y: 520 }, { id: 'j3', type: 'abzweig', x: 332, y: 520 }, { id: 'j4', type: 'abzweig', x: 418, y: 520 },
-        { id: 'q', type: 'quelle', x: 332, y: 580, label: '0Z1' }
+        { id: 's1', type: 'v32', x: 20, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
+        { id: 's2', type: 'v32', x: 190, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
+        { id: 's3', type: 'v32', x: 380, y: 420, la: 'rolle', ra: 'feder', label: '1S3' },
+        { id: 'j1', type: 'abzweig', x: 68, y: 520 }, { id: 'j2', type: 'abzweig', x: 238, y: 520 }, { id: 'j3', type: 'abzweig', x: 342, y: 520 }, { id: 'j4', type: 'abzweig', x: 428, y: 520 },
+        { id: 'q', type: 'quelle', x: 342, y: 580, label: '0Z1' }
       ],
       lines: [['z', 'A', 'v', '4'], ['v', '2', 'd', 'in'], ['d', 'out', 'z', 'B'], ['u', 'a', 'v', '14'], ['s3', '2', 'v', '12'], ['s1', '2', 'u', 'e1'], ['s2', '2', 'u', 'e2'],
         ['s1', '1', 'j1', 'P'], ['s2', '1', 'j2', 'P'], ['v', '1', 'j3', 'P'], ['s3', '1', 'j4', 'P'], ['j1', 'P', 'j2', 'P'], ['j2', 'P', 'j3', 'P'], ['j3', 'P', 'j4', 'P'], ['q', 'P', 'j3', 'P']]
@@ -689,7 +727,9 @@ function renderTask() {
   $('solsvg').innerHTML = `<svg viewBox="${bb[0] - m} ${bb[1] - m} ${bb[2] - bb[0] + 2 * m} ${bb[3] - bb[1] + 2 * m}" xmlns="${SVGNS}">${renderDiagram(sd)}</svg>`;
 }
 function selectTask(i) {
+  if (simMode) stopSim();
   cur = i; store.set(':cur', cur);
+  $('editor').classList.toggle('simok', !!done[cur]);
   D = store.get(':t' + cur, null) || { comps: [], lines: [] };
   undo = []; $('bUndo').disabled = true; sel = null; pending = null;
   renderLevels(); renderTask(); fitView(); draw();
@@ -706,6 +746,7 @@ function gridSvg() {
   return g;
 }
 function draw(keepSel) {
+  if (simMode) return simDraw();
   cv.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
   cv.innerHTML = `<g>${gridSvg()}</g>` + renderDiagram(D, { edit: true, sel, pending }) +
     (D.comps.length ? '' : `<text x="${vb.x + vb.w / 2}" y="${vb.y + vb.h / 2}" text-anchor="middle" style="font:14px system-ui;fill:var(--muted)">Tippe unten auf ein Bauteil, um anzufangen.</text>`);
@@ -834,6 +875,11 @@ cv.addEventListener('pointerdown', e => {
   const compEl = tgt.closest && tgt.closest('[data-comp]');
   const lineEl = tgt.closest && tgt.closest('[data-line]');
   const w = toWorld(e);
+  if (simMode) {
+    if (compEl) { const c = D.comps.find(k => k.id === compEl.dataset.comp); const k = manualKey(c); if (k) { toggleMan(k); return; } }
+    drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+    cv.setPointerCapture(e.pointerId); return;
+  }
   if (portEl) {
     const [c, p] = portEl.dataset.port.split(':');
     const comp = D.comps.find(k => k.id === c);
@@ -868,6 +914,7 @@ cv.addEventListener('pointermove', e => {
 cv.addEventListener('pointerup', e => {
   if (!drag) return;
   const d = drag; drag = null;
+  if (simMode) return;
   if (d.moved) { if (d.kind === 'comp') save(); return; }
   if (d.port) return tapPort(d.port);
   if (d.kind === 'comp') { sel = { kind: 'comp', id: d.id }; pending = null; setStatus(''); draw(); showSel(); return; }
@@ -915,6 +962,150 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key === 'z') { $('bUndo').click(); e.preventDefault(); }
 });
 
+
+/* ===================== Simulation ===================== */
+let simMode = false, SIM = null, simRaf = 0, simLast = 0, simLinesSig = '', simSig = '';
+const MANUAL = ['knopf', 'pedal', 'hebel', 'magnet'];
+function manualKey(c) {
+  if (!c || !T[c.type].valve) return null;
+  if (MANUAL.includes(c.la)) return c.id + ':L';
+  if (MANUAL.includes(c.ra)) return c.id + ':R';
+  return null;
+}
+function netFn(d) {
+  const parent = {};
+  const find = k => { if (parent[k] === undefined) parent[k] = k; while (parent[k] !== k) { parent[k] = parent[parent[k]]; k = parent[k]; } return k; };
+  d.comps.forEach(c => portsOf(c).forEach(q => find(c.id + ':' + q.p)));
+  d.lines.forEach(ln => { parent[find(ln.a.c + ':' + ln.a.p)] = find(ln.b.c + ':' + ln.b.p); });
+  return find;
+}
+function simCompute(S) {
+  const K = (c, p) => S.N(c.id + ':' + p);
+  const rollerOn = D.comps.some(c => (c.type === 'ew' || c.type === 'dw') && (S.s[c.id] || 0) >= 0.97);
+  const pos = { ...S.pos }; let P = new Set();
+  for (let it = 0; it < 12; it++) {
+    P = new Set();
+    D.comps.forEach(c => { if (c.type === 'quelle' || c.type === 'kompressor') P.add(K(c, 'P')); });
+    for (let j = 0; j < 60; j++) {
+      let ch = false; const add = k => { if (!P.has(k)) { P.add(k); ch = true; } };
+      D.comps.forEach(c => {
+        const t = c.type;
+        if (t === 'behaelter' || t === 'drv') { if (P.has(K(c, 'in')) || P.has(K(c, 'out'))) { add(K(c, 'in')); add(K(c, 'out')); } }
+        else if (t === 'rueck') { if (P.has(K(c, 'in'))) add(K(c, 'out')); }
+        else if (t === 'v32') { if (pos[c.id] === 1 && P.has(K(c, '1'))) add(K(c, '2')); }
+        else if (t === 'v52') { if (P.has(K(c, '1'))) add(K(c, pos[c.id] === 1 ? '4' : '2')); }
+        else if (t === 'wechsel') { if (P.has(K(c, 'e1')) || P.has(K(c, 'e2'))) add(K(c, 'a')); }
+        else if (t === 'zweidruck') { if (P.has(K(c, 'e1')) && P.has(K(c, 'e2'))) add(K(c, 'a')); }
+      });
+      if (!ch) break;
+    }
+    let changed = false;
+    D.comps.forEach(c => {
+      if (!T[c.type].valve) return;
+      const five = c.type === 'v52';
+      const sig = (a, side) => {
+        if (MANUAL.includes(a)) return !!S.man[c.id + ':' + side];
+        if (a === 'druck') return P.has(K(c, side === 'L' ? (five ? '14' : '12') : (five ? '12' : '10')));
+        if (a === 'rolle') return rollerOn;
+        return false;
+      };
+      const Ls = sig(c.la, 'L'), Rs = sig(c.ra, 'R');
+      let p = pos[c.id] || 0;
+      if (c.ra === 'feder' || c.ra === 'raste' || c.ra === 'none') p = Ls ? 1 : 0;
+      else if (Ls && !Rs) p = 1; else if (Rs && !Ls) p = 0;
+      if (p !== (pos[c.id] || 0)) { pos[c.id] = p; changed = true; }
+      S.sig[c.id] = { L: Ls, R: Rs };
+    });
+    if (!changed) break;
+  }
+  S.pos = pos; S.P = P;
+}
+function simMove(S, dt) {
+  const drvs = D.comps.filter(c => c.type === 'drv');
+  const thr = (port, supply) => drvs.some(d => S.N(port) === S.N(d.id + (supply ? ':in' : ':out')));
+  let moving = false;
+  D.comps.forEach(c => {
+    if (c.type !== 'ew' && c.type !== 'dw') return;
+    const A = c.id + ':A', B = c.id + ':B';
+    const pA = S.P.has(S.N(A)), pB = c.type === 'dw' && S.P.has(S.N(B));
+    let dir = 0, slow = false;
+    if (c.type === 'ew') { dir = pA ? 1 : -1; slow = pA ? thr(A, true) : thr(A, false); }
+    else if (pA && !pB) { dir = 1; slow = thr(A, true) || thr(B, false); }
+    else if (pB && !pA) { dir = -1; slow = thr(B, true) || thr(A, false); }
+    const s0 = S.s[c.id] || 0, s1 = Math.min(1, Math.max(0, s0 + dir * (slow ? 0.2 : 0.9) * dt));
+    if (s1 !== s0) { S.s[c.id] = s1; moving = true; }
+    S.ch[c.id] = { pA, pB, slow: slow && s1 !== s0 };
+  });
+  return moving;
+}
+function simStateOf(c) {
+  if (T[c.type].valve) { const g = SIM.sig[c.id] || {}; return { pos: SIM.pos[c.id] || 0, onL: g.L, onR: g.R }; }
+  if (c.type === 'ew' || c.type === 'dw') { const h = SIM.ch[c.id] || {}; return { s: SIM.s[c.id] || 0, pA: h.pA, pB: h.pB }; }
+  return undefined;
+}
+function simDraw() {
+  cv.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  cv.innerHTML = `<g>${gridSvg()}</g><g id="simL"></g><g id="simC"></g>`;
+  simLinesSig = ''; simRender();
+}
+function simRender() {
+  const o = { sim: SIM };
+  const ls = [...SIM.P].sort().join('|');
+  if (ls !== simLinesSig) { simLinesSig = ls; $('simL').innerHTML = renderDiagram(D, { ...o, part: 'lines' }); }
+  $('simC').innerHTML = renderDiagram(D, { ...o, part: 'comps' });
+}
+function simStatus() {
+  const mv = D.comps.filter(c => SIM.ch[c.id] && SIM.ch[c.id].slow);
+  let t = 'Blau = Druckluft. Tippe auf ein Ventil oder unten auf einen Knopf.';
+  if (mv.length) t = 'Kolben fährt gedrosselt (langsam) …';
+  setStatus(t);
+}
+function renderSimBar() {
+  const items = D.comps.filter(c => manualKey(c));
+  let h = items.map(c => {
+    const k = manualKey(c), side = k.endsWith(':L') ? c.la : c.ra, on = !!SIM.man[k];
+    const verb = side === 'magnet' ? (on ? 'Strom an' : 'Strom aus') : (on ? 'betätigt' : 'nicht betätigt');
+    return `<button class="sb${on ? ' on' : ''}" data-k="${k}">${esc(c.label || T[c.type].name)} · ${ACTNAME[side]}: ${verb}</button>`;
+  }).join('');
+  if (!items.length) h = '<span class="small muted">Keine von Hand betätigten Ventile im Plan.</span>';
+  h += `<button class="sb" id="simReset">↺ Neu starten</button>`;
+  h += `<div class="leg"><i></i>Druckluft · Knopf/Ventil antippen = betätigen, nochmal tippen = loslassen (zwei Taster gleichzeitig: beide antippen)</div>`;
+  $('simbar').innerHTML = h;
+  $('simbar').querySelectorAll('.sb[data-k]').forEach(b => b.onclick = () => toggleMan(b.dataset.k));
+  $('simReset').onclick = () => { SIM.man = {}; SIM.pos = {}; SIM.s = {}; renderSimBar(); };
+}
+function toggleMan(k) { SIM.man[k] = !SIM.man[k]; renderSimBar(); }
+function simLoop(t) {
+  if (!simMode) return;
+  const dt = Math.min(0.05, (t - simLast) / 1000 || 0); simLast = t;
+  simCompute(SIM); simMove(SIM, dt); simCompute(SIM);
+  const sg = JSON.stringify([SIM.pos, SIM.s, SIM.sig, SIM.ch]) + simLinesSig + [...SIM.P].length;
+  if (sg !== simSig) { simSig = sg; simRender(); simStatus(); }
+  simRaf = requestAnimationFrame(simLoop);
+}
+function startSim() {
+  if (!D.comps.length) return;
+  SIM = { N: netFn(D), pos: {}, man: {}, s: {}, sig: {}, ch: {}, P: new Set() };
+  simMode = true; sel = null; pending = null;
+  $('editor').classList.add('simon');
+  renderSel(); renderSimBar();
+  fitView();
+  const cyls = D.comps.filter(c => c.type === 'ew' || c.type === 'dw');
+  if (cyls.length) {
+    const need = Math.max(...cyls.map(c => c.x)) + 170;
+    if (vb.x + vb.w < need) { const k = (need - vb.x) / vb.w; vb.w *= k; vb.h *= k; }
+  }
+  vb.y -= vb.h * 0.04; vb.h *= 1.1; vb.w *= 1.1;
+  simCompute(SIM); simDraw(); simStatus();
+  simLast = performance.now(); simSig = ''; cancelAnimationFrame(simRaf); simRaf = requestAnimationFrame(simLoop);
+}
+function stopSim() {
+  simMode = false; cancelAnimationFrame(simRaf); SIM = null;
+  $('editor').classList.remove('simon'); setStatus(''); draw();
+}
+$('bSim').onclick = startSim;
+$('bSimStop').onclick = stopSim;
+
 /* ===================== Prüfen ===================== */
 $('bCheck').onclick = () => {
   const t = TASKS[cur], res = t.rules(analyze(D));
@@ -923,6 +1114,11 @@ $('bCheck').onclick = () => {
     <p class="verdict" style="color:${all ? 'var(--ok)' : 'var(--ink)'}">${all ? 'Super – alles erfüllt! Speichere dein Bild und bereite die Vorstellung vor.' : `${ok} von ${res.length} Punkten erfüllt. Überarbeite die roten Punkte – die Hilfen oben helfen dir.`}</p>`;
   $('present').innerHTML = all ? `<div class="hint" style="background:var(--ok-soft)"><b style="color:var(--ok)">Zum Vorstellen:</b><ul>${t.present.map(p => `<li>${p}</li>`).join('')}</ul></div>` : '';
   if (all && !done[cur]) { done[cur] = true; store.set(':done', done); renderLevels(); }
+  $('editor').classList.toggle('simok', all || !!done[cur]);
+  if (all) {
+    $('result').insertAdjacentHTML('beforeend', `<div class="btns"><button class="btn" id="bSimGo" style="background:var(--ok)">▶ Simulation deines Schaltplans starten</button></div>`);
+    $('bSimGo').onclick = () => { startSim(); $('editor').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  }
   $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 };
 $('bLoadSol').onclick = () => {
@@ -961,7 +1157,7 @@ $('bPng').onclick = async () => {
 };
 
 /* ===================== Start ===================== */
-window.__sp = { TASKS, analyze, solData, get D() { return D; } };
+window.__sp = { TASKS, analyze, solData, startSim, stopSim, get D() { return D; }, set D(v) { D = v; }, get SIM() { return SIM; } };
 renderPalette();
 selectTask(cur);
 let lastW = cv.getBoundingClientRect().width;
