@@ -78,6 +78,7 @@ details summary{cursor:pointer;font-weight:600}
 .pal{display:flex;gap:6px;overflow-x:auto;padding:8px;border-top:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:thin}
 .pb{flex:0 0 auto;width:82px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:4px 4px 6px;font:inherit;font-size:.7rem;line-height:1.15;cursor:pointer;text-align:center}
 .pb svg{display:block;width:100%;height:46px}
+.pb.wide{width:104px}
 .pb .s{fill:none;stroke:currentColor;stroke-width:1.6}.pb .f{fill:currentColor}.pb .bx{fill:none;stroke:currentColor;stroke-width:1.6}.pb .t{display:none}
 .pgrp{flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:0 2px}
 .editor.full{position:fixed;inset:0;z-index:50;border-radius:0;margin:0;border:0;padding-top:env(safe-area-inset-top)}
@@ -158,7 +159,7 @@ details summary{cursor:pointer;font-weight:600}
   <details class="card" style="padding:12px 16px">
     <summary>So funktioniert der Editor</summary>
     <ul class="small" style="margin-top:8px">
-      <li><b>Bauteil einfügen:</b> unten in der Leiste antippen – es erscheint in der Mitte.</li>
+      <li><b>Bauteil einfügen:</b> unten in der Leiste antippen (seitlich wischen für mehr) – es erscheint in der Mitte. Wegeventile gibt es dort fertig mit Taster, Pedal, Rolle, Magnet, pneumatisch usw.</li>
       <li><b>Verschieben:</b> Bauteil mit dem Finger ziehen. Leere Fläche ziehen = Ansicht verschieben.</li>
       <li><b>Leitung zeichnen:</b> einen Anschluss (kleiner Kreis) antippen, dann den zweiten Anschluss antippen.</li>
       <li><b>Abzweig:</b> Für T-Stücke oder Umwege den Baustein „Abzweig“ einsetzen und Leitungen daran anschließen.</li>
@@ -501,7 +502,7 @@ const TASKS = [
     hints: [
       'Der einfachwirkende Zylinder hat nur <b>einen</b> Anschluss. Zurück fährt er mit der Feder.',
       'Ventil-Anschlüsse: <b>1</b> = Druckluft, <b>2</b> = Arbeitsleitung zum Zylinder, <b>3</b> = Entlüftung (ist schon eingezeichnet).',
-      'Baue von unten nach oben: Quelle → Anschluss 1 · Anschluss 2 → Zylinder. Für das Pedal tippst du das Ventil an und wählst links „Pedal (Fuß)“.'
+      'Baue von unten nach oben: Quelle → Anschluss 1 · Anschluss 2 → Zylinder. Das passende Ventil heißt in der Bauteil-Leiste „3/2 Pedal / Feder“.'
     ],
     present: ['Erkläre den Signalfluss vom Pedal bis zur Auspuffklappe.', 'Was passiert, wenn der Fahrer das Pedal loslässt? Wohin entweicht die Luft aus dem Zylinder?'],
     rules: G => {
@@ -602,7 +603,7 @@ const TASKS = [
     situation: 'In der Werkstatt werden Radlager mit einer pneumatischen Presse eingepresst. Aus Sicherheitsgründen startet die Presse nur, wenn <b>beide Hände</b> gleichzeitig zwei Taster drücken. Ist der Kolben ganz ausgefahren, betätigt er ein <b>Rollenventil</b> und fährt <b>automatisch</b> wieder zurück. Das Einpressen soll <b>langsam</b> erfolgen.',
     req: ['zwei 3/2-Taster (1S1, 1S2) und ein Zweidruckventil (UND)', '5/2-<b>Impulsventil</b>: beidseitig pneumatisch betätigt (14 und 12), ohne Feder', '3/2-Rollenventil mit Feder (1S3) in der vorderen Endlage; die Endlage am Zylinder mit dem Baustein <b>Text</b> „1S3“ markieren', 'doppeltwirkender Zylinder, Ausfahren langsam (Drosselrückschlagventil, Abluftdrosselung)', 'Versorgung über Druckluftquelle mit Abzweigen; alles gekennzeichnet'],
     hints: [
-      'Ein Impulsventil „merkt“ sich die Stellung: Signal an <b>14</b> → Zylinder fährt aus. Signal an <b>12</b> → Zylinder fährt ein. Beim 5/2-Ventil links und rechts „Druckluft (pneumatisch)“ wählen.',
+      'Ein Impulsventil „merkt“ sich die Stellung: Signal an <b>14</b> → Zylinder fährt aus. Signal an <b>12</b> → Zylinder fährt ein. In der Bauteil-Leiste heißt es „5/2 Impulsventil (14 / 12)“.',
       'Das Rollenventil 1S3 bekommt Druckluft an Anschluss 1. Sein Ausgang 2 geht zum Steueranschluss <b>12</b>.',
       'Beim <b>Ausfahren</b> strömt die Abluft aus der <b>Kolbenstangenseite</b> (rechter Anschluss). Dort sitzt das Drosselrückschlagventil – freie Richtung zum Zylinder hin.'
     ],
@@ -730,8 +731,25 @@ function toWorld(e) {
 const snap = v => Math.round(v / 10) * 10;
 
 // Palette
-function palPreview(type) {
-  const c = { id: 'p', type, x: 0, y: 0, la: T[type].defL, ra: T[type].defR, label: type === 'text' ? 'Text' : '' };
+// Palette: Ventile direkt in den gebräuchlichen Betätigungs-Varianten
+const PAL = [
+  { t: 'quelle' }, { t: 'kompressor' }, { t: 'behaelter' }, { t: 'manometer' },
+  { t: 'v32', la: 'knopf', ra: 'feder', n: '3/2 Taster / Feder' },
+  { t: 'v32', la: 'pedal', ra: 'feder', n: '3/2 Pedal / Feder' },
+  { t: 'v32', la: 'rolle', ra: 'feder', n: '3/2 Rolle / Feder' },
+  { t: 'v32', la: 'hebel', ra: 'feder', n: '3/2 Hebel / Feder' },
+  { t: 'v32', la: 'magnet', ra: 'feder', n: '3/2 Magnet / Feder' },
+  { t: 'v32', la: 'druck', ra: 'feder', n: '3/2 pneumat. / Feder' },
+  { t: 'v52', la: 'magnet', ra: 'feder', n: '5/2 Magnet / Feder' },
+  { t: 'v52', la: 'druck', ra: 'feder', n: '5/2 pneumat. (14) / Feder' },
+  { t: 'v52', la: 'druck', ra: 'druck', n: '5/2 Impulsventil (14 / 12)' },
+  { t: 'v52', la: 'hebel', ra: 'raste', n: '5/2 Hebel / Raste' },
+  { t: 'rueck' }, { t: 'drv' }, { t: 'wechsel' }, { t: 'zweidruck' },
+  { t: 'ew' }, { t: 'dw' }, { t: 'abzweig' }, { t: 'text' }
+];
+function palPreview(it) {
+  const type = it.t;
+  const c = { id: 'p', type, x: 0, y: 0, la: it.la || T[type].defL, ra: it.ra || T[type].defR, label: '' };
   const b = T[type].box(c);
   let inner = `<g transform="translate(0,0)">${T[type].draw(c)}</g>`;
   if (type === 'abzweig') inner = `<line class="s" x1="-10" y1="0" x2="10" y2="0"/><line class="s" x1="0" y1="0" x2="0" y2="10"/><circle class="f" r="3"/>`;
@@ -741,25 +759,26 @@ function palPreview(type) {
 }
 function renderPalette() {
   let h = '', g = '';
-  Object.keys(T).forEach(k => {
-    if (T[k].grp !== g) { g = T[k].grp; h += `<span class="pgrp">${g}</span>`; }
-    h += `<button class="pb" data-t="${k}">${palPreview(k)}${T[k].name}</button>`;
+  PAL.forEach((it, i) => {
+    const t = T[it.t];
+    if (t.grp !== g) { g = t.grp; h += `<span class="pgrp">${g}</span>`; }
+    h += `<button class="pb${t.valve ? ' wide' : ''}" data-i="${i}">${palPreview(it)}${it.n || t.name}</button>`;
   });
   $('pal').innerHTML = h;
-  $('pal').querySelectorAll('.pb').forEach(b => b.onclick = () => addComp(b.dataset.t));
+  $('pal').querySelectorAll('.pb').forEach(b => b.onclick = () => { const it = PAL[+b.dataset.i]; addComp(it.t, it.la, it.ra); });
 }
-function addComp(type) {
+function addComp(type, la, ra) {
   snapshot();
   const t = T[type];
   const c = { id: nid('c'), type, x: 0, y: 0, label: type === 'text' ? '1S3' : '' };
-  if (t.valve) { c.la = t.defL; c.ra = t.defR; }
+  if (t.valve) { c.la = la || t.defL; c.ra = ra || t.defR; }
   const b = t.box(c);
   // in die Mitte der Ansicht, leicht versetzt wenn belegt
   let x = snap(vb.x + vb.w / 2 - (b[0] + b[2]) / 2), y = snap(vb.y + vb.h / 2 - (b[1] + b[3]) / 2);
   for (let i = 0; i < 12 && D.comps.some(o => Math.abs(o.x - x) < 20 && Math.abs(o.y - y) < 20); i++) { x += 20; y += 20; }
   c.x = x; c.y = y;
   D.comps.push(c); sel = { kind: 'comp', id: c.id }; pending = null;
-  save(); draw();
+  save(); draw(); showSel();
   setStatus('Ziehen zum Verschieben · Anschluss antippen für Leitung');
 }
 function delComp(id) {
@@ -851,11 +870,16 @@ cv.addEventListener('pointerup', e => {
   const d = drag; drag = null;
   if (d.moved) { if (d.kind === 'comp') save(); return; }
   if (d.port) return tapPort(d.port);
-  if (d.kind === 'comp') { sel = { kind: 'comp', id: d.id }; pending = null; setStatus(''); draw(); return; }
+  if (d.kind === 'comp') { sel = { kind: 'comp', id: d.id }; pending = null; setStatus(''); draw(); showSel(); return; }
   if (d.kind === 'line') { sel = { kind: 'line', id: d.id }; pending = null; setStatus(''); draw(); return; }
   sel = null; pending = null; setStatus(''); draw();
 });
 cv.addEventListener('pointercancel', () => { drag = null; });
+function showSel() {
+  if ($('editor').classList.contains('full')) return;
+  const r = $('selbar').getBoundingClientRect();
+  if (r.bottom > window.innerHeight) window.scrollBy({ top: r.bottom - window.innerHeight + 12, behavior: 'smooth' });
+}
 function tapPort(pt) {
   if (!pending) {
     pending = pt; sel = null;
