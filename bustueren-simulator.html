@@ -1,0 +1,742 @@
+<!doctype html><html lang="de"><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Bustüren-Simulator</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+/* Layout: Werkstatt-Tafel – große Draufsicht links, Antriebsdetails rechts, Bedienleiste darunter */
+:root{
+  --bg:#e9eef0; --surface:#fbfcfc; --ink:#14222a; --muted:#566871; --line:#c9d3d7;
+  --accent:#17707a; --accent-soft:#d5ebed; --air:#2a7bd3; --metal:#8c9aa2; --metal-dk:#5e6c74;
+  --glass:#a9c6cd; --wall:#b9c3c8; --outside:#f2f5f6; --inside:#e1e7ea; --alert:#c8372d; --ok:#2f8a4c;
+  --bore:#f4f7f8;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1619; --surface:#172126; --ink:#e3eaec; --muted:#93a3aa; --line:#2b3a41;
+  --accent:#3fb3bd; --accent-soft:#173b40; --air:#5aa6f0; --metal:#7d8c94; --metal-dk:#a7b4ba;
+  --glass:#3d6068; --wall:#3a474e; --outside:#131c20; --inside:#1c272c; --alert:#ef5a4f; --ok:#4cb36c;
+  --bore:#0f171a; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1619; --surface:#172126; --ink:#e3eaec; --muted:#93a3aa; --line:#2b3a41;
+  --accent:#3fb3bd; --accent-soft:#173b40; --air:#5aa6f0; --metal:#7d8c94; --metal-dk:#a7b4ba;
+  --glass:#3d6068; --wall:#3a474e; --outside:#131c20; --inside:#1c272c; --alert:#ef5a4f; --ok:#4cb36c;
+  --bore:#0f171a; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1240px;margin:0 auto;display:grid;gap:18px}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px 24px}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance;letter-spacing:.005em}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.05}
+h2{font-size:24px}
+h3{font-size:17px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600}
+.tabs{display:flex;gap:4px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px}
+.tabs button{border:0;background:transparent;color:var(--muted);font:600 15px var(--f-body);padding:8px 14px;border-radius:7px;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--accent);color:#fff}
+.lead{max-width:70ch;color:var(--muted);margin:4px 0 0}
+.stage{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);gap:14px}
+@media (max-width:900px){.stage{grid-template-columns:minmax(0,1fr)}}
+.col{display:grid;gap:14px;align-content:start;min-width:0}
+figure{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+figcaption{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+figcaption .t{font-family:var(--f-display);font-weight:700;font-size:17px}
+figcaption .s{font-size:13px;color:var(--muted)}
+svg{display:block;width:100%;height:auto}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:transparent;color:var(--muted);font:500 13px var(--f-body);padding:5px 10px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent-soft);color:var(--ink);font-weight:600}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px;display:grid;gap:14px}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.btn{font:600 15px var(--f-body);border-radius:8px;padding:9px 16px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.btn.warn[aria-pressed="true"]{background:var(--alert);border-color:var(--alert);color:#fff}
+.btn:focus-visible,.tabs button:focus-visible,.seg button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.slider{display:flex;align-items:center;gap:10px;flex:1 1 260px;min-width:0}
+.slider label{font-size:13px;color:var(--muted);white-space:nowrap}
+.slider input{flex:1;min-width:0;accent-color:var(--accent)}
+.speed{font-size:13px;color:var(--muted);display:flex;gap:6px;align-items:center}
+.speed select{font:500 13px var(--f-body);padding:4px;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.info{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+@media (max-width:760px){.info{grid-template-columns:minmax(0,1fr)}}
+.now{border-left:4px solid var(--accent);padding:4px 0 4px 12px;min-height:92px}
+.now.alert{border-color:var(--alert)}
+.now h3{margin-bottom:4px}
+.now p{margin:0;max-width:62ch}
+.chips{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.chip{border:1px solid var(--line);border-radius:8px;padding:6px 10px;min-width:0}
+.chip .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chip .v{font-family:var(--f-mono);font-size:15px;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.v.ok{color:var(--ok)} .v.bad{color:var(--alert)}
+.meter{height:6px;border-radius:3px;background:var(--line);margin-top:4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--air);width:0}
+.meter.cur i{background:var(--accent)}
+.chain{display:flex;flex-wrap:wrap;gap:6px;align-items:center;list-style:none;padding:0;margin:0}
+.chain li{font-size:13px;padding:5px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);transition:background .2s,color .2s}
+.chain li.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.chain .arr{border:0;padding:0;color:var(--muted)}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%;min-width:620px;font-size:14px}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-family:var(--f-display);font-size:15px}
+td:first-child{color:var(--muted);white-space:nowrap}
+.note{font-size:13px;color:var(--muted)}
+/* SVG */
+.sv-out{fill:var(--outside)} .sv-in{fill:var(--inside)}
+.sv-wall{fill:var(--wall)}
+.sv-seal{fill:var(--ink)}
+.sv-glass{fill:var(--glass);stroke:var(--ink);stroke-width:1.4}
+.sv-arm{fill:none;stroke:var(--metal-dk);stroke-width:7;stroke-linecap:round;stroke-linejoin:round}
+.sv-metal{fill:var(--metal);stroke:var(--metal-dk);stroke-width:1.2}
+.sv-dark{fill:var(--metal-dk)}
+.sv-bore{fill:var(--bore);stroke:var(--metal-dk);stroke-width:1}
+.sv-air{fill:var(--air)}
+.sv-path{fill:none;stroke:var(--muted);stroke-width:1.3;stroke-dasharray:4 5}
+.sv-dim{fill:none;stroke:var(--muted);stroke-width:1}
+.sv-edge{fill:var(--metal-dk)} .sv-edge.hit{fill:var(--alert)}
+.sv-obst{fill:var(--alert);fill-opacity:.18;stroke:var(--alert);stroke-width:2}
+.lbl{fill:var(--ink);font:500 13px var(--f-body)}
+.lbl.m{fill:var(--muted);font-size:12px}
+.lbl.b{font-family:var(--f-display);font-weight:700;font-size:14px}
+.lbl.air{fill:var(--air);font-weight:600}
+.lbl.al{fill:var(--alert);font-weight:600}
+.lead-line{stroke:var(--muted);stroke-width:1;fill:none}
+.flow{fill:none;stroke:var(--air);stroke-width:3;stroke-dasharray:6 5;animation:flow .6s linear infinite}
+.flow.out{stroke:var(--muted)}
+.flowhead{fill:var(--air)} .flowhead.out{fill:var(--muted)}
+@keyframes flow{to{stroke-dashoffset:-11}}
+.belt{fill:none;stroke:var(--ink);stroke-width:5;stroke-dasharray:5 3}
+.beltbase{fill:none;stroke:var(--metal-dk);stroke-width:7}
+.housing{fill:var(--metal);fill-opacity:.18;stroke:var(--metal-dk);stroke-width:1.2;stroke-dasharray:5 4}
+@media (prefers-reduced-motion:reduce){.flow{animation:none}}
+</style>
+
+<div class="wrap">
+<a href="index.html" style="display:inline-block;margin:0 0 10px;font:600 14px system-ui,-apple-system,sans-serif;color:var(--accent,#17707a);text-decoration:none">← Pneumatik &amp; Hydraulik</a>
+
+  <header>
+    <div>
+      <div class="eyebrow">Kfz-Technik · Türsysteme im Bus</div>
+      <h1>Bustüren-Simulator</h1>
+      <p class="lead">Wie wird aus dem geraden Hub eines Zylinders die Drehbewegung der Tür? Tür öffnen, schließen oder mit dem Schieberegler Schritt für Schritt bewegen.</p>
+    </div>
+    <div class="tabs" role="tablist">
+      <button role="tab" id="tab-ast" aria-selected="true" data-sec="ast">Außenschwingtür</button>
+      <button role="tab" id="tab-sst" aria-selected="false" data-sec="sst">Schwenkschiebetür</button>
+    </div>
+  </header>
+
+  <!-- ===================== AST ===================== -->
+  <section id="ast" class="wrap" style="gap:14px">
+    <div>
+      <div class="eyebrow">AST-P · pneumatisch</div>
+      <h2>Außenschwingtür: Zylinder → Drehsäule → Türflügel</h2>
+    </div>
+    <div class="stage">
+      <figure>
+        <figcaption><span class="t">Draufsicht auf die Tür</span>
+          <span class="seg" role="group" aria-label="Anzahl Flügel">
+            <button id="ast-single" aria-pressed="true">1-flügelig</button>
+            <button id="ast-double" aria-pressed="false">2-flügelig</button>
+          </span>
+        </figcaption>
+        <svg id="astTop" viewBox="0 0 760 420" role="img" aria-label="Draufsicht Außenschwingtür"></svg>
+      </figure>
+      <div class="col">
+        <figure>
+          <figcaption><span class="t">Antrieb an der Drehsäule</span>
+            <span class="seg" role="group" aria-label="Umsetzung">
+              <button id="mech-rack" aria-pressed="true">Zahnstange</button>
+              <button id="mech-lever" aria-pressed="false">Hebel</button>
+            </span>
+          </figcaption>
+          <svg id="astMech" viewBox="0 0 560 290" role="img" aria-label="Pneumatikzylinder und Umsetzung in Drehbewegung"></svg>
+          <div class="s note" id="mechNote"></div>
+        </figure>
+        <figure>
+          <figcaption><span class="t">Hubverriegelung</span><span class="s">Seitenansicht Säulenkopf, Prinzip</span></figcaption>
+          <svg id="astLock" viewBox="0 0 480 170" role="img" aria-label="Hubverriegelung"></svg>
+        </figure>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="controls">
+        <button class="btn primary" id="ast-open">Tür öffnen</button>
+        <button class="btn primary" id="ast-close">Tür schließen</button>
+        <button class="btn warn" id="ast-obst" aria-pressed="false">Hindernis in der Tür</button>
+        <button class="btn warn" id="ast-noth" aria-pressed="false">Nothahn</button>
+        <div class="slider"><label for="ast-slider">Kolbenhub von Hand</label><input type="range" id="ast-slider" min="0" max="1000" value="0"></div>
+        <label class="speed">Tempo <select id="ast-speed"><option value="0.4">langsam</option><option value="1" selected>normal</option><option value="1.8">schnell</option></select></label>
+      </div>
+      <div class="info">
+        <div class="now" id="ast-now"><h3></h3><p></p></div>
+        <div class="chips">
+          <div class="chip"><div class="k">Kolbenhub</div><div class="v" id="ast-hub">0 %</div></div>
+          <div class="chip"><div class="k">Drehwinkel Säule</div><div class="v" id="ast-phi">0°</div></div>
+          <div class="chip"><div class="k">Kammer AUF</div><div class="v" id="ast-pa">entlüftet</div><div class="meter"><i id="ast-ma"></i></div></div>
+          <div class="chip"><div class="k">Kammer ZU</div><div class="v" id="ast-pz">belüftet</div><div class="meter"><i id="ast-mz"></i></div></div>
+          <div class="chip" style="grid-column:1/-1"><div class="k">Verriegelung</div><div class="v" id="ast-lock">verriegelt</div></div>
+        </div>
+      </div>
+      <ul class="chain" id="ast-chain" aria-label="Kraftfluss">
+        <li>Druckluft</li><li class="arr">→</li><li>Kolben fährt geradlinig</li><li class="arr">→</li><li id="chain-mech">Zahnstange + Ritzel</li><li class="arr">→</li><li>Drehsäule dreht</li><li class="arr">→</li><li>Tragarme + Führungsarm führen den Flügel</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== SST ===================== -->
+  <section id="sst" class="wrap" style="gap:14px" hidden>
+    <div>
+      <div class="eyebrow">SST · elektrisch</div>
+      <h2>Schwenkschiebetür: erst ausschwenken, dann schieben</h2>
+    </div>
+    <div class="stage">
+      <figure>
+        <figcaption><span class="t">Draufsicht auf die Tür</span><span class="s">2-flügelig</span></figcaption>
+        <svg id="sstTop" viewBox="0 0 700 360" role="img" aria-label="Draufsicht Schwenkschiebetür"></svg>
+      </figure>
+      <div class="col">
+        <figure>
+          <figcaption><span class="t">Übertotpunkt-Verriegelung</span><span class="s">Kniehebel im Antrieb</span></figcaption>
+          <svg id="sstKnee" viewBox="0 0 420 180" role="img" aria-label="Kniehebel"></svg>
+        </figure>
+      </div>
+    </div>
+    <figure>
+      <figcaption><span class="t">Antrieb über der Tür, von innen gesehen</span><span class="s">ein Zahnriemen bewegt beide Flügel gegenläufig</span></figcaption>
+      <svg id="sstFront" viewBox="0 0 700 330" role="img" aria-label="Zahnriemenantrieb"></svg>
+    </figure>
+    <div class="panel">
+      <div class="controls">
+        <button class="btn primary" id="sst-open">Tür öffnen</button>
+        <button class="btn primary" id="sst-close">Tür schließen</button>
+        <button class="btn warn" id="sst-obst" aria-pressed="false">Hindernis in der Tür</button>
+        <div class="slider"><label for="sst-slider">Türweg von Hand</label><input type="range" id="sst-slider" min="0" max="1000" value="0"></div>
+        <label class="speed">Tempo <select id="sst-speed"><option value="0.4">langsam</option><option value="1" selected>normal</option><option value="1.8">schnell</option></select></label>
+      </div>
+      <div class="info">
+        <div class="now" id="sst-now"><h3></h3><p></p></div>
+        <div class="chips">
+          <div class="chip"><div class="k">Türweg</div><div class="v" id="sst-way">0 %</div></div>
+          <div class="chip"><div class="k">Phase</div><div class="v" id="sst-phase">geschlossen</div></div>
+          <div class="chip"><div class="k">Motorstrom</div><div class="v" id="sst-cur">aus</div><div class="meter cur"><i id="sst-mc"></i></div></div>
+          <div class="chip"><div class="k">Verriegelung</div><div class="v" id="sst-lock">über Totpunkt</div></div>
+        </div>
+      </div>
+      <ul class="chain" id="sst-chain" aria-label="Kraftfluss">
+        <li>E-Motor</li><li class="arr">→</li><li>Zahnriemen</li><li class="arr">→</li><li>Laufwagen</li><li class="arr">→</li><li>Führungsbahn: ausschwenken</li><li class="arr">→</li><li>Flügel schiebt parallel</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===================== Vergleich ===================== -->
+  <section class="panel">
+    <h2>Die Systeme im Vergleich</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th></th><th>AST-P</th><th>AST-E</th><th>SST</th></tr></thead>
+        <tbody>
+          <tr><td>Bewegung</td><td>schwingt auf einer Kreisbahn nach außen, Flügel bleibt annähernd parallel</td><td>wie AST-P</td><td>schwenkt aus, schiebt dann parallel zur Außenwand</td></tr>
+          <tr><td>Antrieb</td><td>pneumatisch</td><td>elektrisch</td><td>elektrisch / pneumatisch</td></tr>
+          <tr><td>Verriegelung</td><td>Hub in Hubkeile und/oder Betriebsdruck</td><td>Hub in Hubkeile und/oder Motorstrom</td><td>energielos über Übertotpunkt, Drehfallenverriegelung</td></tr>
+          <tr><td>Einklemmschutz</td><td>Druckwelle oder Schaltleiste in den Hauptschließkanten, Potentiometer an der Drehsäule</td><td>Druckwelle oder Schaltleiste, Potentiometer an der Drehsäule</td><td>Schaltleiste in der hinteren Hauptschließkante, Motorstromüberwachung</td></tr>
+          <tr><td>Wartung</td><td>wartungsarm</td><td>wartungsfrei</td><td>wartungsfrei / wartungsarm</td></tr>
+          <tr><td>Einsatz</td><td>−25 °C bis 70 °C</td><td>−30 °C bis 80 °C</td><td>−30 °C bis 80 °C</td></tr>
+          <tr><td>Lichter Einstieg</td><td>750 – 1.200 mm</td><td>750 – 1.200 mm</td><td>750 – 1.200 mm</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Daten aus der Bode-Produktbroschüre „Straße“. Die Mechanik ist vereinfacht dargestellt: Maße und Winkel sind nicht maßstäblich, die Verriegelung ist als Prinzip gezeigt.</p>
+    <p class="note">Quellen zur Kinematik:
+      <a href="https://patents.google.com/patent/DE4126716C2/de" target="_blank" rel="noopener">DE4126716C2</a> (Drehführung für eine Außenschwingtür: Tragarme an der Drehsäule plus paralleler Führungsarm),
+      <a href="https://patents.google.com/patent/DE3400753" target="_blank" rel="noopener">DE3400753A1</a> (Außenschwingtür: Kreisbahn nach außen, Offenstellung fast parallel zur Wand, angehobene Drehsäule beim Schließen als Stand der Technik),
+      <a href="https://patents.google.com/patent/DE19946501A1/de" target="_blank" rel="noopener">DE19946501A1</a> und
+      <a href="https://patents.google.com/patent/EP0936119A1/de" target="_blank" rel="noopener">EP0936119A1</a> (Schwenkschiebetür: Ausstellen, dann Schieben entlang der Außenwand, Übertotpunkt-Verriegelung).</p>
+  </section>
+</div>
+
+<script>
+(function(){
+const NS='http://www.w3.org/2000/svg';
+function el(tag,attrs,parent){const e=document.createElementNS(NS,tag);if(attrs)for(const k in attrs)e.setAttribute(k,attrs[k]);if(parent)parent.appendChild(e);return e;}
+function txt(parent,x,y,s,cls,anchor){const t=el('text',{x:x,y:y,class:cls||'lbl','text-anchor':anchor||'start'},parent);t.textContent=s;return t;}
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rad=d=>d*Math.PI/180;
+function rot(px,py,cx,cy,deg){const a=rad(deg),dx=px-cx,dy=py-cy;return [cx+dx*Math.cos(a)-dy*Math.sin(a),cy+dx*Math.sin(a)+dy*Math.cos(a)];}
+function arrow(parent,x1,y1,x2,y2,out){ // animierter Luftstrom
+  const g=el('g',{},parent);
+  el('line',{x1:x1,y1:y1,x2:x2,y2:y2,class:'flow'+(out?' out':'')},g);
+  const a=Math.atan2(y2-y1,x2-x1),s=7;
+  el('path',{d:`M${x2+Math.cos(a)*4},${y2+Math.sin(a)*4} L${x2-Math.cos(a)*s+Math.sin(a)*s*.7},${y2-Math.sin(a)*s-Math.cos(a)*s*.7} L${x2-Math.cos(a)*s-Math.sin(a)*s*.7},${y2-Math.sin(a)*s+Math.cos(a)*s*.7}Z`,class:'flowhead'+(out?' out':'')},g);
+  return g;
+}
+
+/* ================= Tabs ================= */
+document.querySelectorAll('.tabs button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('.tabs button').forEach(x=>x.setAttribute('aria-selected',x===b?'true':'false'));
+  document.getElementById('ast').hidden=b.dataset.sec!=='ast';
+  document.getElementById('sst').hidden=b.dataset.sec!=='sst';
+}));
+
+/* ================= AST ================= */
+// Kinematik nach DE4126716C2: Tragarme an der Drehsäule + paralleler Führungsarm = Parallelogramm.
+// Der Flügel bleibt annähernd parallel und schwingt auf einer Kreisbahn nach außen vor die Außenwand.
+const LOCK=7, WY=300, TH1=-100;
+const A={s:0,mode:'zu',pA:0,pZ:1,obst:false,noth:false,dbl:false,mech:'rack',speed:1,alert:0,dragDir:0};
+const astTop=document.getElementById('astTop');
+let G={},AT={};
+function geom(){
+  const leafW=A.dbl?170:240, r=A.dbl?160:200, OX=A.dbl?200:250;
+  const C=[OX+15,WY+60];
+  const th0=Math.asin(-(C[1]-(WY+10))/r)*180/Math.PI;
+  const P0=[C[0]+r*Math.cos(rad(th0)),WY+10];
+  G={leafW,r,OX,C,th0,P0,near:OX+2,far:OX+2+leafW,mid:OX+2+leafW+1,phiMax:th0-TH1,gOff:30};
+}
+function leafD(phi){const th=rad(G.th0-phi);return [G.C[0]+G.r*Math.cos(th)-G.P0[0],G.C[1]+G.r*Math.sin(th)-G.P0[1],th];}
+function buildAstTop(){
+  geom();astTop.innerHTML='';AT={doors:[],arms:[],guides:[],cols:[],edges:[]};
+  const {leafW,OX,C,P0,near,far,mid,gOff}=G;
+  const jamb=A.dbl?2*mid-OX:far+2;
+  el('rect',{x:0,y:0,width:760,height:WY,class:'sv-out'},astTop);
+  el('rect',{x:0,y:WY+14,width:760,height:106,class:'sv-in'},astTop);
+  txt(astTop,16,26,'außen (Gehweg)','lbl m');
+  txt(astTop,16,408,'Fahrgastraum','lbl m');
+  el('rect',{x:0,y:WY,width:OX-2,height:14,class:'sv-wall'},astTop);
+  el('rect',{x:jamb+2,y:WY,width:760-jamb,height:14,class:'sv-wall'},astTop);
+  el('rect',{x:OX-4,y:WY,width:3,height:14,class:'sv-seal'},astTop);
+  el('rect',{x:jamb+1,y:WY,width:3,height:14,class:'sv-seal'},astTop);
+  el('path',{d:`M${OX},${WY+92} H${jamb} M${OX},${WY+86} V${WY+98} M${jamb},${WY+86} V${WY+98}`,class:'sv-dim'},astTop);
+  txt(astTop,(OX+jamb)/2,WY+112,'lichter Einstieg 750 – 1.200 mm','lbl m','middle');
+  const leaves=A.dbl?[false,true]:[false];
+  const Dmax=leafD(G.phiMax);
+  leaves.forEach(mirror=>{
+    const wrap=el('g',mirror?{transform:`translate(${2*mid},0) scale(-1,1)`}:{},astTop);
+    // Endlage als Geisterbild
+    el('rect',{x:near+Dmax[0],y:WY+2+Dmax[1],width:leafW,height:8,class:'sv-path'},wrap);
+    // Bahn der Schließkante
+    let d='';for(let i=0;i<=30;i++){const q=leafD(G.phiMax*i/30);d+=(i?'L':'M')+(far+q[0]).toFixed(1)+','+(WY+6+q[1]).toFixed(1);}
+    el('path',{d:d,class:'sv-path'},wrap);
+    // Lagerpunkte
+    el('circle',{cx:C[0],cy:C[1],r:14,class:'sv-metal','fill-opacity':.35},wrap);
+    el('circle',{cx:C[0]+gOff,cy:C[1],r:6,class:'sv-metal'},wrap);
+    // Führungsarm (parallel)
+    const ga=el('g',{},wrap);
+    el('line',{x1:C[0]+gOff,y1:C[1],x2:P0[0]+gOff,y2:P0[1],class:'sv-arm','stroke-width':4,opacity:.7},ga);
+    AT.guides.push(ga);
+    // Tragarm
+    const arm=el('g',{},wrap);
+    el('line',{x1:C[0],y1:C[1],x2:P0[0],y2:P0[1],class:'sv-arm'},arm);
+    AT.arms.push(arm);
+    // Türflügel
+    const door=el('g',{},wrap);
+    el('rect',{x:near,y:WY+2,width:leafW,height:8,class:'sv-glass'},door);
+    el('rect',{x:near,y:WY+1,width:leafW,height:2,class:'sv-seal'},door);
+    AT.edges.push(el('rect',{x:far-5,y:WY,width:6,height:12,class:'sv-edge'},door));
+    el('circle',{cx:P0[0],cy:P0[1],r:4,class:'sv-dark'},door);
+    el('circle',{cx:P0[0]+gOff,cy:P0[1],r:3,class:'sv-dark'},door);
+    AT.doors.push(door);
+    const col=el('g',{},wrap);
+    el('circle',{cx:C[0],cy:C[1],r:9,class:'sv-dark'},col);
+    AT.cols.push(col);
+  });
+  // Beschriftungen
+  el('path',{d:`M${C[0]-8},${C[1]+10} L${C[0]-26},${C[1]+30}`,class:'lead-line'},astTop);
+  txt(astTop,C[0]-30,C[1]+44,'Drehsäule','lbl b','middle');
+  AT.lblArm=txt(astTop,0,0,'Tragarme','lbl m','end');
+  AT.lblGuide=txt(astTop,0,0,'Führungsarm','lbl m');
+  AT.lblDoor=txt(astTop,0,0,'Türflügel','lbl','middle');
+  txt(astTop,near+Dmax[0]+leafW/2,WY+Dmax[1]-10,'Offenstellung','lbl m','middle');
+  // Hindernis vor der Schließkante
+  const phiO=0.3*G.phiMax,q=leafD(phiO),t=[-Math.sin(q[2]),Math.cos(q[2])];
+  AT.obst=el('g',{},astTop);
+  const ox=far+q[0]+t[0]*16, oy=WY+6+q[1]+t[1]*16;
+  el('circle',{cx:ox,cy:oy,r:13,class:'sv-obst'},AT.obst);
+  txt(AT.obst,ox+18,oy+4,'Hindernis','lbl al');
+  A.obstPhi=phiO;
+}
+
+/* --- Antrieb --- */
+const astMech=document.getElementById('astMech');
+const M={};
+function gearPath(cx,cy,n,ro,ri){let d='';for(let i=0;i<n;i++){const a0=2*Math.PI*i/n,step=2*Math.PI/n;
+  const pts=[[ri,a0],[ro,a0+step*.18],[ro,a0+step*.45],[ri,a0+step*.63]];
+  pts.forEach((p,j)=>{d+=(i===0&&j===0?'M':'L')+(cx+p[0]*Math.cos(p[1])).toFixed(2)+','+(cy+p[0]*Math.sin(p[1])).toFixed(2);});}
+  return d+'Z';}
+function buildMech(){
+  astMech.innerHTML='';
+  // ---------- Zahnstange ----------
+  const g=M.rack=el('g',{},astMech);
+  const RP=46, PCX=400, PCY=162;
+  M.RP=RP;
+  el('rect',{x:36,y:196,width:272,height:48,rx:6,class:'sv-metal'},g);
+  el('rect',{x:46,y:202,width:252,height:36,class:'sv-bore'},g);
+  M.chA=el('rect',{x:46,y:202,width:10,height:36,class:'sv-air'},g);
+  M.chZ=el('rect',{x:46,y:202,width:10,height:36,class:'sv-air'},g);
+  // Anschlüsse
+  el('rect',{x:62,y:178,width:12,height:20,class:'sv-metal'},g);
+  el('rect',{x:270,y:178,width:12,height:20,class:'sv-metal'},g);
+  M.rIn=[arrow(g,68,140,68,176,false),arrow(g,276,140,276,176,false)];
+  M.rOut=[arrow(g,68,176,68,140,true),arrow(g,276,176,276,140,true)];
+  txt(g,68,130,'Anschluss AUF','lbl m','middle');txt(g,276,130,'Anschluss ZU','lbl m','middle');
+  const mv=M.rackMove=el('g',{},g);
+  el('rect',{x:94,y:214,width:216,height:12,class:'sv-dark'},mv);
+  let teeth='';const pitch=2*Math.PI*RP/18;
+  for(let x=310;x<490;x+=pitch){teeth+=`M${x.toFixed(1)},214 L${(x+pitch*.25).toFixed(1)},206 L${(x+pitch*.55).toFixed(1)},206 L${(x+pitch*.8).toFixed(1)},214 `;}
+  el('rect',{x:306,y:214,width:184,height:14,class:'sv-metal'},mv);
+  el('path',{d:teeth+'Z',class:'sv-metal'},mv);
+  el('rect',{x:80,y:200,width:14,height:40,rx:2,class:'sv-dark'},mv);
+  // Ritzel
+  M.pin=el('g',{},g);
+  el('path',{d:gearPath(PCX,PCY,18,RP+4,RP-4),class:'sv-metal'},M.pin);
+  el('circle',{cx:PCX,cy:PCY,r:16,class:'sv-dark'},M.pin);
+  M.pinArm=el('line',{x1:PCX,y1:PCY,x2:PCX+80,y2:PCY,class:'sv-arm','stroke-width':6},M.pin);
+  M.PC=[PCX,PCY];
+  txt(g,100,262,'Kammer AUF','lbl air','middle');
+  txt(g,250,262,'Kammer ZU','lbl air','middle');
+  txt(g,87,282,'Kolben','lbl m','middle');
+  txt(g,400,262,'Zahnstange','lbl m','middle');
+  txt(g,PCX-58,PCY-6,'Ritzel = Drehsäule','lbl b','end');
+  txt(g,PCX+50,PCY-62,'Tragarm','lbl m');
+
+  // ---------- Hebel ----------
+  const h=M.lever=el('g',{},astMech);
+  const O=[410,130],Q=[220,130],R=48;
+  M.O=O;M.Q=Q;M.R=R;
+  el('path',{d:`M${Q[0]-16},${Q[1]+26} L${Q[0]},${Q[1]} L${Q[0]+16},${Q[1]+26}Z`,class:'sv-metal'},h);
+  M.barrel=el('g',{},h);
+  el('rect',{x:-4,y:-19,width:128,height:38,rx:5,class:'sv-metal'},M.barrel);
+  el('rect',{x:4,y:-13,width:112,height:26,class:'sv-bore'},M.barrel);
+  M.lA=el('rect',{x:4,y:-13,width:10,height:26,class:'sv-air'},M.barrel);
+  M.lZ=el('rect',{x:4,y:-13,width:10,height:26,class:'sv-air'},M.barrel);
+  M.lPist=el('rect',{x:0,y:-15,width:10,height:30,rx:2,class:'sv-dark'},M.barrel);
+  M.lRod=el('rect',{x:0,y:-4,width:10,height:8,class:'sv-dark'},M.barrel);
+  el('rect',{x:14,y:-33,width:10,height:14,class:'sv-metal'},M.barrel);
+  el('rect',{x:98,y:-33,width:10,height:14,class:'sv-metal'},M.barrel);
+  M.lIn=[arrow(M.barrel,19,-66,19,-35,false),arrow(M.barrel,103,-66,103,-35,false)];
+  M.lOut=[arrow(M.barrel,19,-35,19,-66,true),arrow(M.barrel,103,-35,103,-66,true)];
+  el('circle',{cx:Q[0],cy:Q[1],r:5,class:'sv-dark'},h);
+  M.crank=el('line',{x1:O[0],y1:O[1],x2:O[0],y2:O[1],class:'sv-arm','stroke-width':10},h);
+  M.cpin=el('circle',{r:6,class:'sv-dark'},h);
+  M.lcol=el('g',{},h);
+  el('circle',{cx:O[0],cy:O[1],r:20,class:'sv-metal'},M.lcol);
+  el('circle',{cx:O[0],cy:O[1],r:9,class:'sv-dark'},M.lcol);
+  M.lArm=el('line',{x1:O[0],y1:O[1],x2:O[0]+86,y2:O[1],class:'sv-arm','stroke-width':6},M.lcol);
+  txt(h,Q[0]-4,Q[1]+46,'Zylinder, drehbar gelagert','lbl m','middle');
+  txt(h,O[0]+10,O[1]-44,'Drehsäule','lbl b');
+  M.lblHebel=txt(h,0,0,'Hebel','lbl m');
+  txt(h,150,262,'Kammer AUF = Kolbenseite','lbl air','middle');
+  txt(h,410,262,'Kammer ZU = Stangenseite','lbl air','middle');
+}
+
+/* --- Hubverriegelung --- */
+const astLock=document.getElementById('astLock');
+const L={};
+function buildLock(){
+  astLock.innerHTML='';
+  el('rect',{x:0,y:0,width:480,height:22,class:'sv-wall'},astLock);
+  // Hubkeil oben am Portal, V-Aufnahme nach unten offen
+  el('path',{d:'M70,22 L70,48 L104,48 L118,30 L142,30 L156,48 L190,48 L190,22Z',class:'sv-metal'},astLock);
+  txt(astLock,200,40,'Hubkeil am Portal (fest)','lbl m');
+  L.col=el('g',{},astLock);
+  el('path',{d:'M105,64 L155,64 L142,36 L118,36Z',class:'sv-dark'},L.col);
+  el('rect',{x:113,y:64,width:34,height:120,class:'sv-metal'},L.col);
+  el('rect',{x:147,y:110,width:70,height:8,class:'sv-metal'},L.col);
+  txt(L.col,222,118,'Tragarm','lbl m');
+  txt(astLock,40,160,'Drehsäule','lbl b','middle');
+  L.arr=el('path',{d:'M88,130 L88,96 M80,106 L88,94 L96,106',class:'lead-line','stroke-width':2},astLock);
+  L.state=txt(astLock,250,82,'','lbl b');
+  L.sub=txt(astLock,250,100,'','lbl m');
+}
+
+/* --- AST Logik --- */
+const $=id=>document.getElementById(id);
+const astSlider=$('ast-slider');
+function astCmd(open){
+  if(A.noth){A.flash='Nothahn ist betätigt: Ohne Druckluft kann das Ventil nichts bewegen.';return;}
+  A.mode=open?'oeffnet':'schliesst';A.alert=0;
+}
+$('ast-open').onclick=()=>astCmd(true);
+$('ast-close').onclick=()=>astCmd(false);
+$('ast-obst').onclick=e=>{A.obst=!A.obst;e.currentTarget.setAttribute('aria-pressed',A.obst);};
+$('ast-noth').onclick=e=>{A.noth=!A.noth;e.currentTarget.setAttribute('aria-pressed',A.noth);
+  A.flash=null;if(A.noth){A.mode='noth';}else{A.mode=A.s<0.005?'zu':'halt';}};
+$('ast-speed').onchange=e=>A.speed=+e.target.value;
+astSlider.addEventListener('input',()=>{const v=astSlider.value/1000;A.dragDir=Math.sign(v-A.s)||A.dragDir;A.s=v;A.alert=0;
+  if(!A.noth)A.mode='manuell';A.dragT=0.25;});
+function setSeg(a,b,on){$(a).setAttribute('aria-pressed',on);$(b).setAttribute('aria-pressed',!on);}
+$('ast-single').onclick=()=>{A.dbl=false;setSeg('ast-single','ast-double',true);buildAstTop();};
+$('ast-double').onclick=()=>{A.dbl=true;setSeg('ast-single','ast-double',false);buildAstTop();};
+$('mech-rack').onclick=()=>{A.mech='rack';setSeg('mech-rack','mech-lever',true);};
+$('mech-lever').onclick=()=>{A.mech='lever';setSeg('mech-rack','mech-lever',false);};
+
+function astTargets(){
+  switch(A.mode){
+    case 'oeffnet':case 'reversiert':case 'offen':return [1,0];
+    case 'schliesst':case 'zu':return [0,1];
+    case 'manuell':return A.dragDir>=0?[1,0]:[0,1];
+    default:return [0,0];
+  }
+}
+function astStep(dt){
+  const [tA,tZ]=astTargets();const k=Math.min(1,dt*7);
+  A.pA+=(tA-A.pA)*k;A.pZ+=(tZ-A.pZ)*k;
+  const rate=dt/(2.8/A.speed);
+  const prev=A.s;
+  if(A.mode==='oeffnet'||A.mode==='reversiert'){A.s+=rate*clamp(A.pA*1.4-0.15,0,1);if(A.s>=1){A.s=1;A.mode='offen';}}
+  else if(A.mode==='schliesst'){A.s-=rate*clamp(A.pZ*1.4-0.15,0,1);
+    const phi=A.s*G.phiMax;
+    if(A.obst&&phi<=A.obstPhi&&phi>A.obstPhi-4){A.mode='reversiert';A.alert=2.2;}
+    if(A.s<=0){A.s=0;A.mode='zu';}}
+  else if(A.mode==='manuell'){if(A.s<=0.0005)A.mode='zu';else if(A.s>=0.9995)A.mode='offen';}
+  A.moving=Math.abs(A.s-prev)>1e-6||(A.dragT>0);
+  if(A.dragT>0)A.dragT-=dt;
+  if(A.alert>0)A.alert-=dt;
+}
+function astRender(){
+  const phi=A.s*G.phiMax,D=leafD(phi);
+  AT.doors.forEach(d=>d.setAttribute('transform',`translate(${D[0].toFixed(2)} ${D[1].toFixed(2)})`));
+  AT.arms.forEach(a=>a.setAttribute('transform',`rotate(${-phi} ${G.C[0]} ${G.C[1]})`));
+  AT.guides.forEach(a=>a.setAttribute('transform',`rotate(${-phi} ${G.C[0]+G.gOff} ${G.C[1]})`));
+  AT.edges.forEach(e=>e.setAttribute('class','sv-edge'+(A.alert>0?' hit':'')));
+  AT.obst.style.display=A.obst?'':'none';
+  const am=[(G.C[0]+G.P0[0]+D[0])/2,(G.C[1]+G.P0[1]+D[1])/2];
+  AT.lblArm.setAttribute('x',am[0]-10);AT.lblArm.setAttribute('y',am[1]);
+  AT.lblGuide.setAttribute('x',am[0]+G.gOff+10);AT.lblGuide.setAttribute('y',am[1]+14);
+  AT.lblDoor.setAttribute('x',G.near+G.leafW/2+D[0]-(A.dbl?40:0));AT.lblDoor.setAttribute('y',WY-10+D[1]);
+  AT.lblDoor.style.display=phi>G.phiMax-3?'none':'';
+  const a0=rad(G.th0);
+  M.pinArm.setAttribute('x2',M.PC[0]+80*Math.cos(a0));M.pinArm.setAttribute('y2',M.PC[1]+80*Math.sin(a0));
+  M.lArm.setAttribute('x2',M.O[0]+86*Math.cos(a0));M.lArm.setAttribute('y2',M.O[1]+86*Math.sin(a0));
+  // Antrieb
+  M.rack.style.display=A.mech==='rack'?'':'none';
+  M.lever.style.display=A.mech==='lever'?'':'none';
+  const flowA=(A.pA>0.5)&&(A.moving||A.pA<0.97), outA=(A.pA<0.5)&&(A.moving||A.pA>0.03);
+  const flowZ=(A.pZ>0.5)&&(A.moving||A.pZ<0.97), outZ=(A.pZ<0.5)&&(A.moving||A.pZ>0.03);
+  if(A.mech==='rack'){
+    const t=A.s*M.RP*rad(G.phiMax), px=80+t;
+    M.rackMove.setAttribute('transform',`translate(${t} 0)`);
+    M.chA.setAttribute('width',Math.max(0,px-46));M.chA.setAttribute('fill-opacity',0.08+0.62*A.pA);
+    M.chZ.setAttribute('x',px+14);M.chZ.setAttribute('width',Math.max(0,298-px-14));M.chZ.setAttribute('fill-opacity',0.08+0.62*A.pZ);
+    M.pin.setAttribute('transform',`rotate(${-phi} ${M.PC[0]} ${M.PC[1]})`);
+    M.rIn[0].style.display=flowA?'':'none';M.rOut[0].style.display=outA?'':'none';
+    M.rIn[1].style.display=flowZ?'':'none';M.rOut[1].style.display=outZ?'':'none';
+  }else{
+    const b=rad(140-phi),O=M.O,Q=M.Q;
+    const P=[O[0]+M.R*Math.cos(b),O[1]+M.R*Math.sin(b)];
+    const Ln=Math.hypot(P[0]-Q[0],P[1]-Q[1]),ang=Math.atan2(P[1]-Q[1],P[0]-Q[0])*180/Math.PI;
+    M.barrel.setAttribute('transform',`translate(${Q[0]} ${Q[1]}) rotate(${ang})`);
+    const pis=Ln-122;
+    M.lPist.setAttribute('x',pis);
+    M.lRod.setAttribute('x',pis+10);M.lRod.setAttribute('width',Ln-pis-10);
+    M.lA.setAttribute('width',Math.max(0,pis-4));M.lA.setAttribute('fill-opacity',0.08+0.62*A.pA);
+    M.lZ.setAttribute('x',pis+10);M.lZ.setAttribute('width',Math.max(0,116-pis-10));M.lZ.setAttribute('fill-opacity',0.08+0.62*A.pZ);
+    M.crank.setAttribute('x2',P[0]);M.crank.setAttribute('y2',P[1]);
+    M.cpin.setAttribute('cx',P[0]);M.cpin.setAttribute('cy',P[1]);
+    M.lcol.setAttribute('transform',`rotate(${-phi} ${O[0]} ${O[1]})`);
+    M.lblHebel.setAttribute('x',(O[0]+P[0])/2+14);M.lblHebel.setAttribute('y',(O[1]+P[1])/2+26);
+    M.lIn[0].style.display=flowA?'':'none';M.lOut[0].style.display=outA?'':'none';
+    M.lIn[1].style.display=flowZ?'':'none';M.lOut[1].style.display=outZ?'':'none';
+  }
+  $('mechNote').textContent=A.mech==='rack'
+    ?'Die Kolbenstange ist als Zahnstange ausgeführt. Sie greift in ein Zahnrad (Ritzel) auf der Drehsäule: Aus dem geraden Hub wird eine Drehung.'
+    :'Die Kolbenstange greift außermittig an einem Hebel der Drehsäule an, wie bei einer Kurbel. Der Zylinder ist drehbar gelagert, weil sich der Winkel beim Drehen ändert.';
+  $('chain-mech').textContent=A.mech==='rack'?'Zahnstange + Ritzel':'Hebel (Kurbel)';
+  // Verriegelung
+  const lift=1-clamp(phi/LOCK,0,1);
+  L.col.setAttribute('transform',`translate(0 ${(1-lift)*24})`);
+  L.arr.style.display=(A.moving&&phi<LOCK+2&&phi>0.2)?'':'none';
+  L.arr.setAttribute('transform',(A.mode==='schliesst'||A.dragDir<0&&A.mode==='manuell')?'':'rotate(180 88 112)');
+  const locked=phi<0.3;
+  L.state.textContent=locked?'verriegelt':(lift>0?'Hub läuft':'entriegelt');
+  L.state.setAttribute('class','lbl b');L.state.style.fill=locked?'var(--ok)':'var(--ink)';
+  L.sub.textContent=locked?'Säule angehoben, Zapfen im Hubkeil':'Säule abgesenkt, dreht frei';
+  // Anzeigen
+  $('ast-hub').textContent=Math.round(A.s*100)+' %';
+  $('ast-phi').textContent=Math.round(phi)+'°';
+  const pTxt=p=>p>0.9?'belüftet':p<0.1?'entlüftet':(p>0.5?'wird belüftet':'wird entlüftet');
+  $('ast-pa').textContent=pTxt(A.pA);$('ast-pz').textContent=pTxt(A.pZ);
+  $('ast-ma').style.width=(A.pA*100)+'%';$('ast-mz').style.width=(A.pZ*100)+'%';
+  const lk=$('ast-lock');lk.textContent=locked?'verriegelt (Hubkeil'+(A.pZ>0.9?' + Druck ZU)':')'):'entriegelt';
+  lk.className='v '+(locked?'ok':'');
+  if(document.activeElement!==astSlider)astSlider.value=Math.round(A.s*1000);
+  // Text
+  const [h,p]=astText(phi);const now=$('ast-now');
+  now.querySelector('h3').textContent=h;now.querySelector('p').textContent=p;
+  now.classList.toggle('alert',A.alert>0||A.noth);
+  document.querySelectorAll('#ast-chain li:not(.arr)').forEach(li=>li.classList.toggle('on',A.moving&&!A.noth));
+}
+function astText(phi){
+  const mt=A.mech==='rack'?'Die Zahnstange an der Kolbenstange dreht das Ritzel auf der Drehsäule.':'Die Kolbenstange drückt auf den Hebel an der Drehsäule und dreht sie wie eine Kurbel.';
+  if(A.flash&&A.noth)return['Nothahn betätigt',A.flash];
+  if(A.noth)return['Nothahn betätigt','Beide Zylinderkammern sind entlüftet. Kein Druck hält den Kolben, deshalb lässt sich die Tür von Hand bewegen (Schieberegler).'];
+  if(A.alert>0)return['Einklemmschutz hat ausgelöst','Die Druckwelle in der Schließkante meldet einen Druckanstieg. Die Steuerung schaltet das Ventil um: Kammer AUF wird belüftet, die Tür öffnet wieder.'];
+  switch(A.mode){
+    case 'oeffnet':case 'reversiert':return phi<LOCK?['Entriegeln','Druckluft strömt in Kammer AUF, Kammer ZU wird entlüftet. Die Drehsäule senkt sich ab, der Zapfen kommt aus dem Hubkeil.']:['Öffnen','Der Kolben fährt aus. '+mt+' Die Tragarme schwingen nach außen. Der Führungsarm hält den Flügel dabei parallel: Er läuft auf einer Kreisbahn nach außen und vor die Außenwand.'];
+    case 'schliesst':return phi<LOCK?['Verriegeln','Am Ende der Schwenkbewegung wird die Drehsäule senkrecht angehoben. Der Zapfen fährt in den Hubkeil, der Flügel wird formschlüssig gehalten und in die Dichtung gezogen.']:['Schließen','Druckluft strömt in Kammer ZU, Kammer AUF wird entlüftet. Der Kolben fährt zurück, die Tragarme ziehen den Flügel auf der Kreisbahn zurück in die Öffnung.'];
+    case 'offen':return['Tür offen','Kammer AUF bleibt belüftet und hält die Tür in der Endlage.'];
+    case 'manuell':return['Schritt für Schritt',(A.dragDir>=0?'Kammer AUF ist belüftet: Kolben fährt aus, ':'Kammer ZU ist belüftet: Kolben fährt zurück, ')+'die Säule dreht um '+Math.round(phi)+'°.'];
+    case 'halt':return['Nothahn zurückgestellt','Die Tür wartet auf den nächsten Befehl: Öffnen oder Schließen.'];
+    default:return['Tür geschlossen und verriegelt','Die Drehsäule ist angehoben, ihr Zapfen sitzt im Hubkeil. Zusätzlich hält der Druck in Kammer ZU die Tür zu.'];
+  }
+}
+
+/* ================= SST ================= */
+const S={u:0,mode:'zu',obst:false,speed:1,alert:0,dragDir:0,cur:0};
+const SWY=240, FC=0.22, OUT=36, SLIDE=166;
+const sstTop=$('sstTop'),sstFront=$('sstFront'),sstKnee=$('sstKnee');
+const T={};
+function sv(u){return clamp((u-0.06)/0.94,0,1);}
+function leafOff(v){return [-SLIDE*v,-OUT*Math.sin(clamp(v/FC,0,1)*Math.PI/2)];}
+function buildSst(){
+  // Draufsicht
+  el('rect',{x:0,y:0,width:700,height:SWY,class:'sv-out'},sstTop);
+  el('rect',{x:0,y:SWY+14,width:700,height:106,class:'sv-in'},sstTop);
+  txt(sstTop,16,26,'außen (Gehweg)','lbl m');txt(sstTop,16,348,'Fahrgastraum','lbl m');
+  el('rect',{x:0,y:SWY,width:188,height:14,class:'sv-wall'},sstTop);
+  el('rect',{x:512,y:SWY,width:188,height:14,class:'sv-wall'},sstTop);
+  T.leaves=[];T.edges=[];
+  [false,true].forEach(m=>{
+    const g=el('g',m?{transform:'translate(700,0) scale(-1,1)'}:{},sstTop);
+    let d='';for(let i=0;i<=40;i++){const o=leafOff(i/40);d+=(i?'L':'M')+(349+o[0]).toFixed(1)+','+(SWY+6+o[1]).toFixed(1);}
+    el('path',{d:d,class:'sv-path'},g);
+    const lg=el('g',{},g);
+    el('rect',{x:189,y:SWY+2,width:160,height:8,class:'sv-glass'},lg);
+    T.edges.push(el('rect',{x:344,y:SWY,width:6,height:12,class:'sv-edge'},lg));
+    T.leaves.push(lg);
+  });
+  txt(sstTop,350,SWY+40,'Führungsbahn: Kurve, dann gerade','lbl m','middle');
+  el('path',{d:`M190,${SWY+66} H510 M190,${SWY+60} V${SWY+72} M510,${SWY+60} V${SWY+72}`,class:'sv-dim'},sstTop);
+  txt(sstTop,350,SWY+86,'lichter Einstieg 750 – 1.200 mm','lbl m','middle');
+  T.lblL=txt(sstTop,0,0,'Türflügel','lbl','middle');
+  T.obst=el('g',{},sstTop);
+  el('circle',{cx:350,cy:SWY-14,r:12,class:'sv-obst'},T.obst);
+  txt(T.obst,350,SWY-34,'Hindernis','lbl al','middle');
+
+  // Frontansicht Antrieb
+  el('rect',{x:20,y:14,width:660,height:110,rx:8,class:'housing'},sstFront);
+  txt(sstFront,676,34,'Antriebsträger über der Tür','lbl m','end');
+  el('rect',{x:26,y:46,width:44,height:48,rx:6,class:'sv-dark'},sstFront);
+  txt(sstFront,48,112,'E-Motor','lbl b','middle');
+  const belt='M100,52 H600 A18,18 0 0 1 600,88 H100 A18,18 0 0 1 100,52Z';
+  el('path',{d:belt,class:'beltbase'},sstFront);
+  T.belt=el('path',{d:belt,class:'belt'},sstFront);
+  T.pul=[];[[100,70],[600,70]].forEach(c=>{const g=el('g',{},sstFront);
+    el('circle',{cx:c[0],cy:c[1],r:15,class:'sv-metal'},g);
+    for(let i=0;i<3;i++){const a=i*2*Math.PI/3;el('line',{x1:c[0],y1:c[1],x2:c[0]+12*Math.cos(a),y2:c[1]+12*Math.sin(a),stroke:'var(--metal-dk)','stroke-width':3},g);}
+    T.pul.push([g,c]);});
+  txt(sstFront,350,44,'oberes Trum → linker Flügel','lbl m','middle');
+  txt(sstFront,350,112,'unteres Trum → rechter Flügel','lbl m','middle');
+  T.fl=[];T.car=[];
+  [0,1].forEach(i=>{
+    const lg=el('g',{},sstFront);
+    el('rect',{x:0,y:140,width:160,height:180,rx:4,class:'sv-glass','fill-opacity':.75},lg);
+    el('rect',{x:i?2:148,y:150,width:10,height:160,class:'sv-edge'},lg);
+    T.fl.push(lg);
+    const c=el('g',{},sstFront);
+    el('line',{x1:0,y1:i?96:60,x2:0,y2:142,stroke:'var(--metal-dk)','stroke-width':4},c);
+    el('rect',{x:-16,y:i?80:44,width:32,height:16,rx:3,class:'sv-dark'},c);
+    T.car.push(c);
+  });
+  T.edgesF=[T.fl[0].lastChild,T.fl[1].lastChild];
+  txt(sstFront,350,326,'Laufwagen hängt am Riemen und trägt den Flügel','lbl m','middle');
+
+  // Kniehebel
+  el('rect',{x:10,y:118,width:400,height:8,class:'sv-wall'},sstKnee);
+  el('rect',{x:150,y:122,width:40,height:14,class:'sv-metal'},sstKnee);
+  txt(sstKnee,170,154,'Anschlag','lbl m','middle');
+  el('circle',{cx:70,cy:110,r:7,class:'sv-dark'},sstKnee);
+  el('path',{d:'M56,126 L70,110 L84,126Z',class:'sv-metal'},sstKnee);
+  el('line',{x1:30,y1:110,x2:400,y2:110,class:'sv-path'},sstKnee);
+  txt(sstKnee,404,104,'Totpunktlinie','lbl m','end');
+  T.k1=el('line',{class:'sv-arm','stroke-width':8},sstKnee);
+  T.k2=el('line',{class:'sv-arm','stroke-width':8},sstKnee);
+  T.kB=el('circle',{r:7,class:'sv-dark'},sstKnee);
+  T.kC=el('rect',{width:30,height:22,rx:3,class:'sv-metal'},sstKnee);
+  T.kF=el('g',{},sstKnee);
+  arrow(T.kF,0,0,-40,0,true);
+  T.kFt=txt(T.kF,-20,-12,'Kraft vom Flügel','lbl m','middle');
+  T.kTxt=txt(sstKnee,14,24,'','lbl b');
+  T.kSub=txt(sstKnee,14,44,'','lbl m');
+}
+$('sst-open').onclick=()=>{S.mode='oeffnet';S.alert=0;};
+$('sst-close').onclick=()=>{S.mode='schliesst';S.alert=0;};
+$('sst-obst').onclick=e=>{S.obst=!S.obst;e.currentTarget.setAttribute('aria-pressed',S.obst);};
+$('sst-speed').onchange=e=>S.speed=+e.target.value;
+const sstSlider=$('sst-slider');
+sstSlider.addEventListener('input',()=>{const v=sstSlider.value/1000;S.dragDir=Math.sign(v-S.u)||S.dragDir;S.u=v;S.mode='manuell';S.alert=0;S.dragT=0.25;});
+function sstStep(dt){
+  const prev=S.u,rate=dt/(3.2/S.speed);
+  if(S.mode==='oeffnet'||S.mode==='reversiert'){S.u+=rate;if(S.u>=1){S.u=1;S.mode='offen';}}
+  else if(S.mode==='schliesst'){S.u-=rate;const v=sv(S.u);
+    if(S.obst&&v<=0.1&&v>0.07){S.mode='reversiert';S.alert=2.2;S.cur=1;}
+    if(S.u<=0){S.u=0;S.mode='zu';}}
+  else if(S.mode==='manuell'){if(S.u<=0.0005)S.mode='zu';else if(S.u>=0.9995)S.mode='offen';}
+  S.moving=Math.abs(S.u-prev)>1e-6||S.dragT>0;if(S.dragT>0)S.dragT-=dt;
+  const target=S.moving?0.4:0;S.cur+=(target-S.cur)*Math.min(1,dt*4);
+  if(S.alert>0)S.alert-=dt;
+}
+function sstRender(){
+  const v=sv(S.u),o=leafOff(v);
+  T.leaves.forEach(l=>l.setAttribute('transform',`translate(${o[0]} ${o[1]})`));
+  T.edges.concat(T.edgesF).forEach(e=>e.setAttribute('class','sv-edge'+(S.alert>0?' hit':'')));
+  T.lblL.setAttribute('x',269+o[0]);T.lblL.setAttribute('y',SWY-8+o[1]);
+  T.obst.style.display=S.obst?'':'none';
+  // Frontansicht
+  const lx=189+o[0],rx=351-o[0];
+  T.fl[0].setAttribute('transform',`translate(${lx} 0)`);T.fl[1].setAttribute('transform',`translate(${rx} 0)`);
+  T.car[0].setAttribute('transform',`translate(${lx+120} 0)`);T.car[1].setAttribute('transform',`translate(${rx+40} 0)`);
+  const out=-o[1]/OUT;
+  T.fl.forEach(f=>f.setAttribute('opacity',1-0.25*out));
+  T.belt.setAttribute('stroke-dashoffset',(-o[0]).toFixed(1));
+  T.pul.forEach(([g,c])=>g.setAttribute('transform',`rotate(${(o[0]/15*180/Math.PI).toFixed(1)} ${c[0]} ${c[1]})`));
+  // Kniehebel
+  const k=clamp(S.u/0.06,0,1),th=rad(7-k*50),A0=[70,110],len=80;
+  const B=[A0[0]+len*Math.cos(th),A0[1]-len*Math.sin(-th)];
+  const C=[A0[0]+2*len*Math.cos(th),110];
+  T.k1.setAttribute('x1',A0[0]);T.k1.setAttribute('y1',A0[1]);T.k1.setAttribute('x2',B[0]);T.k1.setAttribute('y2',B[1]);
+  T.k2.setAttribute('x1',B[0]);T.k2.setAttribute('y1',B[1]);T.k2.setAttribute('x2',C[0]);T.k2.setAttribute('y2',C[1]);
+  T.kB.setAttribute('cx',B[0]);T.kB.setAttribute('cy',B[1]);
+  T.kC.setAttribute('x',C[0]-15);T.kC.setAttribute('y',99);
+  T.kF.setAttribute('transform',`translate(${C[0]+64} 110)`);T.kF.style.display=k<0.05?'':'none';
+  const locked=k<0.02;
+  T.kTxt.textContent=locked?'Knie über dem Totpunkt':'Knie wird zurückgezogen';
+  T.kTxt.style.fill=locked?'var(--ok)':'var(--ink)';
+  T.kSub.textContent=locked?'Druck auf den Flügel presst das Knie nur fester an den Anschlag':'Motor zieht das Knie über den Totpunkt, Tür ist frei';
+  // Anzeigen
+  $('sst-way').textContent=Math.round(v*100)+' %';
+  $('sst-phase').textContent=S.u<=0.0005?'geschlossen':S.u<0.06?'entriegeln':v<FC?'ausschwenken':v>=0.9995?'offen':'schieben';
+  const cur=$('sst-cur');cur.textContent=S.alert>0?'Stromspitze!':S.cur>0.05?'läuft':'aus';cur.className='v'+(S.alert>0?' bad':'');
+  $('sst-mc').style.width=Math.round((S.alert>1.6?1:S.cur)*100)+'%';
+  const lk=$('sst-lock');lk.textContent=locked?'über Totpunkt (energielos)':'entriegelt';lk.className='v'+(locked?' ok':'');
+  if(document.activeElement!==sstSlider)sstSlider.value=Math.round(S.u*1000);
+  const [h,p]=sstText(v,locked);const now=$('sst-now');
+  now.querySelector('h3').textContent=h;now.querySelector('p').textContent=p;now.classList.toggle('alert',S.alert>0);
+  document.querySelectorAll('#sst-chain li:not(.arr)').forEach(li=>li.classList.toggle('on',S.moving));
+}
+function sstText(v,locked){
+  if(S.alert>0)return['Einklemmschutz hat ausgelöst','Die Schaltleiste in der Schließkante meldet Kontakt, gleichzeitig steigt der Motorstrom. Die Steuerung kehrt die Drehrichtung um, die Tür öffnet wieder.'];
+  const closing=S.mode==='schliesst'||(S.mode==='manuell'&&S.dragDir<0);
+  if(S.mode==='zu'||S.u<=0.0005)return['Tür geschlossen und verriegelt','Der Kniehebel steht knapp über dem Totpunkt am Anschlag. Die Tür bleibt auch ohne Strom sicher zu.'];
+  if(S.mode==='offen')return['Tür offen','Beide Flügel stehen außen parallel zur Buswand. Der Einstieg ist frei.'];
+  if(S.u<0.06)return closing?['Verriegeln','Am Ende drückt der Motor das Knie über den Totpunkt an den Anschlag.']:['Entriegeln','Der Motor zieht zuerst das Knie über den Totpunkt zurück. Erst dann können sich die Flügel bewegen.'];
+  if(v<FC)return closing?['Einschwenken','Die Führungsrollen laufen in die Kurve der Bahn. Die Flügel schwenken zurück in die Öffnung und in die Dichtung.']:['Ausschwenken','Die Führungsrollen laufen durch die Kurve am Bahnanfang. Die Flügel kommen aus der Öffnung heraus nach außen.'];
+  return closing?['Schieben','Der Riemen zieht beide Laufwagen zur Mitte. Die Flügel gleiten außen an der Wand entlang.']:['Schieben','Die Bahn ist jetzt gerade. Der Motor dreht weiter, der Riemen zieht die Laufwagen gegenläufig nach außen: oberes Trum nach links, unteres nach rechts.'];
+}
+
+/* ================= Loop ================= */
+buildAstTop();buildMech();buildLock();buildSst();
+let last=performance.now();
+function frame(t){const dt=Math.min(0.05,(t-last)/1000);last=t;
+  astStep(dt);astRender();sstStep(dt);sstRender();requestAnimationFrame(frame);}
+astRender();sstRender();
+requestAnimationFrame(frame);
+})();
+</script>
+
+</body></html>

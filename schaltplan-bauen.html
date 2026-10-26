@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Schaltplan selbst bauen</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --ink:#1d2733; --muted:#5d6b7a; --line:#d5dce3;
+  --accent:#1f6fb2; --accent-soft:#e3eef8; --ok:#1e8a4c; --ok-soft:#e2f4ea;
+  --bad:#c0392b; --bad-soft:#fbe6e3; --grid:#e6ebf0; --warn:#b26a00; --warn-soft:#fff3df;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#12171d; --card:#1b232c; --ink:#e6edf3; --muted:#9aa8b6; --line:#2e3a46;
+  --accent:#5aa8ec; --accent-soft:#1d3346; --ok:#46c27a; --ok-soft:#173327;
+  --bad:#ef6f61; --bad-soft:#3a1f1c; --grid:#222c36; --warn:#f0b04a; --warn-soft:#3a2c14;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+header{background:#1f6fb2;color:#fff;padding:16px}
+header .in{max-width:1000px;margin:0 auto}
+header a{color:#fff;opacity:.85;font-size:.88rem;text-decoration:none}
+header h1{margin:4px 0 0;font-size:1.35rem}
+header p{margin:2px 0 0;opacity:.9;font-size:.92rem}
+main{max-width:1000px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:1.1rem;margin:0 0 6px}
+h3{font-size:.95rem;margin:14px 0 4px}
+p{margin:0 0 8px}
+ul{margin:0;padding-left:20px}
+li{margin:2px 0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+/* Stufen-Auswahl */
+.levels{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+.lv{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 6px;font:inherit;cursor:pointer;text-align:center;line-height:1.2}
+.lv b{display:block;font-size:.95rem}
+.lv span{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
+.lv .st{color:#e0a100;letter-spacing:1px;font-size:.8rem}
+.lv.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.lv.done b::after{content:" ✓";color:var(--ok)}
+.tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.btn{border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:.92rem;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+.btn.sec{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px;background:var(--bg)}
+details summary{cursor:pointer;font-weight:600}
+.hint{background:var(--warn-soft);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:.93rem}
+.hint b{color:var(--warn)}
+.checks{list-style:none;padding:0;margin:8px 0 0}
+.checks li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--line);font-size:.93rem}
+.checks li:last-child{border-bottom:0}
+.checks .i{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.checks .ok .i{background:var(--ok-soft);color:var(--ok)}
+.checks .no .i{background:var(--bad-soft);color:var(--bad)}
+.verdict{margin-top:8px;font-weight:700}
+.solsvg svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:10px}
+/* Editor */
+.editor{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px;display:flex;flex-direction:column}
+.etop{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.etop .sp{flex:1}
+.ib{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-width:38px;height:36px;padding:0 9px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}
+.ib:disabled{opacity:.4}
+.stage{position:relative;background:var(--card)}
+#cv{display:block;width:100%;height:62vh;min-height:380px;max-height:720px;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--card)}
+.status{position:absolute;left:8px;right:8px;top:8px;pointer-events:none;display:flex;justify-content:center}
+.status span{background:var(--ink);color:var(--card);border-radius:999px;padding:4px 12px;font-size:.82rem;opacity:.88;max-width:100%}
+.status span:empty{display:none}
+.sel{display:none;gap:6px;align-items:center;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--accent-soft)}
+.sel.on{display:flex}
+.sel label{font-size:.78rem;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.sel input,.sel select{font:inherit;font-size:.92rem;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink)}
+.sel input{width:84px}
+.pal{display:flex;gap:6px;overflow-x:auto;padding:8px;border-top:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.pb{flex:0 0 auto;width:82px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:4px 4px 6px;font:inherit;font-size:.7rem;line-height:1.15;cursor:pointer;text-align:center}
+.pb svg{display:block;width:100%;height:46px}
+.pb .s{fill:none;stroke:currentColor;stroke-width:1.6}.pb .f{fill:currentColor}.pb .bx{fill:none;stroke:currentColor;stroke-width:1.6}.pb .t{display:none}
+.pgrp{flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:0 2px}
+.editor.full{position:fixed;inset:0;z-index:50;border-radius:0;margin:0;border:0;padding-top:env(safe-area-inset-top)}
+.editor.full #cv{height:auto;flex:1;max-height:none;min-height:0}
+.editor.full .stage{flex:1;display:flex;flex-direction:column}
+.namerow{display:flex;gap:8px;align-items:center;margin-top:8px}
+.namerow input{flex:1;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+/* SVG */
+#cv .s,.solsvg .s{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#cv .f,.solsvg .f{fill:var(--ink)}
+#cv .bx,.solsvg .bx{fill:var(--card);stroke:var(--ink);stroke-width:1.6}
+#cv .t,.solsvg .t{font:600 8.5px system-ui,sans-serif;fill:var(--muted)}
+#cv .lb,.solsvg .lb{font:700 12px system-ui,sans-serif;fill:var(--accent)}
+#cv .ln,.solsvg .ln{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round}
+#cv .ln.ctrl,.solsvg .ln.ctrl{stroke-dasharray:6 4}
+#cv .lnhit{fill:none;stroke:transparent;stroke-width:16}
+#cv .hit{fill:transparent}
+#cv .pt{fill:var(--card);stroke:var(--accent);stroke-width:1.6}
+#cv .pt.pend{fill:var(--accent)}
+#cv .pthit{fill:transparent}
+#cv .selbox{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 3}
+#cv .ln.selln{stroke:var(--accent);stroke-width:3}
+#cv .gridl{stroke:var(--grid);stroke-width:1}
+#cv .jd,.solsvg .jd{fill:var(--ink)}
+@media (max-width:560px){
+  .levels{grid-template-columns:repeat(2,1fr)}
+  header h1{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a href="index.html">← Pneumatik &amp; Hydraulik</a>
+  <h1>Schaltplan selbst bauen</h1>
+  <p>Für Schnelle: Zeichne einen Pneumatik-Schaltplan direkt am Handy – von leicht bis knifflig.</p>
+</div></header>
+
+<main>
+  <div class="levels" id="levels"></div>
+
+  <div class="card" id="task"></div>
+
+  <div class="editor" id="editor">
+    <div class="etop">
+      <button class="ib" id="bUndo" title="Rückgängig">↶</button>
+      <button class="ib" id="bZoomOut" title="Verkleinern">−</button>
+      <button class="ib" id="bZoomIn" title="Vergrößern">+</button>
+      <button class="ib" id="bFit" title="Alles anzeigen">⤢</button>
+      <span class="sp"></span>
+      <button class="ib" id="bFull">Vollbild</button>
+      <button class="ib" id="bClear" title="Alles löschen">🗑</button>
+    </div>
+    <div class="stage">
+      <svg id="cv" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="status"><span id="status"></span></div>
+    </div>
+    <div class="sel" id="selbar"></div>
+    <div class="pal" id="pal"></div>
+  </div>
+
+  <div class="card">
+    <h2>Fertig? Prüfen und vorstellen</h2>
+    <div class="btns">
+      <button class="btn" id="bCheck">Schaltplan prüfen</button>
+      <button class="btn sec" id="bPng">Als Bild speichern</button>
+    </div>
+    <div class="namerow"><input id="names" placeholder="Name(n) für das Bild, z. B. Lena &amp; Tim" maxlength="60"></div>
+    <div id="result"></div>
+    <div id="present"></div>
+    <details id="solbox">
+      <summary>Musterlösung (erst nach dem Prüfen ansehen!)</summary>
+      <p class="small muted" style="margin-top:6px">Es gibt oft mehrere richtige Lösungen. Vergleiche die Funktion, nicht die genaue Lage der Bauteile.</p>
+      <div class="solsvg" id="solsvg"></div>
+      <div class="btns"><button class="btn ghost" id="bLoadSol">Musterlösung in den Editor laden</button></div>
+    </details>
+  </div>
+
+  <details class="card" style="padding:12px 16px">
+    <summary>So funktioniert der Editor</summary>
+    <ul class="small" style="margin-top:8px">
+      <li><b>Bauteil einfügen:</b> unten in der Leiste antippen – es erscheint in der Mitte.</li>
+      <li><b>Verschieben:</b> Bauteil mit dem Finger ziehen. Leere Fläche ziehen = Ansicht verschieben.</li>
+      <li><b>Leitung zeichnen:</b> einen Anschluss (kleiner Kreis) antippen, dann den zweiten Anschluss antippen.</li>
+      <li><b>Abzweig:</b> Für T-Stücke oder Umwege den Baustein „Abzweig“ einsetzen und Leitungen daran anschließen.</li>
+      <li><b>Bauteil bearbeiten:</b> antippen → unten Kennzeichnung eintragen (z. B. 1V1), Betätigung wählen, spiegeln oder löschen.</li>
+      <li><b>Leitung bearbeiten:</b> antippen → Arbeits- oder Steuerleitung (gestrichelt) wählen oder löschen.</li>
+      <li>Dein Plan wird automatisch auf dem Handy gespeichert – pro Stufe einzeln.</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+(() => {
+'use strict';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+
+/* ===================== Betätigungen (wie Übung Wegeventile) ===================== */
+const ACT = {
+  feder(x, y, d) { let p = `${x},${y}`; for (let i = 1; i <= 6; i++) p += ` ${x + d * i * 4.5},${i === 6 ? y : y + (i % 2 ? -7 : 7)}`; return { svg: `<polyline class="s" points="${p}"/>`, w: 30 }; },
+  knopf(x, y, d) { const k = x + d * 16, sw = d > 0 ? 1 : 0; return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${k}" y2="${y}"/><line class="s" x1="${k}" y1="${y - 9}" x2="${k}" y2="${y + 9}"/><path class="s" d="M${k} ${y - 9} A9 9 0 0 ${sw} ${k} ${y + 9}"/>`, w: 28 }; },
+  hebel(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 14}" y1="${y}" x2="${x + d * 26}" y2="${y - 14}"/><circle class="s" cx="${x + d * 28}" cy="${y - 16}" r="3.5"/>`, w: 32 }; },
+  magnet(x, y, d) { const rx = d > 0 ? x : x - 14; return { svg: `<rect class="s" x="${rx}" y="${y - 12}" width="14" height="24"/><line class="s" x1="${rx}" y1="${y + 12}" x2="${rx + 14}" y2="${y - 12}"/>`, w: 16 }; },
+  druck(x, y, d) { return { svg: `<polygon class="f" points="${x + d * 3},${y} ${x + d * 13},${y - 6} ${x + d * 13},${y + 6}"/><line class="s" stroke-dasharray="4 3" x1="${x + d * 13}" y1="${y}" x2="${x + d * 32}" y2="${y}"/>`, w: 34 }; },
+  rolle(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><circle class="s" cx="${x + d * 20}" cy="${y}" r="6"/>`, w: 28 }; },
+  raste(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 26}" y2="${y}"/><line class="s" x1="${x + d * 13}" y1="${y}" x2="${x + d * 13}" y2="${y - 5}"/><polyline class="s" points="${x + d * 4},${y - 12} ${x + d * 8.5},${y - 5} ${x + d * 13},${y - 12} ${x + d * 17.5},${y - 5} ${x + d * 22},${y - 12}"/>`, w: 30 }; },
+  pedal(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 10}" y1="${y + 10}" x2="${x + d * 24}" y2="${y - 8}"/>`, w: 30 }; },
+  none() { return { svg: '', w: 0 }; }
+};
+const ACTNAME = { knopf: 'Taster', pedal: 'Pedal (Fuß)', hebel: 'Hebel', rolle: 'Rolle', magnet: 'Magnet (elektr.)', druck: 'Druckluft (pneumatisch)', feder: 'Feder', raste: 'Raste', none: '– keine –' };
+const LEFT_OPTS = ['knopf', 'pedal', 'hebel', 'rolle', 'magnet', 'druck'];
+const RIGHT_OPTS = ['feder', 'druck', 'magnet', 'raste', 'none'];
+const aw = t => ACT[t || 'none'](0, 0, 1).w;
+
+/* ===================== Hilfsfunktionen Zeichnen ===================== */
+const L = (x1, y1, x2, y2, c = 's') => `<line class="${c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+function arrow(x1, y1, x2, y2) {
+  const a = Math.atan2(y2 - y1, x2 - x1), h = 6, w = 3.2;
+  const bx = x2 - h * Math.cos(a), by = y2 - h * Math.sin(a);
+  const p1 = `${bx + w * Math.sin(a)},${by - w * Math.cos(a)}`, p2 = `${bx - w * Math.sin(a)},${by + w * Math.cos(a)}`;
+  return L(x1, y1, bx, by) + `<polygon class="f" points="${x2},${y2} ${p1} ${p2}"/>`;
+}
+const blockB = x => L(x, 36, x, 29) + L(x - 4, 29, x + 4, 29);   // gesperrt (von unten)
+const blockT = x => L(x, 0, x, 7) + L(x - 4, 7, x + 4, 7);       // gesperrt (von oben)
+const exhaust = x => L(x, 36, x, 42) + `<polygon class="s" points="${x - 5},42 ${x + 5},42 ${x},49"/>`;
+const num = (x, y, t, anchor = 'start') => `<text class="t" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
+
+/* ===================== Bauteil-Typen ===================== */
+// Ports: {p, x, y, dir:'u'|'d'|'l'|'r'|null, ctrl}
+const T = {
+  quelle: {
+    name: 'Druckluftquelle', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="9"/><circle class="f" cx="0" cy="0" r="2.2"/>` + L(0, -9, 0, -16),
+    ports: () => [{ p: 'P', x: 0, y: -16, dir: 'u' }],
+    box: () => [-12, -18, 12, 12], lab: [16, 4, 'start']
+  },
+  kompressor: {
+    name: 'Kompressor', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="16"/><polygon class="s" points="-8,-3 8,-3 0,-15.5"/>` + L(-16, -2, -27, -2) + L(-16, 2, -27, 2) + L(0, -16, 0, -24),
+    ports: () => [{ p: 'P', x: 0, y: -24, dir: 'u' }],
+    box: () => [-29, -26, 19, 19], lab: [21, 4, 'start']
+  },
+  behaelter: {
+    name: 'Druckluftbehälter', grp: 'Versorgung',
+    draw: () => `<rect class="s" x="-30" y="-13" width="60" height="26" rx="13"/>` + L(0, -13, 0, -20) + L(0, 13, 0, 20),
+    ports: () => [{ p: 'out', x: 0, y: -20, dir: 'u' }, { p: 'in', x: 0, y: 20, dir: 'd' }],
+    box: () => [-32, -22, 32, 22], lab: [35, 4, 'start']
+  },
+  manometer: {
+    name: 'Manometer', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="12"/>` + arrow(-7, 7, 8, -8) + L(0, 12, 0, 20),
+    ports: () => [{ p: 'M', x: 0, y: 20, dir: 'd' }],
+    box: () => [-14, -14, 14, 22], lab: [16, -4, 'start']
+  },
+  v32: {
+    name: '3/2-Wegeventil', grp: 'Ventile', valve: true, W: 36, defL: 'knopf', defR: 'feder',
+    draw: c => {
+      const W = 36;
+      let s = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      s += arrow(12, 34, 12, 2) + blockB(24);                        // betätigt: 1→2, 3 gesperrt
+      s += blockB(W + 12) + arrow(W + 12, 2, W + 24, 34);            // Grundstellung: 1 gesperrt, 2→3
+      s += L(W + 12, 0, W + 12, -8) + L(W + 12, 36, W + 12, 44) + exhaust(W + 24);
+      s += num(W + 15, -2, '2') + num(W + 9, 52, '1', 'end') + num(W + 31, 50, '3');
+      s += valveActs(c, W);
+      return s;
+    },
+    ports: c => valvePorts(c, 36, [{ p: '2', x: 48, y: -8, dir: 'u' }, { p: '1', x: 48, y: 44, dir: 'd' }], '12', '10'),
+    box: c => [-aw(c.la) - 2, -12, 72 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
+  },
+  v52: {
+    name: '5/2-Wegeventil', grp: 'Ventile', valve: true, W: 48, defL: 'magnet', defR: 'feder',
+    draw: c => {
+      const W = 48;
+      let s = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      s += arrow(24, 34, 14, 2) + arrow(34, 2, 38, 34);              // betätigt: 1→4, 2→3
+      s += arrow(W + 24, 34, W + 34, 2) + arrow(W + 14, 2, W + 10, 34); // Grundstellung: 1→2, 4→5
+      s += L(W + 14, 0, W + 14, -8) + L(W + 34, 0, W + 34, -8) + L(W + 24, 36, W + 24, 44) + exhaust(W + 10) + exhaust(W + 38);
+      s += num(W + 11, -2, '4', 'end') + num(W + 37, -2, '2') + num(W + 27, 52, '1') + num(W + 3, 50, '5', 'end') + num(W + 45, 50, '3');
+      s += valveActs(c, W);
+      return s;
+    },
+    ports: c => valvePorts(c, 48, [{ p: '4', x: 62, y: -8, dir: 'u' }, { p: '2', x: 82, y: -8, dir: 'u' }, { p: '1', x: 72, y: 44, dir: 'd' }], '14', '12'),
+    box: c => [-aw(c.la) - 2, -12, 96 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
+  },
+  rueck: {
+    name: 'Rückschlag­ventil', grp: 'Ventile', flip: true,
+    draw: () => L(0, -26, 0, -9) + `<circle class="s" cx="0" cy="-3" r="5"/><polyline class="s" points="-8,-6 0,8 8,-6"/>` + L(0, 8, 0, 26),
+    ports: () => [{ p: 'out', x: 0, y: -26, dir: 'u' }, { p: 'in', x: 0, y: 26, dir: 'd' }],
+    box: () => [-11, -28, 11, 28], lab: [13, 4, 'start']
+  },
+  drv: {
+    name: 'Drossel­rückschlag­ventil', grp: 'Ventile', flip: true,
+    draw: () => `<rect x="-25" y="-25" width="50" height="50" fill="none" stroke="currentColor" class="s" stroke-width="1" stroke-dasharray="7 3 1.5 3"/>` +
+      L(0, -34, 0, -16) + L(-12, -16, 12, -16) + L(-12, 16, 12, 16) + L(0, 16, 0, 34) +
+      L(-12, -16, -12, -9) + L(-12, 9, -12, 16) + `<path class="s" d="M-17,-9 Q-10,0 -17,9 M-7,-9 Q-14,0 -7,9"/>` + arrow(-22, 11, -1, -11) +
+      L(12, -16, 12, -8) + `<circle class="s" cx="12" cy="-3" r="4.5"/><polyline class="s" points="5,-5 12,7 19,-5"/>` + L(12, 7, 12, 16),
+    ports: () => [{ p: 'out', x: 0, y: -34, dir: 'u' }, { p: 'in', x: 0, y: 34, dir: 'd' }],
+    box: () => [-27, -36, 27, 36], lab: [-30, 4, 'end']
+  },
+  wechsel: {
+    name: 'Wechselventil (ODER)', grp: 'Ventile',
+    draw: () => `<rect class="bx" x="-26" y="-10" width="52" height="20"/><circle class="s" cx="0" cy="0" r="6"/><polyline class="s" points="-21,-7 -15,0 -21,7"/><polyline class="s" points="21,-7 15,0 21,7"/>` + gateLegs(),
+    ports: () => gatePorts(), box: () => [-38, -20, 38, 16], lab: [0, 26, 'middle']
+  },
+  zweidruck: {
+    name: 'Zweidruckventil (UND)', grp: 'Ventile',
+    draw: () => `<rect class="bx" x="-26" y="-10" width="52" height="20"/>` + L(-12, -7, -12, 7) + L(12, -7, 12, 7) + L(-12, 0, 12, 0) + L(-20, -10, -20, -4) + L(-20, 4, -20, 10) + L(20, -10, 20, -4) + L(20, 4, 20, 10) + gateLegs(),
+    ports: () => gatePorts(), box: () => [-38, -20, 38, 16], lab: [0, 26, 'middle']
+  },
+  ew: {
+    name: 'Zylinder einfachwirkend', grp: 'Antriebe',
+    draw: () => `<rect class="bx" x="-50" y="-14" width="100" height="28"/>` + `<line class="s" x1="-30" y1="-14" x2="-30" y2="14" stroke-width="3.5"/>` + `<line class="s" x1="-30" y1="0" x2="80" y2="0" stroke-width="3"/>` + springH(-27, 48) + L(-42, 14, -42, 22),
+    ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }],
+    box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
+  },
+  dw: {
+    name: 'Zylinder doppeltwirkend', grp: 'Antriebe',
+    draw: () => `<rect class="bx" x="-50" y="-14" width="100" height="28"/>` + `<line class="s" x1="-30" y1="-14" x2="-30" y2="14" stroke-width="3.5"/>` + `<line class="s" x1="-30" y1="0" x2="80" y2="0" stroke-width="3"/>` + L(-42, 14, -42, 22) + L(42, 14, 42, 22),
+    ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }, { p: 'B', x: 42, y: 22, dir: 'd' }],
+    box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
+  },
+  abzweig: {
+    name: 'Abzweig / Knick', grp: 'Sonstiges',
+    draw: () => '', ports: () => [{ p: 'P', x: 0, y: 0, dir: null }],
+    box: () => [-9, -9, 9, 9], lab: null
+  },
+  text: {
+    name: 'Text / Markierung', grp: 'Sonstiges',
+    draw: () => '', ports: () => [],
+    box: c => { const w = Math.max(24, (c.label || 'Text').length * 8 + 8); return [-w / 2, -13, w / 2, 5]; }, lab: null
+  }
+};
+function springH(x1, x2) {
+  let p = `${x1},0`; const n = 10, st = (x2 - x1) / n;
+  for (let i = 1; i < n; i++) p += ` ${x1 + i * st},${i % 2 ? -9 : 9}`;
+  return `<polyline class="s" points="${p} ${x2},0"/>`;
+}
+function gateLegs() { return L(-26, 0, -36, 0) + L(-36, 0, -36, 14) + L(26, 0, 36, 0) + L(36, 0, 36, 14) + L(0, -10, 0, -18); }
+function gatePorts() { return [{ p: 'e1', x: -36, y: 14, dir: 'd', ctrl: true }, { p: 'e2', x: 36, y: 14, dir: 'd', ctrl: true }, { p: 'a', x: 0, y: -18, dir: 'u', ctrl: true }]; }
+function valveActs(c, W) {
+  let s = ACT[c.la || 'none'](0, 18, -1).svg + ACT[c.ra || 'none'](2 * W, 18, 1).svg;
+  const five = W === 48;
+  if (c.la === 'druck') s += num(-30, 12, five ? '14' : '12');
+  if (c.ra === 'druck') s += num(2 * W + 30, 12, five ? '12' : '10', 'end');
+  return s;
+}
+function valvePorts(c, W, base, lname, rname) {
+  const out = base.slice();
+  if (c.la === 'druck') out.push({ p: lname, x: -32, y: 18, dir: 'l', ctrl: true });
+  if (c.ra === 'druck') out.push({ p: rname, x: 2 * W + 32, y: 18, dir: 'r', ctrl: true });
+  return out;
+}
+
+/* ===================== Modell ===================== */
+const portsOf = c => T[c.type].ports(c).map(q => {
+  const y = c.flip ? -q.y : q.y;
+  let dir = q.dir; if (c.flip && dir === 'u') dir = 'd'; else if (c.flip && dir === 'd') dir = 'u';
+  return { ...q, x: c.x + q.x, y: c.y + y, dir, c: c.id };
+});
+function portByRef(d, cid, p) {
+  const c = d.comps.find(k => k.id === cid); if (!c) return null;
+  return portsOf(c).find(q => q.p === p) || null;
+}
+function bboxOf(c) {
+  const b = T[c.type].box(c);
+  let [x1, y1, x2, y2] = b;
+  if (c.flip) [y1, y2] = [-y2, -y1];
+  return [c.x + x1, c.y + y1, c.x + x2, c.y + y2];
+}
+function route(a, b) {
+  const V = d => d === 'u' || d === 'd', H = d => d === 'l' || d === 'r';
+  const da = a.dir, db = b.dir;
+  if (!da && !db) return [a, { x: b.x, y: a.y }, b];
+  if (!da || !db) {
+    const p = da ? a : b, q = da ? b : a;
+    const pts = V(p.dir) ? [q, { x: p.x, y: q.y }, p] : [q, { x: q.x, y: p.y }, p];
+    return da ? pts.reverse() : pts;
+  }
+  if (V(da) && V(db)) {
+    if (Math.abs(a.x - b.x) < .5) return [a, b];
+    let m;
+    if ((da === 'u' && db === 'd' && b.y < a.y) || (da === 'd' && db === 'u' && b.y > a.y)) m = (a.y + b.y) / 2;
+    else if (da === 'u' && db === 'u') m = Math.min(a.y, b.y) - 16;
+    else if (da === 'd' && db === 'd') m = Math.max(a.y, b.y) + 16;
+    else m = (a.y + b.y) / 2;
+    return [a, { x: a.x, y: m }, { x: b.x, y: m }, b];
+  }
+  if (H(da) && H(db)) {
+    if (Math.abs(a.y - b.y) < .5) return [a, b];
+    let m;
+    if ((da === 'l' && db === 'r' && b.x < a.x) || (da === 'r' && db === 'l' && b.x > a.x)) m = (a.x + b.x) / 2;
+    else if (da === 'l' && db === 'l') m = Math.min(a.x, b.x) - 16;
+    else if (da === 'r' && db === 'r') m = Math.max(a.x, b.x) + 16;
+    else m = (a.x + b.x) / 2;
+    return [a, { x: m, y: a.y }, { x: m, y: b.y }, b];
+  }
+  return V(da) ? [a, { x: a.x, y: b.y }, b] : [a, { x: b.x, y: a.y }, b];
+}
+const isCtrl = (d, ln) => {
+  if (ln.kind === 'work') return false;
+  if (ln.kind === 'ctrl') return true;
+  const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+  return !!((a && a.ctrl) || (b && b.ctrl));
+};
+
+/* ===================== Rendern ===================== */
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function renderDiagram(d, o = {}) {
+  let s = '';
+  // Leitungen
+  const used = new Set();
+  d.lines.forEach(ln => {
+    const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+    if (!a || !b) return;
+    used.add(ln.a.c + ':' + ln.a.p); used.add(ln.b.c + ':' + ln.b.p);
+    const pts = route(a, b).map(p => `${p.x},${p.y}`).join(' ');
+    const sel = o.edit && o.sel && o.sel.kind === 'line' && o.sel.id === ln.id;
+    s += `<polyline class="ln${isCtrl(d, ln) ? ' ctrl' : ''}${sel ? ' selln' : ''}" points="${pts}"/>`;
+    if (o.edit) s += `<polyline class="lnhit" data-line="${ln.id}" points="${pts}"/>`;
+  });
+  // Bauteile
+  d.comps.forEach(c => {
+    const t = T[c.type];
+    const tr = `translate(${c.x},${c.y})`;
+    const b = t.box(c);
+    s += `<g data-comp="${c.id}">`;
+    if (o.edit) {
+      const [x1, y1, x2, y2] = bboxOf(c);
+      s += `<rect class="hit" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/>`;
+    }
+    s += `<g transform="${tr}${c.flip ? ' scale(1,-1)' : ''}">${t.draw(c)}</g>`;
+    if (c.type === 'abzweig') {
+      const conn = d.lines.filter(l => (l.a.c === c.id) || (l.b.c === c.id)).length;
+      if (conn >= 3 || !o.edit) s += `<circle class="jd" cx="${c.x}" cy="${c.y}" r="3.2"/>`;
+      if (o.edit && conn < 3) s += `<circle class="jd" cx="${c.x}" cy="${c.y}" r="${conn ? 3.2 : 2.2}" opacity="${conn ? 1 : .5}"/>`;
+    }
+    if (c.type === 'text') s += `<text class="lb" x="${c.x}" y="${c.y}" text-anchor="middle">${esc(c.label || 'Text')}</text>`;
+    else if (c.label && t.lab) {
+      let [lx, ly, an] = t.lab;
+      if (t.valve) lx = -aw(c.la);
+      s += `<text class="lb" x="${c.x + lx}" y="${c.y + (c.flip && !t.valve ? -ly + 8 : ly)}" text-anchor="${an}">${esc(c.label)}</text>`;
+    }
+    if (o.edit && o.sel && o.sel.kind === 'comp' && o.sel.id === c.id) {
+      const [x1, y1, x2, y2] = bboxOf(c);
+      s += `<rect class="selbox" x="${x1 - 3}" y="${y1 - 3}" width="${x2 - x1 + 6}" height="${y2 - y1 + 6}" rx="4"/>`;
+    }
+    s += '</g>';
+  });
+  // Anschlusspunkte (nur im Editor)
+  if (o.edit) {
+    d.comps.forEach(c => portsOf(c).forEach(q => {
+      const key = c.id + ':' + q.p;
+      const pend = o.pending && o.pending.c === c.id && o.pending.p === q.p;
+      if (!used.has(key) || pend) s += `<circle class="pt${pend ? ' pend' : ''}" cx="${q.x}" cy="${q.y}" r="${pend ? 5.5 : 4}"/>`;
+      s += `<circle class="pthit" data-port="${key}" cx="${q.x}" cy="${q.y}" r="13"/>`;
+    }));
+  }
+  return s;
+}
+function contentBox(d) {
+  if (!d.comps.length) return null;
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  d.comps.forEach(c => {
+    const b = bboxOf(c);
+    x1 = Math.min(x1, b[0]); y1 = Math.min(y1, b[1]); x2 = Math.max(x2, b[2]); y2 = Math.max(y2, b[3] + (c.label && T[c.type].valve ? 16 : 0));
+    if (c.label && c.type !== 'text' && T[c.type].lab) x2 = Math.max(x2, c.x + T[c.type].lab[0] + c.label.length * 8);
+  });
+  d.lines.forEach(ln => {
+    const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+    if (!a || !b) return;
+    route(a, b).forEach(p => { x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y); });
+  });
+  return [x1, y1, x2, y2];
+}
+
+/* ===================== Analyse / Prüfung ===================== */
+function analyze(d) {
+  const parent = {};
+  const find = k => { if (parent[k] === undefined) parent[k] = k; while (parent[k] !== k) { parent[k] = parent[parent[k]]; k = parent[k]; } return k; };
+  const uni = (a, b) => { parent[find(a)] = find(b); };
+  d.comps.forEach(c => portsOf(c).forEach(q => find(c.id + ':' + q.p)));
+  d.lines.forEach(ln => { const a = ln.a.c + ':' + ln.a.p, b = ln.b.c + ':' + ln.b.p; if (parent[a] !== undefined && parent[b] !== undefined) uni(a, b); });
+  const same = (a, b) => parent[a] !== undefined && parent[b] !== undefined && find(a) === find(b);
+  const keys = Object.keys(parent);
+  // Durchgänge durch passive Bauteile
+  const pass = []; // [from, to]
+  d.comps.forEach(c => {
+    const k = p => c.id + ':' + p;
+    if (c.type === 'behaelter' || c.type === 'drv') { pass.push([k('in'), k('out')], [k('out'), k('in')]); }
+    if (c.type === 'rueck') pass.push([k('in'), k('out')]);
+  });
+  const reach = (start, both) => {
+    const seen = new Set(), stack = [...start];
+    while (stack.length) {
+      const k = stack.pop(); if (seen.has(k)) continue; seen.add(k);
+      keys.forEach(o => { if (!seen.has(o) && same(k, o)) stack.push(o); });
+      pass.forEach(([f, t]) => { if (f === k && !seen.has(t)) stack.push(t); if (both && t === k && !seen.has(f)) stack.push(f); });
+    }
+    return seen;
+  };
+  const sources = d.comps.filter(c => c.type === 'quelle' || c.type === 'kompressor').map(c => c.id + ':P');
+  const sup = reach(sources, false);
+  return {
+    of: (type, pred) => d.comps.filter(c => c.type === type && (!pred || pred(c))),
+    same, supplied: k => sup.has(k),
+    link: (a, b) => reach([a], true).has(b),
+    labeled: () => { const need = d.comps.filter(c => !['abzweig', 'text'].includes(c.type)); return need.length > 0 && need.every(c => (c.label || '').trim()); },
+    texts: () => d.comps.filter(c => c.type === 'text').map(c => (c.label || '').trim().toUpperCase())
+  };
+}
+const K = (c, p) => c.id + ':' + p;
+const any = (arr, f) => arr.some(f);
+const pairs = (arr, f) => arr.some((a, i) => arr.some((b, j) => i !== j && f(a, b)));
+
+/* ===================== Aufgaben ===================== */
+const TASKS = [
+  {
+    title: 'Motorbremse', sub: 'Lkw', stars: 1,
+    situation: 'Viele Lkw besitzen eine <b>Motorstaubremse</b>: Eine Klappe im Auspuff wird geschlossen, dadurch bremst der Motor. Der Fahrer betätigt dafür einen <b>Fußtaster</b>. Solange er drückt, schließt ein Druckluftzylinder die Klappe. Lässt er los, drückt eine <b>Feder</b> den Kolben zurück und die Klappe öffnet wieder.',
+    req: ['Druckluftquelle (vereinfachte Versorgung)', '3/2-Wegeventil, in Grundstellung gesperrt, mit <b>Pedal</b> und Federrückstellung', 'einfachwirkender Zylinder (Federrückstellung)'],
+    hints: [
+      'Der einfachwirkende Zylinder hat nur <b>einen</b> Anschluss. Zurück fährt er mit der Feder.',
+      'Ventil-Anschlüsse: <b>1</b> = Druckluft, <b>2</b> = Arbeitsleitung zum Zylinder, <b>3</b> = Entlüftung (ist schon eingezeichnet).',
+      'Baue von unten nach oben: Quelle → Anschluss 1 · Anschluss 2 → Zylinder. Für das Pedal tippst du das Ventil an und wählst links „Pedal (Fuß)“.'
+    ],
+    present: ['Erkläre den Signalfluss vom Pedal bis zur Auspuffklappe.', 'Was passiert, wenn der Fahrer das Pedal loslässt? Wohin entweicht die Luft aus dem Zylinder?'],
+    rules: G => {
+      const z = G.of('ew'), v = G.of('v32', c => c.la === 'pedal' && c.ra === 'feder');
+      return [
+        ['Einfachwirkender Zylinder vorhanden', z.length > 0],
+        ['3/2-Wegeventil mit Pedal und Feder vorhanden', v.length > 0],
+        ['Anschluss 1 des Ventils ist mit der Druckluft verbunden', any(v, x => G.supplied(K(x, '1')))],
+        ['Anschluss 2 des Ventils führt zum Zylinder', any(v, x => any(z, y => G.link(K(x, '2'), K(y, 'A'))))],
+        ['Der Zylinder hängt nicht direkt (ohne Ventil) an der Druckluft', z.length > 0 && z.every(y => !G.supplied(K(y, 'A')))]
+      ];
+    },
+    sol: {
+      comps: [
+        { id: 'z', type: 'ew', x: 282, y: 130, label: '1A1' },
+        { id: 'v', type: 'v32', x: 192, y: 290, la: 'pedal', ra: 'feder', label: '1V1' },
+        { id: 'q', type: 'quelle', x: 240, y: 420, label: '0Z1' }
+      ],
+      lines: [['z', 'A', 'v', '2'], ['v', '1', 'q', 'P']]
+    }
+  },
+  {
+    title: 'Bustür', sub: 'mit Versorgung', stars: 2,
+    situation: 'Die Fahrgasttür eines Linienbusses wird von einem <b>doppeltwirkenden Zylinder</b> bewegt. Der Fahrer schaltet die Tür über ein <b>Magnetventil</b> (Taster am Fahrerplatz). Die Druckluft kommt vom <b>Kompressor</b> über ein <b>Rückschlagventil</b> in den <b>Druckluftbehälter</b>.',
+    req: ['Kompressor → Rückschlagventil → Druckluftbehälter (Durchflussrichtung beachten!)', '5/2-Wegeventil, elektromagnetisch betätigt, Federrückstellung', 'doppeltwirkender Zylinder: in Grundstellung ist die Tür <b>geschlossen</b> (Kolbenstange eingefahren)', 'alle Bauteile gekennzeichnet (z. B. 0Z1, 0V1, 0Z2, 1V1, 1A1)'],
+    hints: [
+      'Das Rückschlagventil verhindert, dass der Behälter über den Kompressor leer läuft. Durchfluss nur vom Kompressor <b>zum</b> Behälter. Mit „Spiegeln“ drehst du die Richtung um.',
+      'Beim 5/2-Ventil ist in Grundstellung <b>1 → 2</b> verbunden. Anschluss 2 muss also an die Seite, bei der der Kolben einfährt: das ist der <b>rechte</b> Anschluss (Kolbenstangenseite).',
+      'Kennzeichnung: Ziffer 0 = Energieversorgung (0Z1 Kompressor, 0V1 Rückschlagventil, 0Z2 Behälter). 1V1 = Wegeventil, 1A1 = Zylinder.'
+    ],
+    present: ['Warum braucht man das Rückschlagventil zwischen Kompressor und Behälter?', 'Erkläre, wie die Luft in Grundstellung und bei betätigtem Ventil strömt.'],
+    rules: G => {
+      const k = G.of('kompressor'), r = G.of('rueck'), t = G.of('behaelter');
+      const v = G.of('v52', c => c.la === 'magnet' && c.ra === 'feder'), z = G.of('dw');
+      return [
+        ['Kompressor, Rückschlagventil und Behälter vorhanden', k.length > 0 && r.length > 0 && t.length > 0],
+        ['Rückschlagventil lässt nur vom Kompressor zum Behälter durch', any(k, a => any(r, b => G.same(K(a, 'P'), K(b, 'in')) && any(t, c => G.same(K(b, 'out'), K(c, 'in')) || G.same(K(b, 'out'), K(c, 'out')))))],
+        ['5/2-Wegeventil mit Magnet und Feder vorhanden', v.length > 0],
+        ['Anschluss 1 des 5/2-Ventils wird aus dem Behälter versorgt', any(v, a => G.supplied(K(a, '1')) && any(t, c => G.same(K(a, '1'), K(c, 'out')) || G.same(K(a, '1'), K(c, 'in'))))],
+        ['Grundstellung: Anschluss 2 → Kolbenstangenseite (Tür zu)', any(v, a => any(z, b => G.link(K(a, '2'), K(b, 'B'))))],
+        ['Anschluss 4 → Kolbenseite (Tür auf)', any(v, a => any(z, b => G.link(K(a, '4'), K(b, 'A'))))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    },
+    sol: {
+      comps: [
+        { id: 'z', type: 'dw', x: 280, y: 110, label: '1A1' },
+        { id: 'v', type: 'v52', x: 176, y: 230, la: 'magnet', ra: 'feder', label: '1V1' },
+        { id: 't', type: 'behaelter', x: 248, y: 360, label: '0Z2' },
+        { id: 'r', type: 'rueck', x: 248, y: 440, label: '0V1' },
+        { id: 'k', type: 'kompressor', x: 248, y: 530, label: '0Z1' }
+      ],
+      lines: [['z', 'A', 'v', '4'], ['z', 'B', 'v', '2'], ['v', '1', 't', 'out'], ['t', 'in', 'r', 'out'], ['r', 'in', 'k', 'P']]
+    }
+  },
+  {
+    title: 'Bustür', sub: 'ODER + sanft', stars: 3,
+    situation: 'Die Bustür soll vom <b>Fahrer</b> (Taster 1S1) <b>oder</b> über einen <b>Nottaster</b> an der Tür (1S2) geöffnet werden können. Damit niemand eingeklemmt wird, soll die Tür <b>langsam schließen</b>, aber schnell öffnen.',
+    req: ['zwei 3/2-Wegeventile mit Taster und Feder (1S1, 1S2)', 'Wechselventil (ODER) verknüpft die beiden Signale', '5/2-Wegeventil, <b>pneumatisch</b> betätigt (Anschluss 14), Federrückstellung', 'doppeltwirkender Zylinder, Grundstellung: Tür geschlossen', 'Drosselrückschlagventil: Schließen langsam (Abluftdrosselung)', 'Versorgung über eine Druckluftquelle mit Abzweigen; alles gekennzeichnet'],
+    hints: [
+      'Signalfluss von unten nach oben: Taster → Wechselventil → Steueranschluss 14 → Zylinder. Für die Versorgung aller drei Ventile setzt du <b>Abzweige</b> ein.',
+      'Beim <b>Schließen</b> fährt der Kolben ein. Dabei strömt die Luft aus der <b>Kolbenseite</b> (linker Anschluss) ab. Genau dort wird gedrosselt.',
+      'Einbau des Drosselrückschlagventils: Zum Zylinder hin strömt die Luft frei durch das Rückschlagventil, die Abluft muss durch die Drossel. Die freie Richtung ist die Richtung, in die die Kugel vom Sitz wegge­drückt wird.'
+    ],
+    present: ['Warum drosselt man die Abluft und nicht die Zuluft?', 'Was passiert, wenn beide Taster gleichzeitig gedrückt werden?', 'Wozu dient das Wechselventil? Was würde ohne passieren?'],
+    rules: G => {
+      const t = G.of('v32', c => c.la === 'knopf' && c.ra === 'feder'), w = G.of('wechsel');
+      const v = G.of('v52', c => c.la === 'druck' && c.ra === 'feder'), z = G.of('dw'), dr = G.of('drv');
+      return [
+        ['Zwei 3/2-Ventile mit Taster und Feder vorhanden', t.length >= 2],
+        ['Beide Taster-Ventile werden an Anschluss 1 versorgt', t.filter(x => G.supplied(K(x, '1'))).length >= 2],
+        ['Wechselventil: Eingänge kommen von zwei verschiedenen Tastern', any(w, g => pairs(t, (a, b) => G.same(K(a, '2'), K(g, 'e1')) && G.same(K(b, '2'), K(g, 'e2'))))],
+        ['5/2-Ventil pneumatisch (14) mit Federrückstellung vorhanden', v.length > 0],
+        ['Ausgang des Wechselventils steuert Anschluss 14', any(w, g => any(v, a => G.same(K(g, 'a'), K(a, '14'))))],
+        ['Anschluss 1 des 5/2-Ventils ist versorgt', any(v, a => G.supplied(K(a, '1')))],
+        ['Grundstellung Tür zu: 2 → Kolbenstangenseite, 4 → Kolbenseite', any(v, a => any(z, b => G.link(K(a, '2'), K(b, 'B')) && G.link(K(a, '4'), K(b, 'A'))))],
+        ['Drosselrückschlagventil in der Leitung zur Kolbenseite, Abluft gedrosselt', any(dr, x => any(z, b => G.same(K(x, 'out'), K(b, 'A'))) && any(v, a => G.same(K(x, 'in'), K(a, '4'))))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    },
+    sol: {
+      comps: [
+        { id: 'z', type: 'dw', x: 364, y: 80, label: '1A1' },
+        { id: 'd', type: 'drv', x: 290, y: 170, label: '1V3' },
+        { id: 'v', type: 'v52', x: 260, y: 250, la: 'druck', ra: 'feder', label: '1V1' },
+        { id: 'w', type: 'wechsel', x: 110, y: 340, label: '1V2' },
+        { id: 's1', type: 'v32', x: 40, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
+        { id: 's2', type: 'v32', x: 180, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
+        { id: 'j1', type: 'abzweig', x: 88, y: 520 }, { id: 'j2', type: 'abzweig', x: 228, y: 520 }, { id: 'j3', type: 'abzweig', x: 332, y: 520 },
+        { id: 'q', type: 'quelle', x: 332, y: 580, label: '0Z1' }
+      ],
+      lines: [['z', 'A', 'd', 'out'], ['d', 'in', 'v', '4'], ['v', '2', 'z', 'B'], ['w', 'a', 'v', '14'], ['s1', '2', 'w', 'e1'], ['s2', '2', 'w', 'e2'],
+        ['s1', '1', 'j1', 'P'], ['s2', '1', 'j2', 'P'], ['v', '1', 'j3', 'P'], ['j1', 'P', 'j2', 'P'], ['j2', 'P', 'j3', 'P'], ['q', 'P', 'j3', 'P']]
+    }
+  },
+  {
+    title: 'Werkstattpresse', sub: 'UND + Automatik', stars: 4,
+    situation: 'In der Werkstatt werden Radlager mit einer pneumatischen Presse eingepresst. Aus Sicherheitsgründen startet die Presse nur, wenn <b>beide Hände</b> gleichzeitig zwei Taster drücken. Ist der Kolben ganz ausgefahren, betätigt er ein <b>Rollenventil</b> und fährt <b>automatisch</b> wieder zurück. Das Einpressen soll <b>langsam</b> erfolgen.',
+    req: ['zwei 3/2-Taster (1S1, 1S2) und ein Zweidruckventil (UND)', '5/2-<b>Impulsventil</b>: beidseitig pneumatisch betätigt (14 und 12), ohne Feder', '3/2-Rollenventil mit Feder (1S3) in der vorderen Endlage; die Endlage am Zylinder mit dem Baustein <b>Text</b> „1S3“ markieren', 'doppeltwirkender Zylinder, Ausfahren langsam (Drosselrückschlagventil, Abluftdrosselung)', 'Versorgung über Druckluftquelle mit Abzweigen; alles gekennzeichnet'],
+    hints: [
+      'Ein Impulsventil „merkt“ sich die Stellung: Signal an <b>14</b> → Zylinder fährt aus. Signal an <b>12</b> → Zylinder fährt ein. Beim 5/2-Ventil links und rechts „Druckluft (pneumatisch)“ wählen.',
+      'Das Rollenventil 1S3 bekommt Druckluft an Anschluss 1. Sein Ausgang 2 geht zum Steueranschluss <b>12</b>.',
+      'Beim <b>Ausfahren</b> strömt die Abluft aus der <b>Kolbenstangenseite</b> (rechter Anschluss). Dort sitzt das Drosselrückschlagventil – freie Richtung zum Zylinder hin.'
+    ],
+    present: ['Warum ist die Zweihand-Bedienung eine Sicherheitsschaltung? Wo hat sie Grenzen?', 'Was passiert, wenn die Taster noch gedrückt sind, wenn der Kolben 1S3 erreicht?', 'Erkläre den Unterschied zwischen Impulsventil und Ventil mit Federrückstellung.'],
+    rules: G => {
+      const t = G.of('v32', c => c.la === 'knopf' && c.ra === 'feder'), u = G.of('zweidruck');
+      const v = G.of('v52', c => c.la === 'druck' && c.ra === 'druck'), ro = G.of('v32', c => c.la === 'rolle' && c.ra === 'feder');
+      const z = G.of('dw'), dr = G.of('drv'), tx = G.texts();
+      return [
+        ['Zwei Taster-Ventile (3/2, Taster/Feder), beide an 1 versorgt', t.filter(x => G.supplied(K(x, '1'))).length >= 2],
+        ['Zweidruckventil (UND) mit beiden Tastern verbunden', any(u, g => pairs(t, (a, b) => G.same(K(a, '2'), K(g, 'e1')) && G.same(K(b, '2'), K(g, 'e2'))))],
+        ['5/2-Impulsventil (14 und 12 pneumatisch, ohne Feder) vorhanden und an 1 versorgt', any(v, a => G.supplied(K(a, '1')))],
+        ['Ausgang des Zweidruckventils steuert Anschluss 14', any(u, g => any(v, a => G.same(K(g, 'a'), K(a, '14'))))],
+        ['Rollenventil (Rolle/Feder) ist versorgt und steuert Anschluss 12', any(ro, r => G.supplied(K(r, '1')) && any(v, a => G.same(K(r, '2'), K(a, '12'))))],
+        ['4 → Kolbenseite, 2 → Kolbenstangenseite', any(v, a => any(z, b => G.link(K(a, '4'), K(b, 'A')) && G.link(K(a, '2'), K(b, 'B'))))],
+        ['Drosselrückschlagventil an der Kolbenstangenseite, Abluft gedrosselt', any(dr, x => any(z, b => G.same(K(x, 'out'), K(b, 'B'))) && any(v, a => G.same(K(x, 'in'), K(a, '2'))))],
+        ['Endlage am Zylinder mit der Kennzeichnung des Rollenventils markiert', any(ro, r => (r.label || '').trim() && tx.includes(r.label.trim().toUpperCase()))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    },
+    sol: {
+      comps: [
+        { id: 'z', type: 'dw', x: 364, y: 80, label: '1A1' },
+        { id: 'tx', type: 'text', x: 444, y: 66, label: '1S3' },
+        { id: 'd', type: 'drv', x: 374, y: 172, label: '1V3' },
+        { id: 'v', type: 'v52', x: 260, y: 250, la: 'druck', ra: 'druck', label: '1V1' },
+        { id: 'u', type: 'zweidruck', x: 110, y: 340, label: '1V2' },
+        { id: 's1', type: 'v32', x: 40, y: 420, la: 'knopf', ra: 'feder', label: '1S1' },
+        { id: 's2', type: 'v32', x: 180, y: 420, la: 'knopf', ra: 'feder', label: '1S2' },
+        { id: 's3', type: 'v32', x: 370, y: 420, la: 'rolle', ra: 'feder', label: '1S3' },
+        { id: 'j1', type: 'abzweig', x: 88, y: 520 }, { id: 'j2', type: 'abzweig', x: 228, y: 520 }, { id: 'j3', type: 'abzweig', x: 332, y: 520 }, { id: 'j4', type: 'abzweig', x: 418, y: 520 },
+        { id: 'q', type: 'quelle', x: 332, y: 580, label: '0Z1' }
+      ],
+      lines: [['z', 'A', 'v', '4'], ['v', '2', 'd', 'in'], ['d', 'out', 'z', 'B'], ['u', 'a', 'v', '14'], ['s3', '2', 'v', '12'], ['s1', '2', 'u', 'e1'], ['s2', '2', 'u', 'e2'],
+        ['s1', '1', 'j1', 'P'], ['s2', '1', 'j2', 'P'], ['v', '1', 'j3', 'P'], ['s3', '1', 'j4', 'P'], ['j1', 'P', 'j2', 'P'], ['j2', 'P', 'j3', 'P'], ['j3', 'P', 'j4', 'P'], ['q', 'P', 'j3', 'P']]
+    }
+  }
+];
+function solData(t) {
+  return {
+    comps: t.sol.comps.map(c => ({ ...c })),
+    lines: t.sol.lines.map(([a, ap, b, bp], i) => ({ id: 'l' + i, a: { c: a, p: ap }, b: { c: b, p: bp }, kind: 'auto' }))
+  };
+}
+
+/* ===================== Zustand ===================== */
+const LS = 'schaltplan-bauen-v1';
+const store = { get(k, d) { try { const v = localStorage.getItem(LS + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) { } } };
+let cur = Math.min(3, Math.max(0, store.get(':cur', 0)));
+let D = null, undo = [], sel = null, pending = null;
+let vb = { x: 0, y: 0, w: 480, h: 600 };
+const done = store.get(':done', {});
+let uid = Date.now() % 100000;
+const nid = p => p + (uid++).toString(36);
+const save = () => store.set(':t' + cur, D);
+function snapshot() { undo.push(JSON.stringify(D)); if (undo.length > 60) undo.shift(); $('bUndo').disabled = false; }
+
+/* ===================== Aufgabe anzeigen ===================== */
+function renderLevels() {
+  $('levels').innerHTML = TASKS.map((t, i) => `<button class="lv${i === cur ? ' active' : ''}${done[i] ? ' done' : ''}" data-i="${i}"><span class="st">${'★'.repeat(t.stars)}${'☆'.repeat(4 - t.stars)}</span><b>Stufe ${i + 1}</b><span>${t.title} · ${t.sub}</span></button>`).join('');
+  $('levels').querySelectorAll('.lv').forEach(b => b.onclick = () => selectTask(+b.dataset.i));
+}
+let hintLevel = 0;
+function renderTask() {
+  const t = TASKS[cur];
+  hintLevel = 0;
+  $('task').innerHTML = `<span class="tag">Stufe ${cur + 1} · ${'★'.repeat(t.stars)}</span>
+    <h2>${t.title}: ${t.sub}</h2>
+    <p>${t.situation}</p>
+    <h3>Dein Schaltplan muss enthalten</h3><ul>${t.req.map(r => `<li>${r}</li>`).join('')}</ul>
+    <div id="hints"></div>
+    <div class="btns"><button class="btn sec" id="bHint">Hilfe 1 anzeigen</button></div>`;
+  $('bHint').onclick = () => {
+    if (hintLevel >= t.hints.length) return;
+    $('hints').insertAdjacentHTML('beforeend', `<div class="hint"><b>Hilfe ${hintLevel + 1}:</b> ${t.hints[hintLevel]}</div>`);
+    hintLevel++;
+    $('bHint').textContent = hintLevel < t.hints.length ? `Hilfe ${hintLevel + 1} anzeigen` : 'Keine weiteren Hilfen';
+    $('bHint').disabled = hintLevel >= t.hints.length;
+  };
+  $('result').innerHTML = ''; $('present').innerHTML = '';
+  $('solbox').open = false;
+  const sd = solData(t), bb = contentBox(sd), m = 14;
+  $('solsvg').innerHTML = `<svg viewBox="${bb[0] - m} ${bb[1] - m} ${bb[2] - bb[0] + 2 * m} ${bb[3] - bb[1] + 2 * m}" xmlns="${SVGNS}">${renderDiagram(sd)}</svg>`;
+}
+function selectTask(i) {
+  cur = i; store.set(':cur', cur);
+  D = store.get(':t' + cur, null) || { comps: [], lines: [] };
+  undo = []; $('bUndo').disabled = true; sel = null; pending = null;
+  renderLevels(); renderTask(); fitView(); draw();
+}
+
+/* ===================== Editor ===================== */
+const cv = $('cv');
+function setStatus(t) { $('status').textContent = t || ''; }
+function gridSvg() {
+  let g = '';
+  const s = 20, x0 = Math.floor(vb.x / s) * s, y0 = Math.floor(vb.y / s) * s;
+  for (let x = x0; x < vb.x + vb.w; x += s) g += `<line class="gridl" x1="${x}" y1="${vb.y}" x2="${x}" y2="${vb.y + vb.h}"/>`;
+  for (let y = y0; y < vb.y + vb.h; y += s) g += `<line class="gridl" x1="${vb.x}" y1="${y}" x2="${vb.x + vb.w}" y2="${y}"/>`;
+  return g;
+}
+function draw(keepSel) {
+  cv.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  cv.innerHTML = `<g>${gridSvg()}</g>` + renderDiagram(D, { edit: true, sel, pending }) +
+    (D.comps.length ? '' : `<text x="${vb.x + vb.w / 2}" y="${vb.y + vb.h / 2}" text-anchor="middle" style="font:14px system-ui;fill:var(--muted)">Tippe unten auf ein Bauteil, um anzufangen.</text>`);
+  if (!keepSel) renderSel();
+}
+function fitView() {
+  const r = cv.getBoundingClientRect(), asp = (r.height || 600) / (r.width || 480);
+  const bb = contentBox(D) || [80, 150, 400, 450];
+  const m = 30;
+  let w = Math.max(bb[2] - bb[0] + 2 * m, 260), h = Math.max(bb[3] - bb[1] + 2 * m, 260);
+  if (h / w > asp) w = h / asp; else h = w * asp;
+  vb = { x: (bb[0] + bb[2]) / 2 - w / 2, y: (bb[1] + bb[3]) / 2 - h / 2, w, h };
+}
+function zoom(f) {
+  const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+  const w = Math.min(2400, Math.max(140, vb.w * f)), h = vb.h * (w / vb.w);
+  vb = { x: cx - w / 2, y: cy - h / 2, w, h }; draw();
+}
+function toWorld(e) {
+  const pt = cv.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(cv.getScreenCTM().inverse());
+}
+const snap = v => Math.round(v / 10) * 10;
+
+// Palette
+function palPreview(type) {
+  const c = { id: 'p', type, x: 0, y: 0, la: T[type].defL, ra: T[type].defR, label: type === 'text' ? 'Text' : '' };
+  const b = T[type].box(c);
+  let inner = `<g transform="translate(0,0)">${T[type].draw(c)}</g>`;
+  if (type === 'abzweig') inner = `<line class="s" x1="-10" y1="0" x2="10" y2="0"/><line class="s" x1="0" y1="0" x2="0" y2="10"/><circle class="f" r="3"/>`;
+  if (type === 'text') inner = `<text x="0" y="0" text-anchor="middle" style="font:700 14px system-ui;fill:var(--accent)">1S3</text>`;
+  const m = 4;
+  return `<svg viewBox="${b[0] - m} ${b[1] - m} ${b[2] - b[0] + 2 * m} ${b[3] - b[1] + 2 * m}">${inner}</svg>`;
+}
+function renderPalette() {
+  let h = '', g = '';
+  Object.keys(T).forEach(k => {
+    if (T[k].grp !== g) { g = T[k].grp; h += `<span class="pgrp">${g}</span>`; }
+    h += `<button class="pb" data-t="${k}">${palPreview(k)}${T[k].name}</button>`;
+  });
+  $('pal').innerHTML = h;
+  $('pal').querySelectorAll('.pb').forEach(b => b.onclick = () => addComp(b.dataset.t));
+}
+function addComp(type) {
+  snapshot();
+  const t = T[type];
+  const c = { id: nid('c'), type, x: 0, y: 0, label: type === 'text' ? '1S3' : '' };
+  if (t.valve) { c.la = t.defL; c.ra = t.defR; }
+  const b = t.box(c);
+  // in die Mitte der Ansicht, leicht versetzt wenn belegt
+  let x = snap(vb.x + vb.w / 2 - (b[0] + b[2]) / 2), y = snap(vb.y + vb.h / 2 - (b[1] + b[3]) / 2);
+  for (let i = 0; i < 12 && D.comps.some(o => Math.abs(o.x - x) < 20 && Math.abs(o.y - y) < 20); i++) { x += 20; y += 20; }
+  c.x = x; c.y = y;
+  D.comps.push(c); sel = { kind: 'comp', id: c.id }; pending = null;
+  save(); draw();
+  setStatus('Ziehen zum Verschieben · Anschluss antippen für Leitung');
+}
+function delComp(id) {
+  D.comps = D.comps.filter(c => c.id !== id);
+  D.lines = D.lines.filter(l => l.a.c !== id && l.b.c !== id);
+}
+function cleanLines() { D.lines = D.lines.filter(l => portByRef(D, l.a.c, l.a.p) && portByRef(D, l.b.c, l.b.p)); }
+
+// Auswahl-Leiste
+function renderSel() {
+  const bar = $('selbar');
+  if (!sel) { bar.classList.remove('on'); bar.innerHTML = ''; return; }
+  bar.classList.add('on');
+  if (sel.kind === 'line') {
+    const ln = D.lines.find(l => l.id === sel.id); if (!ln) { sel = null; return renderSel(); }
+    const ctrl = isCtrl(D, ln);
+    bar.innerHTML = `<b class="small">Leitung</b>
+      <button class="ib" id="sKind">${ctrl ? '→ Arbeitsleitung (durchgezogen)' : '→ Steuerleitung (gestrichelt)'}</button>
+      <span class="sp" style="flex:1"></span><button class="ib" id="sDel" style="color:var(--bad)">Löschen</button>`;
+    $('sKind').onclick = () => { snapshot(); ln.kind = ctrl ? 'work' : 'ctrl'; save(); draw(); };
+    $('sDel').onclick = () => { snapshot(); D.lines = D.lines.filter(l => l !== ln); sel = null; save(); draw(); };
+    return;
+  }
+  const c = D.comps.find(k => k.id === sel.id); if (!c) { sel = null; return renderSel(); }
+  const t = T[c.type];
+  let h = `<b class="small" style="width:100%">${t.name.replace('­', '')}</b>`;
+  if (c.type !== 'abzweig') h += `<label>${c.type === 'text' ? 'Text' : 'Kennzeichnung'}<input id="sLab" value="${esc(c.label || '')}" placeholder="${c.type === 'text' ? 'Text' : 'z. B. 1V1'}" maxlength="14" autocapitalize="characters"></label>`;
+  if (t.valve) {
+    h += `<label>Betätigung links<select id="sLa">${LEFT_OPTS.map(o => `<option value="${o}"${c.la === o ? ' selected' : ''}>${ACTNAME[o]}</option>`).join('')}</select></label>`;
+    h += `<label>rechts<select id="sRa">${RIGHT_OPTS.map(o => `<option value="${o}"${c.ra === o ? ' selected' : ''}>${ACTNAME[o]}</option>`).join('')}</select></label>`;
+  }
+  if (t.flip) h += `<button class="ib" id="sFlip">⇅ Spiegeln</button>`;
+  h += `<span style="flex:1"></span><button class="ib" id="sDel" style="color:var(--bad)">Löschen</button>`;
+  bar.innerHTML = h;
+  const lab = $('sLab');
+  if (lab) {
+    lab.onfocus = () => snapshot();
+    lab.oninput = () => { c.label = lab.value.toUpperCase().replace(/\s+/g, ''); if (c.type === 'text') c.label = lab.value; save(); draw(true); };
+    lab.onchange = () => { lab.value = c.label; };
+  }
+  if ($('sLa')) $('sLa').onchange = e => { snapshot(); c.la = e.target.value; cleanLines(); save(); draw(); };
+  if ($('sRa')) $('sRa').onchange = e => { snapshot(); c.ra = e.target.value; cleanLines(); save(); draw(); };
+  if ($('sFlip')) $('sFlip').onclick = () => { snapshot(); c.flip = !c.flip; save(); draw(); };
+  $('sDel').onclick = () => { snapshot(); delComp(c.id); sel = null; save(); draw(); setStatus(''); };
+}
+
+// Pointer
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  if (e.button && e.button !== 0) return;
+  const tgt = e.target;
+  const portEl = tgt.closest && tgt.closest('[data-port]');
+  const compEl = tgt.closest && tgt.closest('[data-comp]');
+  const lineEl = tgt.closest && tgt.closest('[data-line]');
+  const w = toWorld(e);
+  if (portEl) {
+    const [c, p] = portEl.dataset.port.split(':');
+    const comp = D.comps.find(k => k.id === c);
+    drag = { kind: 'comp', id: c, port: { c, p }, sx: e.clientX, sy: e.clientY, wx: w.x, wy: w.y, ox: comp.x, oy: comp.y, moved: false };
+  } else if (compEl) {
+    const comp = D.comps.find(k => k.id === compEl.dataset.comp);
+    drag = { kind: 'comp', id: comp.id, sx: e.clientX, sy: e.clientY, wx: w.x, wy: w.y, ox: comp.x, oy: comp.y, moved: false };
+  } else if (lineEl) {
+    drag = { kind: 'line', id: lineEl.dataset.line, sx: e.clientX, sy: e.clientY, moved: false };
+  } else {
+    drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+  }
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dist = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy);
+  if (!drag.moved && dist < 7) return;
+  if (drag.kind === 'comp') {
+    if (!drag.moved) { snapshot(); sel = { kind: 'comp', id: drag.id }; pending = null; }
+    drag.moved = true;
+    const w = toWorld(e), c = D.comps.find(k => k.id === drag.id);
+    c.x = snap(drag.ox + (w.x - drag.wx)); c.y = snap(drag.oy + (w.y - drag.wy));
+    draw();
+  } else if (drag.kind === 'pan') {
+    drag.moved = true;
+    const k = vb.w / cv.getBoundingClientRect().width;
+    vb.x = drag.vx - (e.clientX - drag.sx) * k; vb.y = drag.vy - (e.clientY - drag.sy) * k;
+    draw();
+  } else drag.moved = true;
+});
+cv.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (d.moved) { if (d.kind === 'comp') save(); return; }
+  if (d.port) return tapPort(d.port);
+  if (d.kind === 'comp') { sel = { kind: 'comp', id: d.id }; pending = null; setStatus(''); draw(); return; }
+  if (d.kind === 'line') { sel = { kind: 'line', id: d.id }; pending = null; setStatus(''); draw(); return; }
+  sel = null; pending = null; setStatus(''); draw();
+});
+cv.addEventListener('pointercancel', () => { drag = null; });
+function tapPort(pt) {
+  if (!pending) {
+    pending = pt; sel = null;
+    setStatus('Jetzt den zweiten Anschluss antippen');
+    draw(); return;
+  }
+  if (pending.c === pt.c && pending.p === pt.p) { pending = null; setStatus(''); draw(); return; }
+  if (pending.c === pt.c && D.comps.find(c => c.id === pt.c).type !== 'abzweig') {
+    setStatus('Zwei Anschlüsse am selben Bauteil verbinden geht nicht'); pending = null; draw(); return;
+  }
+  const exists = D.lines.some(l => (l.a.c === pending.c && l.a.p === pending.p && l.b.c === pt.c && l.b.p === pt.p) || (l.b.c === pending.c && l.b.p === pending.p && l.a.c === pt.c && l.a.p === pt.p));
+  if (!exists) { snapshot(); D.lines.push({ id: nid('l'), a: { ...pending }, b: { ...pt }, kind: 'auto' }); save(); }
+  pending = null; setStatus('Leitung gezeichnet ✓'); setTimeout(() => { if (!pending) setStatus(''); }, 1400);
+  draw();
+}
+
+// Werkzeugleiste
+$('bUndo').onclick = () => { if (!undo.length) return; D = JSON.parse(undo.pop()); sel = null; pending = null; save(); draw(); $('bUndo').disabled = !undo.length; };
+$('bZoomIn').onclick = () => zoom(1 / 1.25);
+$('bZoomOut').onclick = () => zoom(1.25);
+$('bFit').onclick = () => { fitView(); draw(); };
+$('bClear').onclick = () => { if (!D.comps.length) return; if (!confirm('Den ganzen Schaltplan dieser Stufe löschen?')) return; snapshot(); D = { comps: [], lines: [] }; sel = null; pending = null; save(); draw(); };
+$('bFull').onclick = () => {
+  const ed = $('editor'), on = !ed.classList.toggle('full');
+  $('bFull').textContent = on ? 'Vollbild' : 'Fertig';
+  document.body.style.overflow = on ? '' : 'hidden';
+  requestAnimationFrame(() => { fitView(); draw(); });
+};
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea')) return;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { $('sDel') && $('sDel').click(); e.preventDefault(); }
+  if (e.key === 'Escape') { pending = null; sel = null; setStatus(''); draw(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { $('bUndo').click(); e.preventDefault(); }
+});
+
+/* ===================== Prüfen ===================== */
+$('bCheck').onclick = () => {
+  const t = TASKS[cur], res = t.rules(analyze(D));
+  const ok = res.filter(r => r[1]).length, all = ok === res.length;
+  $('result').innerHTML = `<ul class="checks">${res.map(([txt, good]) => `<li class="${good ? 'ok' : 'no'}"><span class="i">${good ? '✓' : '✗'}</span><span>${txt}</span></li>`).join('')}</ul>
+    <p class="verdict" style="color:${all ? 'var(--ok)' : 'var(--ink)'}">${all ? 'Super – alles erfüllt! Speichere dein Bild und bereite die Vorstellung vor.' : `${ok} von ${res.length} Punkten erfüllt. Überarbeite die roten Punkte – die Hilfen oben helfen dir.`}</p>`;
+  $('present').innerHTML = all ? `<div class="hint" style="background:var(--ok-soft)"><b style="color:var(--ok)">Zum Vorstellen:</b><ul>${t.present.map(p => `<li>${p}</li>`).join('')}</ul></div>` : '';
+  if (all && !done[cur]) { done[cur] = true; store.set(':done', done); renderLevels(); }
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+$('bLoadSol').onclick = () => {
+  if (D.comps.length && !confirm('Dein eigener Plan wird ersetzt (mit ↶ kannst du zurück). Fortfahren?')) return;
+  snapshot(); D = solData(TASKS[cur]); sel = null; pending = null; save(); fitView(); draw();
+  $('editor').scrollIntoView({ behavior: 'smooth' });
+};
+
+/* ===================== Als Bild speichern ===================== */
+$('names').value = store.get(':names', '');
+$('names').oninput = () => store.set(':names', $('names').value);
+$('bPng').onclick = async () => {
+  if (!D.comps.length) { alert('Der Schaltplan ist noch leer.'); return; }
+  const bb = contentBox(D), m = 24, head = 54;
+  const w = bb[2] - bb[0] + 2 * m, h = bb[3] - bb[1] + 2 * m + head;
+  const t = TASKS[cur], names = $('names').value.trim();
+  const style = `.s{fill:none;stroke:#1d2733;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.f,.jd{fill:#1d2733}.bx{fill:#fff;stroke:#1d2733;stroke-width:1.6}.t{font:600 8.5px Arial,sans-serif;fill:#5d6b7a}.lb{font:700 12px Arial,sans-serif;fill:#1f6fb2}.ln{fill:none;stroke:#1d2733;stroke-width:1.8;stroke-linejoin:round}.ln.ctrl{stroke-dasharray:6 4}`;
+  const svg = `<svg xmlns="${SVGNS}" width="${w * 2}" height="${h * 2}" viewBox="${bb[0] - m} ${bb[1] - m - head} ${w} ${h}"><style>${style}</style>
+    <rect x="${bb[0] - m}" y="${bb[1] - m - head}" width="${w}" height="${h}" fill="#fff"/>
+    <text x="${bb[0] - m + 14}" y="${bb[1] - m - head + 24}" style="font:700 15px Arial,sans-serif;fill:#1d2733">Stufe ${cur + 1}: ${esc(t.title)} – ${esc(t.sub)}</text>
+    <text x="${bb[0] - m + 14}" y="${bb[1] - m - head + 42}" style="font:12px Arial,sans-serif;fill:#5d6b7a">${esc(names || 'Schaltplan selbst bauen')}</text>
+    ${renderDiagram(D)}</svg>`;
+  const img = new Image();
+  img.onload = () => {
+    const cnv = document.createElement('canvas'); cnv.width = w * 2; cnv.height = h * 2;
+    cnv.getContext('2d').drawImage(img, 0, 0);
+    cnv.toBlob(async blob => {
+      const fname = `Schaltplan_Stufe${cur + 1}${names ? '_' + names.replace(/[^\wäöüÄÖÜß-]+/g, '_') : ''}.png`;
+      const file = new File([blob], fname, { type: 'image/png' });
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fname }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+};
+
+/* ===================== Start ===================== */
+window.__sp = { TASKS, analyze, solData, get D() { return D; } };
+renderPalette();
+selectTask(cur);
+let lastW = cv.getBoundingClientRect().width;
+window.addEventListener('resize', () => { const w = cv.getBoundingClientRect().width; if (Math.abs(w - lastW) > 2) { lastW = w; fitView(); draw(); } });
+})();
+</script>
+</body>
+</html>
