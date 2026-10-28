@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bustür-Schaltplan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Semi+Condensed:wght@600;700&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --bg:#e9eef0; --surface:#fbfcfc; --ink:#14222a; --muted:#566871; --line:#c9d3d7;
+  --accent:#17707a; --accent-soft:#d5ebed; --air:#1f74d1; --air-soft:#d4e5f8; --vent:#8a99a1;
+  --metal:#8c9aa2; --metal-dk:#5e6c74; --glass:#a9c6cd; --bus:#f2c94c; --alert:#c8372d; --ok:#2f8a4c;
+  --sym:#1b262d; --symfill:#ffffff;
+  --f-display:"Barlow Semi Condensed","Arial Narrow",Arial,sans-serif;
+  --f-body:"Barlow","Segoe UI",Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0f1619; --surface:#172126; --ink:#e3eaec; --muted:#93a3aa; --line:#2b3a41;
+  --accent:#3fb3bd; --accent-soft:#173b40; --air:#5aa6f0; --air-soft:#16304a; --vent:#6d7c84;
+  --metal:#7d8c94; --metal-dk:#a7b4ba; --glass:#3d6068; --bus:#b8932c; --alert:#ef5a4f; --ok:#4cb36c;
+  --sym:#dfe7ea; --symfill:#172126; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0f1619; --surface:#172126; --ink:#e3eaec; --muted:#93a3aa; --line:#2b3a41;
+  --accent:#3fb3bd; --accent-soft:#173b40; --air:#5aa6f0; --air-soft:#16304a; --vent:#6d7c84;
+  --metal:#7d8c94; --metal-dk:#a7b4ba; --glass:#3d6068; --bus:#b8932c; --alert:#ef5a4f; --ok:#4cb36c;
+  --sym:#dfe7ea; --symfill:#172126; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.45;padding:20px 16px 48px}
+.wrap{max-width:1280px;margin:0 auto;display:grid;gap:16px}
+a.back{font:600 14px var(--f-body);color:var(--accent);text-decoration:none}
+h1,h2,h3{font-family:var(--f-display);margin:0;text-wrap:balance}
+h1{font-size:clamp(28px,4vw,40px);line-height:1.05}
+h2{font-size:22px} h3{font-size:17px}
+.eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--accent);font-weight:600}
+.lead{max-width:75ch;color:var(--muted);margin:6px 0 0}
+.stage{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(0,1fr);gap:14px;align-items:start}
+@media (max-width:980px){.stage{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px;min-width:0}
+.cap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:6px 12px;margin-bottom:6px}
+.cap .t{font-family:var(--f-display);font-weight:700;font-size:17px}
+.cap .s{font-size:13px;color:var(--muted)}
+svg{display:block;width:100%;height:auto}
+.col{display:grid;gap:14px;min-width:0}
+
+.pad{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.tb{font:600 15px var(--f-body);border-radius:10px;padding:10px 8px;border:2px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;
+  user-select:none;-webkit-user-select:none;touch-action:none;display:grid;gap:0;text-align:center}
+.tb small{font:500 12px var(--f-mono);color:var(--muted)}
+.tb.open{border-color:var(--ok)} .tb.close{border-color:var(--alert)}
+.tb.on{background:var(--ink);color:var(--surface)} .tb.on small{color:var(--surface)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.btn{font:600 14px var(--f-body);border-radius:8px;padding:8px 14px;border:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer}
+.btn.warn[aria-pressed="true"]{background:var(--alert);border-color:var(--alert);color:#fff}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn:disabled{opacity:.45;cursor:default}
+.tb:focus-visible,.btn:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.sl{display:grid;gap:2px;font-size:13px;color:var(--muted)}
+.sl input{width:100%;accent-color:var(--accent)}
+.sl .ends{display:flex;justify-content:space-between;font-size:12px}
+.now{border-left:4px solid var(--accent);padding:2px 0 2px 12px;min-height:96px}
+.now.alert{border-color:var(--alert)}
+.now h3{margin-bottom:4px} .now p{margin:0}
+.chain{display:flex;flex-wrap:wrap;gap:5px;list-style:none;padding:0;margin:8px 0 0}
+.chain li{font:500 12px var(--f-mono);padding:4px 8px;border-radius:999px;border:1px solid var(--line);color:var(--muted);transition:background .15s,color .15s}
+.chain li.on{background:var(--air);border-color:var(--air);color:#fff}
+.chips{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}
+.chip{border:1px solid var(--line);border-radius:8px;padding:5px 8px;min-width:0}
+.chip .k{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
+.chip .v{font-family:var(--f-mono);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px;color:var(--muted)}
+.legend i{display:inline-block;width:22px;height:0;border-top:4px solid;vertical-align:middle;margin-right:6px}
+
+.ln{fill:none;stroke:var(--sym);stroke-width:3;stroke-linejoin:round;transition:stroke .15s}
+.ln.pilot{stroke-width:2.5;stroke-dasharray:9 6}
+.ln.p{stroke:var(--air);stroke-width:4.5}
+.ln.pilot.p{stroke-width:3.5}
+.ln.x{stroke:var(--vent);stroke-dasharray:7 6;animation:fl .5s linear infinite}
+@keyframes fl{to{stroke-dashoffset:-13}}
+@media (prefers-reduced-motion:reduce){.ln.x{animation:none}}
+.sym{fill:var(--symfill);stroke:var(--sym);stroke-width:2.5}
+.sym2{fill:none;stroke:var(--sym);stroke-width:2.5;stroke-linejoin:round}
+.sym2.thin{stroke-width:2}
+.dot{fill:var(--sym)} .dot.p{fill:var(--air)}
+.ah{fill:var(--sym)}
+.lab rect{fill:var(--symfill);stroke:var(--sym);stroke-width:2}
+.lab text{fill:var(--sym);font:600 19px var(--f-mono);text-anchor:middle;dominant-baseline:central}
+.cap-t{fill:var(--muted);font:500 14px var(--f-body);text-anchor:middle}
+.act{transition:transform .18s ease}
+.box.on{fill:var(--air-soft)}
+.flowar{stroke:var(--sym);stroke-width:2.5;fill:none}
+.clk{cursor:pointer}
+.clk:hover .sym, .clk:focus .sym{stroke:var(--accent)}
+.chamber{fill:transparent;transition:fill .15s} .chamber.p{fill:var(--air-soft)}
+.metal{fill:var(--metal);stroke:var(--metal-dk);stroke-width:1.5}
+.leak{fill:var(--alert);font:700 14px var(--f-body)}
+
+.bus{fill:var(--bus);stroke:var(--sym);stroke-width:2}
+.glass{fill:var(--glass);stroke:var(--sym);stroke-width:1.5}
+.leaf{fill:var(--glass);stroke:var(--sym);stroke-width:2}
+.leafframe{fill:var(--metal);stroke:var(--sym);stroke-width:2}
+.lamp{fill:var(--line)} .lamp.g{fill:var(--ok)} .lamp.r{fill:var(--alert)}
+.dtext{fill:var(--ink);font:600 14px var(--f-body)}
+
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.part{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface);transition:border-color .2s,box-shadow .2s}
+.part.hl{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.part b{font-family:var(--f-mono);color:var(--accent)}
+.part p{margin:4px 0 0;font-size:14px;color:var(--muted)}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--surface)}
+details+details{margin-top:8px}
+summary{cursor:pointer;font-weight:600}
+details p{margin:8px 0 0;color:var(--muted)}
+.fault{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+.fault select{flex:1 1 220px;min-width:0;width:100%}
+select{font:500 14px var(--f-body);padding:7px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink);max-width:100%}
+.fb{font-weight:600} .fb.ok{color:var(--ok)} .fb.bad{color:var(--alert)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">← Pneumatik &amp; Hydraulik</a>
+  <header>
+    <div class="eyebrow">Kfz-Technik · Türsteuerung im Omnibus</div>
+    <h1>Bustür-Schaltplan – Simulation</h1>
+    <p class="lead">Drücke die Taster (gedrückt halten oder antippen) und verfolge, wie die Druckluft durch den Schaltplan zur Tür gelangt. Blaue Leitungen stehen unter Druck, graue gestrichelte Leitungen entlüften gerade. Tippe auf ein Bauteil, um seine Funktion zu lesen.</p>
+  </header>
+
+  <div class="stage">
+    <div class="card">
+      <div class="cap"><span class="t">Schaltplan Türsteuerung</span>
+        <span class="legend"><span><i style="border-color:var(--air)"></i>Druck</span><span><i style="border-color:var(--vent);border-top-style:dashed"></i>Abluft</span><span><i style="border-color:var(--sym)"></i>drucklos</span></span></div>
+      <svg id="plan" viewBox="0 0 1100 740" role="img" aria-label="Pneumatischer Schaltplan der Bustür mit Zylinder 1A, Drosselrückschlagventil 1V4, Impulsventil 1V3, Wechselventilen 1V1 und 1V2, Magnetventilen 1S1 bis 1S4, Notventil 0V und Wartungseinheit 0Z">
+        <defs>
+          <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker>
+        </defs>
+
+        <!-- ===== Leitungen ===== -->
+        <path id="L-src" class="ln" d="M100,690 H160"/>
+        <path id="L-sup" class="ln" d="M300,690 H540 V640"/>
+        <path id="L-sys" class="ln" d="M540,580 V320 M140,540 H980 M140,540 V490 M380,540 V490 M780,540 V490 M980,540 V490"/>
+        <path id="L-s1" class="ln pilot" d="M140,430 V365 H200"/>
+        <path id="L-s2" class="ln pilot" d="M380,430 V365 H320"/>
+        <path id="L-s3" class="ln pilot" d="M780,430 V365 H820"/>
+        <path id="L-s4" class="ln pilot" d="M980,430 V365 H940"/>
+        <path id="L-p1" class="ln pilot" d="M260,345 V290 H440"/>
+        <path id="L-p2" class="ln pilot" d="M880,345 V290 H600"/>
+        <path id="L-A" class="ln" d="M540,260 V240 H450 V205 M450,125 V100"/>
+        <path id="L-A2" class="ln" d="M450,140 V190 M450,140 H425 V190 H450"/>
+        <path id="L-B" class="ln" d="M580,260 V100"/>
+        <path id="L-R3" class="ln" d="M580,320 V334"/>
+        <circle class="dot" id="D1" cx="380" cy="540" r="6"/><circle class="dot" id="D2" cx="540" cy="540" r="6"/><circle class="dot" id="D3" cx="780" cy="540" r="6"/>
+        <!-- Abluft 1V3 -->
+        <path class="sym2" d="M566,334 H594 L580,350 Z"/>
+        <!-- Steuerdreiecke Pilot -->
+        <path class="sym" d="M405,278 L430,290 L405,302 Z"/>
+        <path class="sym" d="M720,278 L695,290 L720,302 Z"/>
+        <text class="leak" id="leak" x="350" y="282" visibility="hidden">zzzisch!</text>
+
+        <!-- ===== 1A Zylinder ===== -->
+        <g class="clk" data-part="1A" tabindex="0">
+          <rect class="sym" x="420" y="40" width="200" height="60"/>
+          <rect id="chA" class="chamber" x="422" y="42" width="20" height="56"/>
+          <rect id="chB" class="chamber" x="456" y="42" width="162" height="56"/>
+          <rect class="sym" x="420" y="40" width="200" height="60" style="fill:none"/>
+          <g id="piston">
+            <rect class="sym" x="440" y="42" width="16" height="56" style="fill:var(--sym)"/>
+            <rect class="metal" x="456" y="64" width="230" height="12"/>
+          </g>
+        </g>
+        <path id="dirArrow" d="M790,70 H850" stroke="var(--alert)" stroke-width="5" fill="none" marker-end="url(#ar)" visibility="hidden"/>
+        <g class="lab"><rect x="352" y="52" width="46" height="34"/><text x="375" y="69">1A</text></g>
+
+        <!-- ===== 1V4 Drosselrückschlagventil ===== -->
+        <g class="clk" data-part="1V4" tabindex="0">
+          <rect class="sym" x="405" y="120" width="70" height="90" stroke-dasharray="10 6" style="fill:none"/>
+          <path class="sym2" d="M440,152 Q450,165 440,178 M460,152 Q450,165 460,178"/>
+          <path class="sym2 thin" d="M432,182 L470,146" marker-end="url(#ar)" stroke="var(--sym)"/>
+          <path class="sym2" d="M415,170 L425,182 L435,170"/>
+          <circle class="sym" cx="425" cy="166" r="7"/>
+          <circle class="dot" cx="450" cy="140" r="5"/><circle class="dot" cx="450" cy="190" r="5"/>
+        </g>
+        <g class="lab"><rect x="330" y="148" width="60" height="34"/><text x="360" y="165">1V4</text></g>
+
+        <!-- ===== 1V3 Impulsventil 4/2 ===== -->
+        <g id="v3" class="act clk" data-part="1V3" tabindex="0">
+          <rect id="v3a" class="sym box" x="440" y="260" width="80" height="60"/>
+          <rect id="v3b" class="sym box" x="520" y="260" width="80" height="60"/>
+          <!-- a: P→A gerade, B→R gerade -->
+          <path class="flowar" d="M460,316 V266" marker-end="url(#ar)"/>
+          <path class="flowar" d="M500,264 V314" marker-end="url(#ar)"/>
+          <text x="478" y="296" style="font:600 18px var(--f-mono);fill:var(--muted)">a</text>
+          <!-- b: gekreuzt -->
+          <path class="flowar" d="M540,316 L578,266" marker-end="url(#ar)"/>
+          <path class="flowar" d="M540,264 L578,314" marker-end="url(#ar)"/>
+          <text x="585" y="296" style="font:600 18px var(--f-mono);fill:var(--muted)">b</text>
+        </g>
+        <path id="L-p1s" class="ln pilot" d="M440,290 H440"/>
+        <path id="L-p2s" class="ln pilot" d="M600,290 H600"/>
+        <g class="lab"><rect x="612" y="214" width="60" height="34"/><text x="642" y="231">1V3</text></g>
+
+        <!-- ===== 1V1 / 1V2 Wechselventile ===== -->
+        <g class="clk" data-part="1V1" tabindex="0">
+          <rect class="sym" x="200" y="345" width="120" height="40"/>
+          <path class="sym2" d="M200,365 H320"/>
+          <path class="sym2" d="M222,352 L212,365 L222,378 M298,352 L308,365 L298,378"/>
+          <circle id="ball1" class="sym act" cx="228" cy="365" r="11"/>
+          <circle class="dot" id="D4" cx="260" cy="365" r="5"/>
+        </g>
+        <path class="ln" style="stroke-width:2.5" d="M260,345 V365" id="L-p1i"/>
+        <g class="lab"><rect x="148" y="300" width="56" height="32"/><text x="176" y="316">1V1</text></g>
+        <g class="clk" data-part="1V2" tabindex="0">
+          <rect class="sym" x="820" y="345" width="120" height="40"/>
+          <path class="sym2" d="M820,365 H940"/>
+          <path class="sym2" d="M842,352 L832,365 L842,378 M918,352 L928,365 L918,378"/>
+          <circle id="ball2" class="sym act" cx="848" cy="365" r="11"/>
+          <circle class="dot" cx="880" cy="365" r="5"/>
+        </g>
+        <path class="ln" style="stroke-width:2.5" d="M880,345 V365" id="L-p2i"/>
+        <g class="lab"><rect x="944" y="300" width="56" height="32"/><text x="972" y="316">1V2</text></g>
+
+        <!-- ===== 1S1..1S4 (eingefügt per JS) ===== -->
+        <g id="svalves"></g>
+        <text class="cap-t" x="120" y="566">Öffner (außen)</text>
+        <text class="cap-t" x="365" y="566">Öffner (innen)</text>
+        <text class="cap-t" x="760" y="566">Schließer (innen)</text>
+        <text class="cap-t" x="975" y="566">Schließer (außen)</text>
+
+        <!-- ===== 0V Notventil ===== -->
+        <g id="v0" class="act clk" data-part="0V" tabindex="0">
+          <rect id="v0a" class="sym box" x="465" y="580" width="60" height="60"/>
+          <rect id="v0b" class="sym box" x="525" y="580" width="60" height="60"/>
+          <!-- links (betätigt): P gesperrt, A→R -->
+          <path class="sym2" d="M473,640 V630 M465,630 H481" transform="translate(7,0)"/>
+          <path class="flowar" d="M480,586 L508,634" marker-end="url(#ar)"/>
+          <!-- rechts (Ruhe): P→A, R gesperrt -->
+          <path class="flowar" d="M540,636 V586" marker-end="url(#ar)"/>
+          <path class="sym2" d="M570,640 V630 M562,630 H578"/>
+          <!-- Stößel (Pilzdrucktaster) -->
+          <path class="sym2" d="M465,610 H430 M425,592 V628"/>
+          <!-- Raste -->
+          <path class="sym2" d="M585,604 H640 V614 H624 L618,606 L612,614 L604,606 L598,614 H585"/>
+          <path class="sym2" d="M606,592 V600"/>
+        </g>
+        <path class="ln" id="L-R0" d="M570,640 V655"/>
+        <path class="sym2" d="M556,655 H584 L570,671 Z"/>
+        <g class="lab"><rect x="372" y="593" width="44" height="34"/><text x="394" y="610">0V</text></g>
+
+        <!-- ===== 0Z Wartungseinheit ===== -->
+        <g class="clk" data-part="0Z" tabindex="0">
+          <path class="sym" d="M64,668 L100,690 L64,712 Z"/>
+          <rect class="sym" x="160" y="660" width="140" height="60"/>
+          <path class="sym2" d="M180,664 V716" stroke-dasharray="6 5"/>
+          <circle class="sym" cx="240" cy="690" r="18"/>
+          <path class="sym2 thin" d="M230,680 L248,698"/>
+          <path class="sym2" d="M284,660 V674"/>
+          <path class="sym2 thin" d="M180,720 V736" marker-end="url(#ar)" stroke="var(--sym)"/>
+        </g>
+        <g class="lab"><rect x="160" y="616" width="46" height="34"/><text x="183" y="633">0Z</text></g>
+      </svg>
+    </div>
+
+    <div class="col">
+      <div class="card">
+        <div class="cap"><span class="t">Tür (Außenansicht)</span><span class="s" id="doorPct">geschlossen</span></div>
+        <svg id="door" viewBox="0 0 360 230" role="img" aria-label="Bus-Vorderteil mit Tür, die sich entsprechend dem Zylinderhub öffnet">
+          <path class="bus" d="M10,30 H340 V200 H10 Z"/>
+          <rect class="glass" x="22" y="45" width="80" height="70" rx="4"/>
+          <rect class="glass" x="250" y="45" width="78" height="70" rx="4"/>
+          <rect x="125" y="38" width="110" height="162" fill="var(--bg)" stroke="var(--sym)" stroke-width="2"/>
+          <path d="M125,200 H235" stroke="var(--sym)" stroke-width="3"/>
+          <g id="leafL"><rect class="leafframe" x="0" y="0" width="55" height="158"/><rect class="leaf" x="7" y="8" width="41" height="64"/><rect class="leaf" x="7" y="80" width="41" height="66"/></g>
+          <g id="leafR"><rect class="leafframe" x="0" y="0" width="55" height="158"/><rect class="leaf" x="7" y="8" width="41" height="64"/><rect class="leaf" x="7" y="80" width="41" height="66"/></g>
+          <circle cx="60" cy="210" r="18" fill="var(--sym)"/><circle cx="300" cy="210" r="18" fill="var(--sym)"/>
+          <circle id="lampG" class="lamp" cx="140" cy="22" r="7"/><circle id="lampR" class="lamp" cx="220" cy="22" r="7"/>
+          <text class="dtext" x="152" y="27" style="font-size:12px">offen</text>
+          <text class="dtext" x="174" y="27" style="font-size:12px;text-anchor:end" transform="translate(37,0)">zu</text>
+        </svg>
+      </div>
+
+      <div class="card" style="display:grid;gap:12px">
+        <div class="cap" style="margin:0"><span class="t">Bedienung</span><span class="s">Taster gedrückt halten oder antippen</span></div>
+        <div class="pad">
+          <button class="tb open" data-s="1">Öffner außen<small>1S1</small></button>
+          <button class="tb open" data-s="2">Öffner innen<small>1S2</small></button>
+          <button class="tb close" data-s="3">Schließer innen<small>1S3</small></button>
+          <button class="tb close" data-s="4">Schließer außen<small>1S4</small></button>
+        </div>
+        <div class="row">
+          <button class="btn warn" id="btnNot" aria-pressed="false">Nothahn 0V betätigen</button>
+          <button class="btn" id="btnReset">Zurücksetzen</button>
+        </div>
+        <label class="sl" id="handWrap">Tür von Hand bewegen (nur bei entlüfteter Anlage)
+          <input type="range" id="hand" min="0" max="100" value="0" disabled>
+        </label>
+        <label class="sl">Drossel 1V4 (Schließgeschwindigkeit)
+          <input type="range" id="thr" min="1" max="10" value="4">
+          <span class="ends"><span>weit offen · schnell</span><span>fast zu · langsam</span></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="now" id="now"><h3 id="nowH">Tür geschlossen</h3><p id="nowP"></p></div>
+    <ul class="chain" id="chain">
+      <li data-k="0Z">0Z Druckluft</li><li data-k="0V">0V</li><li data-k="1S">Taster 1S</li><li data-k="1VX">1V1/1V2</li><li data-k="1V3">1V3</li><li data-k="1V4">1V4</li><li data-k="1A">1A</li><li data-k="T">Tür</li>
+    </ul>
+    <div class="chips">
+      <div class="chip"><div class="k">1V3 Stellung</div><div class="v" id="cV3">b (zu)</div></div>
+      <div class="chip"><div class="k">Kolbenhub 1A</div><div class="v" id="cHub">0 %</div></div>
+      <div class="chip"><div class="k">Systemdruck</div><div class="v" id="cP">6,0 bar</div></div>
+    </div>
+  </div>
+
+  <section style="display:grid;gap:10px">
+    <h2>Bauteile im Schaltplan</h2>
+    <div class="parts" id="parts">
+      <div class="part" data-part="0Z"><b>0Z</b> · Wartungseinheit<p>Filter mit Wasserabscheider und Druckregler mit Manometer. Liefert saubere, trockene Druckluft mit konstantem Druck.</p></div>
+      <div class="part" data-part="0V"><b>0V</b> · Notventil (Nothahn)<p>3/2-Wegeventil mit Druckknopf und Raste. Betätigt sperrt es die Zufuhr und entlüftet die ganze Türanlage – die Tür lässt sich dann von Hand bewegen.</p></div>
+      <div class="part" data-part="1S"><b>1S1–1S4</b> · Taster (Magnetventile)<p>3/2-Wegeventile, elektromagnetisch betätigt, Federrückstellung, in Ruhestellung gesperrt. Nur solange die Spule Strom hat, geht ein Steuersignal raus.</p></div>
+      <div class="part" data-part="1V1"><b>1V1 / 1V2</b> · Wechselventile (ODER)<p>Geben ein Signal weiter, wenn Eingang links ODER rechts Druck hat. Die Kugel verschließt den drucklosen Eingang, damit die Luft nicht über den anderen Taster entweicht.</p></div>
+      <div class="part" data-part="1V3"><b>1V3</b> · 4/2-Impulsventil<p>Beidseitig pneumatisch betätigt, ohne Feder. Es „merkt“ sich die letzte Stellung: a = Tür auf, b = Tür zu. Ein kurzer Impuls reicht.</p></div>
+      <div class="part" data-part="1V4"><b>1V4</b> · Drosselrückschlagventil<p>Beim Öffnen strömt die Luft frei über das Rückschlagventil. Beim Schließen muss die Abluft durch die Drossel – die Tür schließt langsam (Abluftdrosselung, Schutz vor Einklemmen).</p></div>
+      <div class="part" data-part="1A"><b>1A</b> · doppeltwirkender Zylinder<p>Ausfahren = Tür öffnet, Einfahren = Tür schließt. Die Kolbenstange treibt über ein Gestänge die Drehsäule der Tür an.</p></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <h2>Fehlersuche</h2>
+    <div class="card fault">
+      <p style="margin:0;color:var(--muted)">Baue einen zufälligen Fehler ein, teste die Tür mit allen Tastern und stelle eine Diagnose.</p>
+      <div class="row">
+        <button class="btn primary" id="btnFault">Zufälligen Fehler einbauen</button>
+        <select id="diag" disabled>
+          <option value="">Diagnose wählen …</option>
+          <option value="f1">Magnetspule 1S3 ohne Funktion</option>
+          <option value="f2">Steuerleitung 1V1 → 1V3 undicht/abgerissen</option>
+          <option value="f3">Drossel in 1V4 verstopft</option>
+          <option value="f4">Kugel im Wechselventil 1V2 klemmt (Eingang von 1S4 zu)</option>
+        </select>
+        <button class="btn" id="btnCheck" disabled>Prüfen</button>
+      </div>
+      <div class="fb" id="fb" aria-live="polite"></div>
+    </div>
+  </section>
+
+  <section style="display:grid;gap:10px">
+    <h2>Aufgaben zum Selbstcheck</h2>
+    <div>
+      <details><summary>1. Tippe „Öffner innen“ nur ganz kurz an. Warum öffnet die Tür trotzdem ganz?</summary><p>1V3 ist ein Impulsventil ohne Feder. Der kurze Druckimpuls schaltet es in Stellung a – dort bleibt es, auch wenn das Steuersignal wieder weg ist. Der Zylinder fährt also ganz aus.</p></details>
+      <details><summary>2. Warum werden 1S1 und 1S2 über ein Wechselventil zusammengeführt und nicht einfach über ein T-Stück?</summary><p>Bei einem T-Stück würde die Steuerluft von 1S1 über den unbetätigten Taster 1S2 (dessen Ausgang in Ruhestellung entlüftet ist) ins Freie entweichen. Die Kugel im Wechselventil sperrt den drucklosen Eingang.</p></details>
+      <details><summary>3. Was passiert, wenn ein Öffner und ein Schließer gleichzeitig gedrückt werden?</summary><p>Auf beiden Steuerseiten von 1V3 liegt Druck an – keine Seite gewinnt. Das Ventil bleibt in seiner letzten Stellung, die Tür bewegt sich nicht weiter um.</p></details>
+      <details><summary>4. Warum schließt die Tür langsamer als sie öffnet? Probiere den Drossel-Regler aus.</summary><p>Beim Schließen muss die Luft aus dem kolbenseitigen Raum über die Drossel in 1V4 abströmen (Abluftdrosselung). Beim Öffnen strömt die Luft frei über das Rückschlagventil hinein. Langsames Schließen verringert die Gefahr, dass Fahrgäste eingeklemmt werden.</p></details>
+      <details><summary>5. Betätige den Nothahn bei offener Tür, schiebe die Tür von Hand zu und stelle den Nothahn zurück. Was passiert – und warum ist das gefährlich?</summary><p>1V3 steht noch in Stellung a („auf“). Sobald wieder Druck da ist, fährt der Zylinder aus und die Tür öffnet sich ohne Tasterbetätigung. Darum vor dem Zurückstellen des Nothahns: Türbereich frei halten bzw. vorher die gewünschte Stellung einstellen.</p></details>
+    </div>
+  </section>
+</div>
+
+<script>
+(()=>{
+const NS='http://www.w3.org/2000/svg';
+const $=id=>document.getElementById(id);
+// ---------- Magnetventile 1S1..1S4 zeichnen ----------
+const SX={1:65,2:305,3:705,4:905};
+const sg=$('svalves');
+for(const i of [1,2,3,4]){
+  const x=SX[i];
+  const g=document.createElementNS(NS,'g');g.setAttribute('class','clk');g.dataset.part='1S';g.dataset.s=i;g.setAttribute('tabindex','0');
+  g.innerHTML=`
+   <g class="act" id="s${i}">
+    <rect class="sym" x="${x-40}" y="455" width="40" height="25"/>
+    <path class="sym2 thin" d="M${x-30},480 L${x-12},455"/>
+    <rect class="sym box" id="s${i}a" x="${x}" y="430" width="60" height="60"/>
+    <rect class="sym box" id="s${i}b" x="${x+60}" y="430" width="60" height="60"/>
+    <path class="flowar" d="M${x+15},486 V436" marker-end="url(#ar)"/>
+    <path class="sym2" d="M${x+45},490 V480 M${x+37},480 H${x+53}"/>
+    <path class="sym2" d="M${x+75},490 V480 M${x+67},480 H${x+83}"/>
+    <path class="flowar" d="M${x+75},434 L${x+103},484" marker-end="url(#ar)"/>
+    <path class="sym2" d="M${x+120},460 l6,-14 l6,28 l6,-28 l6,28 l6,-14"/>
+   </g>`;
+  sg.appendChild(g);
+  const lab=document.createElementNS(NS,'g');lab.setAttribute('class','lab');
+  lab.innerHTML=`<rect x="${x-4}" y="392" width="56" height="32"/><text x="${x+24}" y="408">1S${i}</text>`;
+  sg.appendChild(lab);
+  const r=document.createElementNS(NS,'path');r.setAttribute('class','sym2');
+  r.setAttribute('d',`M${x+105},490 V506 M${x+91},506 H${x+119} L${x+105},522 Z`);sg.appendChild(r);
+}
+
+// ---------- Zustand ----------
+const st={S:{1:false,2:false,3:false,4:false},not:false,v3:'b',pos:0,ball1:'L',ball2:'L',fault:null,thr:4};
+const PRESS=6.0;
+function logic(){
+  const p=!st.not;
+  const sOut={};
+  for(const i of [1,2,3,4]){
+    const coilOK=!(st.fault==='f1'&&i===3);
+    sOut[i]=p&&st.S[i]&&coilOK;
+  }
+  // Wechselventile
+  if(sOut[1]&&!sOut[2])st.ball1='R'; else if(sOut[2]&&!sOut[1])st.ball1='L';
+  let in4=sOut[4];
+  if(st.fault==='f4'){st.ball2='R';in4=false;}
+  else if(sOut[3]&&!sOut[4])st.ball2='R'; else if(sOut[4]&&!sOut[3])st.ball2='L';
+  let v1=sOut[1]||sOut[2], v2=sOut[3]||in4;
+  const v1line=v1; // Leitung bis zur Bruchstelle
+  if(st.fault==='f2')v1=false;
+  if(v1&&!v2)st.v3='a'; else if(v2&&!v1)st.v3='b';
+  return {p,sOut,v1,v2,v1line,in4};
+}
+
+// ---------- Zeichnen ----------
+const cls=(id,c)=>{const e=$(id);e.classList.remove('p','x');if(c)e.classList.add(c);};
+let moving=0; // +1 öffnet, -1 schließt
+function render(L){
+  cls('L-src','p');cls('L-sup','p');
+  cls('L-sys',L.p?'p':(st.not&&(Date.now()-notT<1500)?'x':null));
+  ['D1','D2','D3'].forEach(d=>$(d).classList.toggle('p',L.p));
+  for(const i of [1,2,3,4]){
+    const on=L.sOut[i];
+    cls('L-s'+i,on?'p':null);
+    $('s'+i).style.transform=st.S[i]&&!(st.fault==='f1'&&i===3)?'translateX(60px)':'';
+    $('s'+i+'a').classList.toggle('on',st.S[i]&&L.p&&!(st.fault==='f1'&&i===3));
+    document.querySelector(`.tb[data-s="${i}"]`).classList.toggle('on',st.S[i]);
+  }
+  cls('L-p1',L.v1line?'p':null);cls('L-p1i',L.v1line?'p':null);
+  cls('L-p1s',L.v1?'p':null);
+  cls('L-p2',L.v2?'p':null);cls('L-p2i',L.v2?'p':null);cls('L-p2s',L.v2?'p':null);
+  $('leak').setAttribute('visibility',st.fault==='f2'&&L.v1line?'visible':'hidden');
+  $('ball1').style.transform=st.ball1==='R'?'translateX(64px)':'';
+  $('ball2').style.transform=st.ball2==='R'?'translateX(64px)':'';
+  // 1V3
+  const a=st.v3==='a';
+  $('v3').style.transform=a?'translateX(80px)':'';
+  $('v3a').classList.toggle('on',a&&L.p);$('v3b').classList.toggle('on',!a&&L.p);
+  const lx=a?520:440, rx=a?680:600;
+  $('L-p1s').setAttribute('d',`M430,290 H${lx}`);
+  $('L-p2s').setAttribute('d',`M695,290 H${rx}`);
+  $('L-p2').setAttribute('d','M880,345 V290 H720');
+  $('L-p1').setAttribute('d','M260,345 V290 H405');
+  // Arbeitsleitungen
+  const Ap=L.p&&a, Bp=L.p&&!a;
+  const Ax=(moving<0), Bx=(moving>0);
+  cls('L-A',Ap?'p':(Ax?'x':null));
+  cls('L-A2',Ap?'p':(Ax?'x':null));
+  cls('L-B',Bp?'p':(Bx?'x':null));
+  cls('L-R3',(Ax||Bx)?'x':null);
+  $('chA').classList.toggle('p',Ap);$('chB').classList.toggle('p',Bp);
+  // 0V
+  $('v0').style.transform=st.not?'translateX(60px)':'';
+  $('v0a').classList.toggle('on',false);$('v0b').classList.toggle('on',!st.not);
+  cls('L-R0',st.not&&(Date.now()-notT<1500)?'x':null);
+}
+let notT=0;
+function drawPos(){
+  const s=st.pos;
+  $('piston').setAttribute('transform',`translate(${s*110},0)`);
+  $('chA').setAttribute('width',18+s*110);
+  $('chB').setAttribute('x',456+s*110);$('chB').setAttribute('width',162-s*110);
+  const arr=$('dirArrow');
+  if(moving){arr.setAttribute('visibility','visible');arr.setAttribute('d',moving>0?'M800,70 H860':'M860,70 H800');}
+  else arr.setAttribute('visibility','hidden');
+  // Tür: Außenschwingtür – Flügel schwenken um die äußere Säule nach außen
+  const w=55*(1-0.82*s);
+  $('leafR').setAttribute('transform',`translate(${235-w},40) scale(${w/55},1)`);
+  $('leafL').setAttribute('transform',`translate(125,40) scale(${w/55},1)`);
+  const pct=Math.round(s*100);
+  $('doorPct').textContent=pct<=0?'geschlossen':pct>=100?'ganz offen':pct+' % offen';
+  $('cHub').textContent=pct+' %';
+  $('lampG').setAttribute('class','lamp'+(pct>=100?' g':''));
+  $('lampR').setAttribute('class','lamp'+(pct<=0?' r':''));
+  if(!$('hand').disabled)$('hand').value=pct;
+}
+
+function explain(L){
+  const a=st.v3==='a';
+  const chain=new Set(['0Z']);
+  let h,p,alert=false;
+  if(st.not){
+    h='Nothahn 0V betätigt – Anlage entlüftet';
+    p='0V sperrt die Zufuhr und entlüftet alle Leitungen. Der Zylinder ist kraftlos, die Tür kann von Hand bewegt werden. Achtung: 1V3 steht weiter in Stellung '+st.v3+(a?' („auf“)':' („zu“)')+' – beim Zurückstellen fährt die Tür in diese Richtung!';
+    alert=true;
+  }else{
+    chain.add('0V');
+    const pressedAny=Object.values(L.sOut).some(Boolean);
+    if(pressedAny)chain.add('1S');
+    if(L.v1||L.v2){chain.add('1VX');chain.add('1V3');}
+    if(L.v1&&L.v2){h='Öffner und Schließer gleichzeitig';p='Beide Steuerseiten von 1V3 haben Druck – keine Seite gewinnt. Das Impulsventil bleibt in seiner letzten Stellung ('+st.v3+').';}
+    else if(moving>0){chain.add('1V3');chain.add('1V4');chain.add('1A');chain.add('T');h='Tür öffnet';p='1V3 steht in a: Luft strömt von P nach A, über das Rückschlagventil in 1V4 ungedrosselt auf die Kolbenseite von 1A. Die Stangenseite entlüftet über B → R. Der Kolben fährt aus.';}
+    else if(moving<0){chain.add('1V3');chain.add('1V4');chain.add('1A');chain.add('T');h='Tür schließt';
+      p=st.fault==='f3'?'1V3 steht in b und die Stangenseite hat Druck – aber die Abluft der Kolbenseite kommt kaum durch die Drossel von 1V4. Die Tür bewegt sich fast nicht.':'1V3 steht in b: Luft strömt von P nach B auf die Stangenseite. Die Kolbenseite entlüftet über die Drossel in 1V4 (Rückschlagventil sperrt) – deshalb schließt die Tür langsamer.';}
+    else if(st.pos>=1){h='Tür offen';p='1V3 hält Stellung a, auch ohne Tastersignal (Impulsventil). Die Kolbenseite steht unter Druck und hält die Tür offen.';}
+    else if(st.pos<=0){h='Tür geschlossen';p='1V3 hält Stellung b. Die Stangenseite steht unter Druck und hält die Tür zu. Zum Öffnen einen Öffner-Taster drücken.';}
+    else {h='Tür steht in Zwischenstellung';p='Die Tür wurde von Hand bewegt. Sie fährt gleich in die Stellung, die 1V3 vorgibt.';}
+    if(st.fault==='f2'&&L.v1line){h='Öffner gedrückt – aber 1V3 schaltet nicht';p='Das Steuersignal kommt am Wechselventil 1V1 an, erreicht aber 1V3 nicht. Hörst du es zischen?';alert=true;}
+  }
+  $('nowH').textContent=h;$('nowP').textContent=p;$('now').classList.toggle('alert',alert);
+  document.querySelectorAll('#chain li').forEach(li=>li.classList.toggle('on',chain.has(li.dataset.k)));
+  $('cV3').textContent=a?'a (auf)':'b (zu)';
+  $('cP').textContent=st.not?'0,0 bar':PRESS.toFixed(1).replace('.',',')+' bar';
+}
+
+// ---------- Simulation ----------
+let last=performance.now();
+function tick(t){
+  const dt=Math.min(.05,(t-last)/1000);last=t;
+  const L=logic();
+  moving=0;
+  if(L.p){
+    if(st.v3==='a'&&st.pos<1){moving=1;st.pos=Math.min(1,st.pos+dt/1.3);}
+    else if(st.v3==='b'&&st.pos>0){
+      moving=-1;
+      let T=1.2+st.thr*0.55; if(st.fault==='f3')T=60;
+      st.pos=Math.max(0,st.pos-dt/T);
+    }
+  }
+  render(L);drawPos();explain(L);
+  requestAnimationFrame(tick);
+}
+
+// ---------- Bedienung ----------
+function press(i,on){st.S[i]=on;const L=logic();render(L);}
+document.querySelectorAll('.tb').forEach(b=>{
+  const i=+b.dataset.s;
+  b.addEventListener('pointerdown',e=>{e.preventDefault();b.setPointerCapture?.(e.pointerId);press(i,true);});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>press(i,false)));
+  b.addEventListener('keydown',e=>{if((e.key===' '||e.key==='Enter')&&!e.repeat){e.preventDefault();press(i,true);}});
+  b.addEventListener('keyup',e=>{if(e.key===' '||e.key==='Enter')press(i,false);});
+  b.addEventListener('contextmenu',e=>e.preventDefault());
+});
+// Magnetventile im Plan anklickbar (Halten)
+document.querySelectorAll('#svalves .clk').forEach(g=>{
+  const i=+g.dataset.s;
+  g.addEventListener('pointerdown',e=>{g.setPointerCapture?.(e.pointerId);press(i,true);});
+  ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>g.addEventListener(ev,()=>press(i,false)));
+});
+function setNot(on){
+  st.not=on;notT=Date.now();
+  $('btnNot').setAttribute('aria-pressed',on);
+  $('btnNot').textContent=on?'Nothahn 0V zurückstellen':'Nothahn 0V betätigen';
+  $('hand').disabled=!on;
+  if(on)$('hand').value=Math.round(st.pos*100);
+}
+$('btnNot').onclick=()=>setNot(!st.not);
+$('v0').addEventListener('click',()=>setNot(!st.not));
+$('hand').addEventListener('input',e=>{if(st.not)st.pos=e.target.value/100;});
+$('thr').addEventListener('input',e=>st.thr=+e.target.value);
+$('btnReset').onclick=()=>{setNot(false);st.v3='b';st.pos=0;st.ball1='L';st.ball2='L';};
+
+// Bauteil-Infos hervorheben
+function hl(part){
+  document.querySelectorAll('.part').forEach(p=>p.classList.toggle('hl',p.dataset.part===part||(part==='1V2'&&p.dataset.part==='1V1')));
+  const el=document.querySelector(`.part[data-part="${part==='1V2'?'1V1':part}"]`);
+  if(el)el.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+document.querySelectorAll('#plan .clk').forEach(g=>{
+  g.addEventListener('click',()=>hl(g.dataset.part));
+  g.addEventListener('keydown',e=>{if(e.key==='Enter')hl(g.dataset.part);});
+});
+
+// Fehlersuche
+const FAULTS=['f1','f2','f3','f4'];
+$('btnFault').onclick=()=>{
+  let f;do{f=FAULTS[Math.floor(Math.random()*4)]}while(f===st.fault);
+  $('btnReset').click();st.fault=f;
+  $('diag').disabled=false;$('btnCheck').disabled=false;$('diag').value='';
+  $('fb').className='fb';$('fb').textContent='Ein Fehler ist eingebaut. Teste alle Taster und beobachte den Schaltplan.';
+  $('btnFault').textContent='Neuen Fehler einbauen';
+};
+$('btnCheck').onclick=()=>{
+  const v=$('diag').value;if(!v)return;
+  if(v===st.fault){
+    $('fb').className='fb ok';$('fb').textContent='Richtig diagnostiziert! Fehler wurde behoben.';
+    st.fault=null;$('diag').disabled=true;$('btnCheck').disabled=true;$('btnFault').textContent='Zufälligen Fehler einbauen';
+  }else{$('fb').className='fb bad';$('fb').textContent='Noch nicht. Welche Taster funktionieren – und welche nicht? Was passiert mit der Geschwindigkeit?';}
+};
+requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
