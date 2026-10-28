@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>FluidSIM-Aufträge im Browser bauen</title>
+<style>
+:root{
+  --bg:#f4f6f8; --card:#fff; --ink:#1d2733; --muted:#5d6b7a; --line:#d5dce3;
+  --accent:#1f6fb2; --accent-soft:#e3eef8; --ok:#1e8a4c; --ok-soft:#e2f4ea;
+  --bad:#c0392b; --bad-soft:#fbe6e3; --grid:#e6ebf0; --warn:#b26a00; --warn-soft:#fff3df; --air:#1f8fe0;
+}
+@media (prefers-color-scheme: dark){
+  :root{--bg:#12171d; --card:#1b232c; --ink:#e6edf3; --muted:#9aa8b6; --line:#2e3a46;
+  --accent:#5aa8ec; --accent-soft:#1d3346; --ok:#46c27a; --ok-soft:#173327;
+  --bad:#ef6f61; --bad-soft:#3a1f1c; --grid:#222c36; --warn:#f0b04a; --warn-soft:#3a2c14; --air:#4fb3ff;}
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding-bottom:env(safe-area-inset-bottom)}
+header{background:#1f6fb2;color:#fff;padding:16px}
+header .in{max-width:1000px;margin:0 auto}
+header a{color:#fff;opacity:.85;font-size:.88rem;text-decoration:none}
+header h1{margin:4px 0 0;font-size:1.35rem}
+header p{margin:2px 0 0;opacity:.9;font-size:.92rem}
+main{max-width:1000px;margin:0 auto;padding:14px 16px 40px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+h2{font-size:1.1rem;margin:0 0 6px}
+h3{font-size:.95rem;margin:14px 0 4px}
+p{margin:0 0 8px}
+ul{margin:0;padding-left:20px}
+li{margin:2px 0}
+.muted{color:var(--muted)}
+.small{font-size:.88rem}
+/* Stufen-Auswahl */
+.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:14px}
+.lv{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:12px;padding:8px 6px;font:inherit;cursor:pointer;text-align:center;line-height:1.2}
+.lv b{display:block;font-size:.95rem}
+.lv span{display:block;font-size:.75rem;color:var(--muted);margin-top:2px}
+.lv .st{color:#e0a100;letter-spacing:1px;font-size:.8rem}
+.lv.active{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.lv.done b::after{content:" ✓";color:var(--ok)}
+.tag{display:inline-block;background:var(--accent-soft);color:var(--accent);font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;margin-bottom:6px}
+.btn{border:0;border-radius:9px;padding:9px 14px;font:inherit;font-size:.92rem;font-weight:600;cursor:pointer;background:var(--accent);color:#fff}
+.btn.sec{background:var(--accent-soft);color:var(--accent)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.danger{background:var(--bad-soft);color:var(--bad)}
+.btn:disabled{opacity:.45;cursor:default}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+details{border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin-top:8px;background:var(--bg)}
+details summary{cursor:pointer;font-weight:600}
+.hint{background:var(--warn-soft);border-radius:10px;padding:8px 12px;margin-top:8px;font-size:.93rem}
+.hint b{color:var(--warn)}
+.checks{list-style:none;padding:0;margin:8px 0 0}
+.checks li{display:flex;gap:8px;align-items:flex-start;padding:5px 0;border-bottom:1px solid var(--line);font-size:.93rem}
+.checks li:last-child{border-bottom:0}
+.checks .i{flex:0 0 22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700}
+.checks .ok .i{background:var(--ok-soft);color:var(--ok)}
+.checks .no .i{background:var(--bad-soft);color:var(--bad)}
+.verdict{margin-top:8px;font-weight:700}
+.solsvg svg{width:100%;height:auto;display:block;background:var(--card);border:1px solid var(--line);border-radius:10px}
+/* Editor */
+.editor{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;margin-bottom:14px;display:flex;flex-direction:column}
+.etop{display:flex;gap:6px;align-items:center;padding:8px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.etop .sp{flex:1}
+.ib{border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:8px;min-width:38px;height:36px;padding:0 9px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer}
+.ib:disabled{opacity:.4}
+.stage{position:relative;background:var(--card)}
+#cv{display:block;width:100%;height:62vh;min-height:380px;max-height:720px;touch-action:none;user-select:none;-webkit-user-select:none;background:var(--card)}
+.status{position:absolute;left:8px;right:8px;bottom:8px;pointer-events:none;display:flex;justify-content:center}
+.status span{background:var(--ink);color:var(--card);border-radius:999px;padding:4px 12px;font-size:.82rem;opacity:.88;max-width:100%}
+.status span:empty{display:none}
+.sel{display:none;gap:6px;align-items:center;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--accent-soft)}
+.sel.on{display:flex}
+.sel label{font-size:.78rem;color:var(--muted);display:flex;flex-direction:column;gap:2px}
+.sel input,.sel select{font:inherit;font-size:.92rem;padding:5px 7px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:var(--ink)}
+.sel input{width:84px}
+.pal{display:flex;gap:6px;overflow-x:auto;padding:8px;border-top:1px solid var(--line);-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.pb{flex:0 0 auto;width:82px;border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:10px;padding:4px 4px 6px;font:inherit;font-size:.7rem;line-height:1.15;cursor:pointer;text-align:center}
+.pb svg{display:block;width:100%;height:46px}
+.pb.wide{width:104px}
+.pb .s{fill:none;stroke:currentColor;stroke-width:1.6}.pb .f{fill:currentColor}.pb .bx{fill:none;stroke:currentColor;stroke-width:1.6}.pb .t{display:none}
+.pgrp{flex:0 0 auto;writing-mode:vertical-rl;transform:rotate(180deg);font-size:.66rem;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:0 2px}
+.editor.full{position:fixed;inset:0;z-index:50;border-radius:0;margin:0;border:0;padding-top:env(safe-area-inset-top)}
+.editor.full #cv{height:auto;flex:1;max-height:none;min-height:0}
+.editor.full .stage{flex:1;display:flex;flex-direction:column}
+.namerow{display:flex;gap:8px;align-items:center;margin-top:8px}
+.namerow input{flex:1;min-width:0;font:inherit;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink)}
+/* SVG */
+#cv .s,.solsvg .s{fill:none;stroke:var(--ink);stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}
+#cv .f,.solsvg .f{fill:var(--ink)}
+#cv .bx,.solsvg .bx{fill:var(--card);stroke:var(--ink);stroke-width:1.6}
+#cv .t,.solsvg .t{font:600 8.5px system-ui,sans-serif;fill:var(--muted)}
+#cv .lb,.solsvg .lb{font:700 12px system-ui,sans-serif;fill:var(--accent)}
+#cv .ln,.solsvg .ln{fill:none;stroke:var(--ink);stroke-width:1.8;stroke-linejoin:round}
+#cv .ln.ctrl,.solsvg .ln.ctrl{stroke-dasharray:6 4}
+#cv .lnhit{fill:none;stroke:transparent;stroke-width:16}
+#cv .hit{fill:transparent}
+#cv .pt{fill:var(--card);stroke:var(--accent);stroke-width:1.6}
+#cv .pt.pend{fill:var(--accent)}
+#cv .pthit{fill:transparent}
+#cv .selbox{fill:none;stroke:var(--accent);stroke-width:1.2;stroke-dasharray:4 3}
+#cv .ln.selln{stroke:var(--accent);stroke-width:3}
+#cv .gridl{stroke:var(--grid);stroke-width:1}
+#cv .jd,.solsvg .jd{fill:var(--ink)}
+#cv .ln.air{stroke:var(--air);stroke-width:2.8}
+#cv .flow{fill:none;stroke:#fff;stroke-width:1.3;stroke-dasharray:3 9;stroke-linecap:round;opacity:.9;animation:flow .7s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+#cv .chamber{fill:var(--air);opacity:.28}
+#cv .acton .s{stroke:var(--air);stroke-width:2.4}
+#cv .acton .f{fill:var(--air)}
+#cv .airs{stroke:var(--air)}
+#cv .vmove{transition:transform .25s ease}
+.editor.simon .pal,.editor.simon .sel,.editor.simon #bUndo,.editor.simon #bClear{display:none!important}
+#bSim,#bSimStop{display:none}
+.editor.simok:not(.simon) #bSim{display:inline-block;background:var(--ok);border-color:var(--ok);color:#fff}
+.editor.simon #bSimStop{display:inline-block;background:var(--bad-soft);color:var(--bad)}
+.simbar{display:none;gap:6px;align-items:center;padding:8px;border-top:1px solid var(--line);flex-wrap:wrap;background:var(--accent-soft)}
+.editor.simon .simbar{display:flex}
+.editor.simon:not(.full) #cv{height:54vh;min-height:320px}
+.simbar .sb{border:2px solid var(--line);background:var(--card);color:var(--ink);border-radius:10px;padding:8px 12px;font:inherit;font-size:.9rem;font-weight:600;cursor:pointer;user-select:none;-webkit-user-select:none}
+.simbar .sb.on{background:var(--air);border-color:var(--air);color:#fff}
+.simbar .leg{font-size:.78rem;color:var(--muted);width:100%}
+.simbar .leg i{display:inline-block;width:18px;height:4px;background:var(--air);vertical-align:middle;border-radius:2px;margin-right:4px}
+@media (max-width:560px){
+  .levels{grid-template-columns:repeat(2,1fr)}
+  header h1{font-size:1.2rem}
+}
+</style>
+</head>
+<body>
+<header><div class="in">
+  <a href="fluidsim-auftraege.html">← FluidSIM-Aufträge</a>
+  <h1>FluidSIM-Aufträge im Browser bauen</h1>
+  <p>Baue die Schaltpläne der Aufträge A1–A5 direkt hier, lass sie prüfen und teste sie in der Simulation.</p>
+</div></header>
+
+<main>
+  <div class="levels" id="levels"></div>
+
+  <div class="card" id="task"></div>
+
+  <div class="editor" id="editor">
+    <div class="etop">
+      <button class="ib" id="bUndo" title="Rückgängig">↶</button>
+      <button class="ib" id="bZoomOut" title="Verkleinern">−</button>
+      <button class="ib" id="bZoomIn" title="Vergrößern">+</button>
+      <button class="ib" id="bFit" title="Alles anzeigen">⤢</button>
+      <span class="sp"></span>
+      <button class="ib" id="bSim">▶ Simulation</button>
+      <button class="ib" id="bSimStop">■ Bearbeiten</button>
+      <button class="ib" id="bFull">Vollbild</button>
+      <button class="ib" id="bClear" title="Alles löschen">🗑</button>
+    </div>
+    <div class="stage">
+      <svg id="cv" xmlns="http://www.w3.org/2000/svg"></svg>
+      <div class="status"><span id="status"></span></div>
+    </div>
+    <div class="sel" id="selbar"></div>
+    <div class="simbar" id="simbar"></div>
+    <div class="pal" id="pal"></div>
+  </div>
+
+  <div class="card">
+    <h2>Fertig? Prüfen und vorstellen</h2>
+    <div class="btns">
+      <button class="btn" id="bCheck">Schaltplan prüfen</button>
+      <button class="btn sec" id="bPng">Als Bild speichern</button>
+    </div>
+    <div class="namerow"><input id="names" placeholder="Name(n) für das Bild, z. B. Lena &amp; Tim" maxlength="60"></div>
+    <div id="result"></div>
+    <div id="present"></div>
+    <details id="solbox">
+      <summary>Musterlösung (mit Code der Lehrkraft)</summary>
+      <div id="sollock"></div>
+      <p class="small muted" style="margin-top:6px">Es gibt oft mehrere richtige Lösungen. Vergleiche die Funktion, nicht die genaue Lage der Bauteile.</p>
+      <div class="solsvg" id="solsvg"></div>
+      <div class="btns"><button class="btn ghost" id="bLoadSol">Musterlösung in den Editor laden</button></div>
+    </details>
+  </div>
+
+  <details class="card" style="padding:12px 16px">
+    <summary>So funktioniert der Editor</summary>
+    <ul class="small" style="margin-top:8px">
+      <li><b>Bauteil einfügen:</b> unten in der Leiste antippen (seitlich wischen für mehr) – es erscheint in der Mitte. Wegeventile gibt es dort fertig mit Taster, Pedal, Rolle, Magnet, pneumatisch usw.</li>
+      <li><b>Verschieben:</b> Bauteil mit dem Finger ziehen. Leere Fläche ziehen = Ansicht verschieben.</li>
+      <li><b>Leitung zeichnen:</b> einen Anschluss (kleiner Kreis) antippen, dann den zweiten Anschluss antippen.</li>
+      <li><b>Abzweig:</b> Für T-Stücke oder Umwege den Baustein „Abzweig“ einsetzen und Leitungen daran anschließen.</li>
+      <li><b>Bauteil bearbeiten:</b> antippen → unten Kennzeichnung eintragen (z. B. 1V1), Betätigung wählen, spiegeln oder löschen.</li>
+      <li><b>Leitung bearbeiten:</b> antippen → Arbeits- oder Steuerleitung (gestrichelt) wählen oder löschen.</li>
+      <li>Dein Plan wird automatisch auf dem Handy gespeichert – pro Stufe einzeln.</li>
+    </ul>
+  </details>
+</main>
+
+<script>
+(() => {
+'use strict';
+const SVGNS = 'http://www.w3.org/2000/svg';
+const $ = id => document.getElementById(id);
+
+/* ===================== Betätigungen (wie Übung Wegeventile) ===================== */
+const ACT = {
+  feder(x, y, d) { let p = `${x},${y}`; for (let i = 1; i <= 6; i++) p += ` ${x + d * i * 4.5},${i === 6 ? y : y + (i % 2 ? -7 : 7)}`; return { svg: `<polyline class="s" points="${p}"/>`, w: 30 }; },
+  knopf(x, y, d) { const k = x + d * 16, sw = d > 0 ? 1 : 0; return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${k}" y2="${y}"/><line class="s" x1="${k}" y1="${y - 9}" x2="${k}" y2="${y + 9}"/><path class="s" d="M${k} ${y - 9} A9 9 0 0 ${sw} ${k} ${y + 9}"/>`, w: 28 }; },
+  hebel(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 14}" y1="${y}" x2="${x + d * 26}" y2="${y - 14}"/><circle class="s" cx="${x + d * 28}" cy="${y - 16}" r="3.5"/>`, w: 32 }; },
+  magnet(x, y, d) { const rx = d > 0 ? x : x - 14; return { svg: `<rect class="s" x="${rx}" y="${y - 12}" width="14" height="24"/><line class="s" x1="${rx}" y1="${y + 12}" x2="${rx + 14}" y2="${y - 12}"/>`, w: 16 }; },
+  druck(x, y, d) { return { svg: `<polygon class="f" points="${x + d * 3},${y} ${x + d * 13},${y - 6} ${x + d * 13},${y + 6}"/><line class="s" stroke-dasharray="4 3" x1="${x + d * 13}" y1="${y}" x2="${x + d * 32}" y2="${y}"/>`, w: 34 }; },
+  rolle(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><circle class="s" cx="${x + d * 20}" cy="${y}" r="6"/>`, w: 28 }; },
+  raste(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 26}" y2="${y}"/><line class="s" x1="${x + d * 13}" y1="${y}" x2="${x + d * 13}" y2="${y - 5}"/><polyline class="s" points="${x + d * 4},${y - 12} ${x + d * 8.5},${y - 5} ${x + d * 13},${y - 12} ${x + d * 17.5},${y - 5} ${x + d * 22},${y - 12}"/>`, w: 30 }; },
+  pedal(x, y, d) { return { svg: `<line class="s" x1="${x}" y1="${y}" x2="${x + d * 14}" y2="${y}"/><line class="s" x1="${x + d * 10}" y1="${y + 10}" x2="${x + d * 24}" y2="${y - 8}"/>`, w: 30 }; },
+  none() { return { svg: '', w: 0 }; }
+};
+const ACTNAME = { knopf: 'Taster', pedal: 'Pedal (Fuß)', hebel: 'Hebel', rolle: 'Rolle', magnet: 'Magnet (elektr.)', druck: 'Druckluft (pneumatisch)', feder: 'Feder', raste: 'Raste', none: '– keine –' };
+const LEFT_OPTS = ['knopf', 'pedal', 'hebel', 'rolle', 'magnet', 'druck'];
+const RIGHT_OPTS = ['feder', 'druck', 'magnet', 'raste', 'none'];
+const aw = t => ACT[t || 'none'](0, 0, 1).w;
+
+/* ===================== Hilfsfunktionen Zeichnen ===================== */
+const L = (x1, y1, x2, y2, c = 's') => `<line class="${c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+function arrow(x1, y1, x2, y2) {
+  const a = Math.atan2(y2 - y1, x2 - x1), h = 6, w = 3.2;
+  const bx = x2 - h * Math.cos(a), by = y2 - h * Math.sin(a);
+  const p1 = `${bx + w * Math.sin(a)},${by - w * Math.cos(a)}`, p2 = `${bx - w * Math.sin(a)},${by + w * Math.cos(a)}`;
+  return L(x1, y1, bx, by) + `<polygon class="f" points="${x2},${y2} ${p1} ${p2}"/>`;
+}
+const blockB = x => L(x, 36, x, 29) + L(x - 4, 29, x + 4, 29);   // gesperrt (von unten)
+const blockT = x => L(x, 0, x, 7) + L(x - 4, 7, x + 4, 7);       // gesperrt (von oben)
+const exhaust = x => L(x, 36, x, 42) + `<polygon class="s" points="${x - 5},42 ${x + 5},42 ${x},49"/>`;
+const num = (x, y, t, anchor = 'start') => `<text class="t" x="${x}" y="${y}" text-anchor="${anchor}">${t}</text>`;
+
+/* ===================== Bauteil-Typen ===================== */
+// Ports: {p, x, y, dir:'u'|'d'|'l'|'r'|null, ctrl}
+const T = {
+  quelle: {
+    name: 'Druckluftquelle', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="9"/><circle class="f" cx="0" cy="0" r="2.2"/>` + L(0, -9, 0, -16),
+    ports: () => [{ p: 'P', x: 0, y: -16, dir: 'u' }],
+    box: () => [-12, -18, 12, 12], lab: [16, 4, 'start']
+  },
+  kompressor: {
+    name: 'Kompressor', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="16"/><polygon class="s" points="-8,-3 8,-3 0,-15.5"/>` + L(-16, -2, -27, -2) + L(-16, 2, -27, 2) + L(0, -16, 0, -24),
+    ports: () => [{ p: 'P', x: 0, y: -24, dir: 'u' }],
+    box: () => [-29, -26, 19, 19], lab: [21, 4, 'start']
+  },
+  behaelter: {
+    name: 'Druckluftbehälter', grp: 'Versorgung',
+    draw: () => `<rect class="s" x="-30" y="-13" width="60" height="26" rx="13"/>` + L(0, -13, 0, -20) + L(0, 13, 0, 20),
+    ports: () => [{ p: 'out', x: 0, y: -20, dir: 'u' }, { p: 'in', x: 0, y: 20, dir: 'd' }],
+    box: () => [-32, -22, 32, 22], lab: [35, 4, 'start']
+  },
+  manometer: {
+    name: 'Manometer', grp: 'Versorgung',
+    draw: () => `<circle class="s" cx="0" cy="0" r="12"/>` + arrow(-7, 7, 8, -8) + L(0, 12, 0, 20),
+    ports: () => [{ p: 'M', x: 0, y: 20, dir: 'd' }],
+    box: () => [-14, -14, 14, 22], lab: [16, -4, 'start']
+  },
+  v32: {
+    name: '3/2-Wegeventil', grp: 'Ventile', valve: true, W: 36, defL: 'knopf', defR: 'feder',
+    draw: (c, st) => {
+      const W = 36;
+      let m = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      m += arrow(12, 34, 12, 2) + blockB(24);                        // betätigt: 1→2, 3 gesperrt
+      m += blockB(W + 12) + arrow(W + 12, 2, W + 24, 34);            // Grundstellung: 1 gesperrt, 2→3
+      let f = L(W + 12, 0, W + 12, -8) + L(W + 12, 36, W + 12, 44) + exhaust(W + 24);
+      f += num(W + 15, -2, '2') + num(W + 9, 52, '1', 'end') + num(W + 31, 50, '3');
+      return valveCompose(c, W, m, f, st);
+    },
+    ports: c => valvePorts(c, 36, [{ p: '2', x: 48, y: -8, dir: 'u' }, { p: '1', x: 48, y: 44, dir: 'd' }], '12', '10'),
+    box: c => [-aw(c.la) - 2, -12, 72 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
+  },
+  v52: {
+    name: '5/2-Wegeventil', grp: 'Ventile', valve: true, W: 48, defL: 'magnet', defR: 'feder',
+    draw: (c, st) => {
+      const W = 48;
+      let m = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      m += arrow(24, 34, 14, 2) + arrow(34, 2, 38, 34);              // betätigt: 1→4, 2→3
+      m += arrow(W + 24, 34, W + 34, 2) + arrow(W + 14, 2, W + 10, 34); // Grundstellung: 1→2, 4→5
+      let f = L(W + 14, 0, W + 14, -8) + L(W + 34, 0, W + 34, -8) + L(W + 24, 36, W + 24, 44) + exhaust(W + 10) + exhaust(W + 38);
+      f += num(W + 11, -2, '4', 'end') + num(W + 37, -2, '2') + num(W + 27, 52, '1') + num(W + 3, 50, '5', 'end') + num(W + 45, 50, '3');
+      return valveCompose(c, W, m, f, st);
+    },
+    ports: c => valvePorts(c, 48, [{ p: '4', x: 62, y: -8, dir: 'u' }, { p: '2', x: 82, y: -8, dir: 'u' }, { p: '1', x: 72, y: 44, dir: 'd' }], '14', '12'),
+    box: c => [-aw(c.la) - 2, -12, 96 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
+  },
+  rueck: {
+    name: 'Rückschlag­ventil', grp: 'Ventile', flip: true,
+    draw: () => L(0, -26, 0, -9) + `<circle class="s" cx="0" cy="-3" r="5"/><polyline class="s" points="-8,-6 0,8 8,-6"/>` + L(0, 8, 0, 26),
+    ports: () => [{ p: 'out', x: 0, y: -26, dir: 'u' }, { p: 'in', x: 0, y: 26, dir: 'd' }],
+    box: () => [-11, -28, 11, 28], lab: [13, 4, 'start']
+  },
+  drv: {
+    name: 'Drossel­rückschlag­ventil', grp: 'Ventile', flip: true,
+    draw: () => `<rect x="-25" y="-25" width="50" height="50" fill="none" stroke="currentColor" class="s" stroke-width="1" stroke-dasharray="7 3 1.5 3"/>` +
+      L(0, -34, 0, -16) + L(-12, -16, 12, -16) + L(-12, 16, 12, 16) + L(0, 16, 0, 34) +
+      L(-12, -16, -12, -9) + L(-12, 9, -12, 16) + `<path class="s" d="M-17,-9 Q-10,0 -17,9 M-7,-9 Q-14,0 -7,9"/>` + arrow(-22, 11, -1, -11) +
+      L(12, -16, 12, -8) + `<circle class="s" cx="12" cy="-3" r="4.5"/><polyline class="s" points="5,-5 12,7 19,-5"/>` + L(12, 7, 12, 16),
+    ports: () => [{ p: 'out', x: 0, y: -34, dir: 'u' }, { p: 'in', x: 0, y: 34, dir: 'd' }],
+    box: () => [-27, -36, 27, 36], lab: [-30, 4, 'end']
+  },
+  wechsel: {
+    name: 'Wechselventil (ODER)', grp: 'Ventile',
+    draw: () => `<rect class="bx" x="-26" y="-10" width="52" height="20"/><circle class="s" cx="0" cy="0" r="6"/><polyline class="s" points="-21,-7 -15,0 -21,7"/><polyline class="s" points="21,-7 15,0 21,7"/>` + gateLegs(),
+    ports: () => gatePorts(), box: () => [-38, -20, 38, 16], lab: [0, 26, 'middle']
+  },
+  zweidruck: {
+    name: 'Zweidruckventil (UND)', grp: 'Ventile',
+    draw: () => `<rect class="bx" x="-26" y="-10" width="52" height="20"/>` + L(-12, -7, -12, 7) + L(12, -7, 12, 7) + L(-12, 0, 12, 0) + L(-20, -10, -20, -4) + L(-20, 4, -20, 10) + L(20, -10, 20, -4) + L(20, 4, 20, 10) + gateLegs(),
+    ports: () => gatePorts(), box: () => [-38, -20, 38, 16], lab: [0, 26, 'middle']
+  },
+  ew: {
+    name: 'Zylinder einfachwirkend', grp: 'Antriebe',
+    draw: (c, st) => cylDraw(st, true) + L(-42, 14, -42, 22),
+    ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }],
+    box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
+  },
+  dw: {
+    name: 'Zylinder doppeltwirkend', grp: 'Antriebe',
+    draw: (c, st) => cylDraw(st, false) + L(-42, 14, -42, 22) + L(42, 14, 42, 22),
+    ports: () => [{ p: 'A', x: -42, y: 22, dir: 'd' }, { p: 'B', x: 42, y: 22, dir: 'd' }],
+    box: () => [-52, -18, 82, 24], lab: [-50, -20, 'start']
+  },
+  v32o: {
+    name: '3/2-Wegeventil Grundstellung offen', grp: 'Ventile', valve: true, W: 36, defL: 'druck', defR: 'feder',
+    draw: (c, st) => {
+      const W = 36;
+      let m = `<rect class="bx" x="0" y="0" width="${W}" height="36"/><rect class="bx" x="${W}" y="0" width="${W}" height="36"/>`;
+      m += blockB(12) + arrow(12, 2, 24, 34);                        // betätigt: 1 gesperrt, 2→3
+      m += arrow(W + 12, 34, W + 12, 2) + blockB(W + 24);            // Grundstellung: 1→2, 3 gesperrt
+      let f = L(W + 12, 0, W + 12, -8) + L(W + 12, 36, W + 12, 44) + exhaust(W + 24);
+      f += num(W + 15, -2, '2') + num(W + 9, 52, '1', 'end') + num(W + 31, 50, '3');
+      return valveCompose(c, W, m, f, st);
+    },
+    ports: c => valvePorts(c, 36, [{ p: '2', x: 48, y: -8, dir: 'u' }, { p: '1', x: 48, y: 44, dir: 'd' }], '12', '10'),
+    box: c => [-aw(c.la) - 2, -12, 72 + aw(c.ra) + 2, 54], lab: [0, 66, 'start']
+  },
+  pumpe: {
+    name: 'Hydropumpe mit Motor', grp: 'Hydraulik',
+    draw: () => `<circle class="s" cx="0" cy="0" r="14"/><polygon class="f" points="0,-14 -6,-4 6,-4"/>` + L(0, -14, 0, -22) + `<circle class="s" cx="-42" cy="0" r="12"/><text class="t" x="-42" y="4" text-anchor="middle" style="font-size:11px">M</text>` + L(-30, -2, -14, -2) + L(-30, 2, -14, 2),
+    ports: () => [{ p: 'P', x: 0, y: -22, dir: 'u' }],
+    box: () => [-56, -24, 16, 16], lab: [20, 4, 'start']
+  },
+  tank: {
+    name: 'Tank', grp: 'Hydraulik',
+    draw: () => `<polyline class="s" points="-11,-4 -11,8 11,8 11,-4"/>` + L(0, -14, 0, 4),
+    ports: () => [{ p: 'T', x: 0, y: -14, dir: 'u' }],
+    box: () => [-13, -16, 13, 10], lab: null
+  },
+  dbv: {
+    name: 'Druckbegrenzungs­ventil', grp: 'Hydraulik',
+    draw: () => `<rect class="bx" x="-14" y="-20" width="28" height="40"/>` + L(0, -30, 0, -20) + L(0, 20, 0, 30) + arrow(6, 14, 6, -14) +
+      `<polyline class="s" points="14,0 17,-6 20,6 23,-6 26,6 29,0"/><polyline class="s" stroke-dasharray="4 3" points="0,-25 -24,-25 -24,0 -17,0"/><polygon class="f" points="-14,0 -20,-4 -20,4"/>`,
+    ports: () => [{ p: 'in', x: 0, y: -30, dir: 'u' }, { p: 'out', x: 0, y: 30, dir: 'd' }],
+    box: () => [-28, -32, 32, 32], lab: [34, 4, 'start']
+  },
+  v43: {
+    name: '4/3-Wegeventil (Hydraulik)', grp: 'Hydraulik', valve: true, fixed: true, W: 48, defL: 'hebel', defR: 'feder',
+    draw: (c, st) => {
+      st = st || {}; const W = 48, off = (st.pos || 0) * W;
+      let m = '';
+      for (let i = 0; i < 3; i++) m += `<rect class="bx" x="${i * W}" y="0" width="${W}" height="36"/>`;
+      m += arrow(14, 34, 14, 2) + arrow(34, 2, 34, 34);
+      m += `<polyline class="s" points="${W + 14},36 ${W + 14},22 ${W + 34},22 ${W + 34},36"/>` + blockT(W + 14) + blockT(W + 34);
+      m += arrow(2 * W + 14, 34, 2 * W + 34, 2) + arrow(2 * W + 14, 2, 2 * W + 34, 34);
+      const aL = ACT.hebel(0, 12, -1).svg + ACT.feder(0, 28, -1).svg;
+      m += (st.onL || st.onR) ? `<g class="acton">${aL}</g>` : aL;
+      m += ACT.feder(3 * W, 18, 1).svg;
+      let f = L(W + 14, 0, W + 14, -8) + L(W + 34, 0, W + 34, -8) + L(W + 14, 36, W + 14, 44) + L(W + 34, 36, W + 34, 44);
+      f += num(W + 11, -2, 'A', 'end') + num(W + 37, -2, 'B') + num(W + 11, 52, 'P', 'end') + num(W + 37, 52, 'T');
+      return `<g class="vmove" transform="translate(${off},0)">${m}</g>` + f;
+    },
+    ports: () => [{ p: 'A', x: 62, y: -8, dir: 'u' }, { p: 'B', x: 82, y: -8, dir: 'u' }, { p: 'P', x: 62, y: 44, dir: 'd' }, { p: 'T', x: 82, y: 44, dir: 'd' }],
+    box: () => [-34, -12, 178, 54], lab: [0, 66, 'start']
+  },
+  abzweig: {
+    name: 'Abzweig / Knick', grp: 'Sonstiges',
+    draw: () => '', ports: () => [{ p: 'P', x: 0, y: 0, dir: null }],
+    box: () => [-9, -9, 9, 9], lab: null
+  },
+  text: {
+    name: 'Text / Markierung', grp: 'Sonstiges',
+    draw: () => '', ports: () => [],
+    box: c => { const w = Math.max(24, (c.label || 'Text').length * 8 + 8); return [-w / 2, -13, w / 2, 5]; }, lab: null
+  }
+};
+function cylDraw(st, spring) {
+  st = st || {};
+  const px = -30 + (st.s || 0) * 72;
+  let s = `<rect class="bx" x="-50" y="-14" width="100" height="28"/>`;
+  if (st.pA) s += `<rect class="chamber" x="-49" y="-13" width="${px + 49}" height="26"/>`;
+  if (st.pB) s += `<rect class="chamber" x="${px}" y="-13" width="${49 - px}" height="26"/>`;
+  if (spring) s += springH(px + 3, 48);
+  s += `<line class="s" x1="${px}" y1="-14" x2="${px}" y2="14" stroke-width="3.5"/><line class="s" x1="${px}" y1="0" x2="${px + 110}" y2="0" stroke-width="3"/>`;
+  return s;
+}
+function springH(x1, x2) {
+  let p = `${x1},0`; const n = 10, st = (x2 - x1) / n;
+  for (let i = 1; i < n; i++) p += ` ${x1 + i * st},${i % 2 ? -9 : 9}`;
+  return `<polyline class="s" points="${p} ${x2},0"/>`;
+}
+function gateLegs() { return L(-26, 0, -36, 0) + L(-36, 0, -36, 14) + L(26, 0, 36, 0) + L(36, 0, 36, 14) + L(0, -10, 0, -18); }
+function gatePorts() { return [{ p: 'e1', x: -36, y: 14, dir: 'd', ctrl: true }, { p: 'e2', x: 36, y: 14, dir: 'd', ctrl: true }, { p: 'a', x: 0, y: -18, dir: 'u', ctrl: true }]; }
+function valveCompose(c, W, moving, fixed, st) {
+  st = st || {};
+  const off = (st.pos || 0) * W, five = W === 48;
+  const aL = ACT[c.la || 'none'](0, 18, -1).svg, aR = ACT[c.ra || 'none'](2 * W, 18, 1).svg;
+  moving += st.onL ? `<g class="acton">${aL}</g>` : aL;
+  moving += st.onR ? `<g class="acton">${aR}</g>` : aR;
+  if (c.la === 'druck') { fixed += num(-30, 12, five ? '14' : '12'); if (off) fixed += `<line class="s${st.onL ? ' airs' : ''}" stroke-dasharray="4 3" x1="-32" y1="18" x2="${-32 + off}" y2="18"/>`; }
+  if (c.ra === 'druck') fixed += num(2 * W + 30, 12, five ? '12' : '10', 'end');
+  return `<g class="vmove" transform="translate(${off},0)">${moving}</g>` + fixed;
+}
+function valvePorts(c, W, base, lname, rname) {
+  const out = base.slice();
+  if (c.la === 'druck') out.push({ p: lname, x: -32, y: 18, dir: 'l', ctrl: true });
+  if (c.ra === 'druck') out.push({ p: rname, x: 2 * W + 32, y: 18, dir: 'r', ctrl: true });
+  return out;
+}
+
+/* ===================== Modell ===================== */
+const portsOf = c => T[c.type].ports(c).map(q => {
+  const y = c.flip ? -q.y : q.y;
+  let dir = q.dir; if (c.flip && dir === 'u') dir = 'd'; else if (c.flip && dir === 'd') dir = 'u';
+  return { ...q, x: c.x + q.x, y: c.y + y, dir, c: c.id };
+});
+function portByRef(d, cid, p) {
+  const c = d.comps.find(k => k.id === cid); if (!c) return null;
+  return portsOf(c).find(q => q.p === p) || null;
+}
+function bboxOf(c) {
+  const b = T[c.type].box(c);
+  let [x1, y1, x2, y2] = b;
+  if (c.flip) [y1, y2] = [-y2, -y1];
+  return [c.x + x1, c.y + y1, c.x + x2, c.y + y2];
+}
+function route(a, b) {
+  const V = d => d === 'u' || d === 'd', H = d => d === 'l' || d === 'r';
+  const da = a.dir, db = b.dir;
+  if (!da && !db) return [a, { x: b.x, y: a.y }, b];
+  if (!da || !db) {
+    const p = da ? a : b, q = da ? b : a;
+    const pts = V(p.dir) ? [q, { x: p.x, y: q.y }, p] : [q, { x: q.x, y: p.y }, p];
+    return da ? pts.reverse() : pts;
+  }
+  if (V(da) && V(db)) {
+    if (Math.abs(a.x - b.x) < .5) return [a, b];
+    let m;
+    if ((da === 'u' && db === 'd' && b.y < a.y) || (da === 'd' && db === 'u' && b.y > a.y)) m = (a.y + b.y) / 2;
+    else if (da === 'u' && db === 'u') m = Math.min(a.y, b.y) - 16;
+    else if (da === 'd' && db === 'd') m = Math.max(a.y, b.y) + 16;
+    else m = (a.y + b.y) / 2;
+    return [a, { x: a.x, y: m }, { x: b.x, y: m }, b];
+  }
+  if (H(da) && H(db)) {
+    if (Math.abs(a.y - b.y) < .5) return [a, b];
+    let m;
+    if ((da === 'l' && db === 'r' && b.x < a.x) || (da === 'r' && db === 'l' && b.x > a.x)) m = (a.x + b.x) / 2;
+    else if (da === 'l' && db === 'l') m = Math.min(a.x, b.x) - 16;
+    else if (da === 'r' && db === 'r') m = Math.max(a.x, b.x) + 16;
+    else m = (a.x + b.x) / 2;
+    return [a, { x: m, y: a.y }, { x: m, y: b.y }, b];
+  }
+  return V(da) ? [a, { x: a.x, y: b.y }, b] : [a, { x: b.x, y: a.y }, b];
+}
+const isCtrl = (d, ln) => {
+  if (ln.kind === 'work') return false;
+  if (ln.kind === 'ctrl') return true;
+  const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+  return !!((a && a.ctrl) || (b && b.ctrl));
+};
+
+/* ===================== Rendern ===================== */
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+function renderDiagram(d, o = {}) {
+  let s = '';
+  const sim = o.sim;
+  const used = new Set();
+  if (o.part !== 'comps') {
+  d.lines.forEach(ln => {
+    const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+    if (!a || !b) return;
+    used.add(ln.a.c + ':' + ln.a.p); used.add(ln.b.c + ':' + ln.b.p);
+    const pts = route(a, b).map(p => `${p.x},${p.y}`).join(' ');
+    const sel = o.edit && o.sel && o.sel.kind === 'line' && o.sel.id === ln.id;
+    const air = sim && sim.P.has(sim.N(ln.a.c + ':' + ln.a.p));
+    s += `<polyline class="ln${isCtrl(d, ln) ? ' ctrl' : ''}${sel ? ' selln' : ''}${air ? ' air' : ''}" points="${pts}"/>`;
+    if (air) s += `<polyline class="flow" points="${pts}"/>`;
+    if (o.edit) s += `<polyline class="lnhit" data-line="${ln.id}" points="${pts}"/>`;
+  });
+  }
+  if (o.part === 'lines') return s;
+  // Bauteile
+  d.comps.forEach(c => {
+    const t = T[c.type];
+    const tr = `translate(${c.x},${c.y})`;
+    const b = t.box(c);
+    s += `<g data-comp="${c.id}">`;
+    if (o.edit || sim) {
+      const [x1, y1, x2, y2] = bboxOf(c);
+      s += `<rect class="hit" x="${x1}" y="${y1}" width="${x2 - x1}" height="${y2 - y1}"/>`;
+    }
+    s += `<g transform="${tr}${c.flip ? ' scale(1,-1)' : ''}">${t.draw(c, sim ? simStateOf(c) : undefined)}</g>`;
+    if (c.type === 'abzweig') {
+      const conn = d.lines.filter(l => (l.a.c === c.id) || (l.b.c === c.id)).length;
+      if (conn >= 3 || !o.edit) s += `<circle class="jd" cx="${c.x}" cy="${c.y}" r="3.2"/>`;
+      if (o.edit && conn < 3) s += `<circle class="jd" cx="${c.x}" cy="${c.y}" r="${conn ? 3.2 : 2.2}" opacity="${conn ? 1 : .5}"/>`;
+    }
+    if (c.type === 'text') s += `<text class="lb" x="${c.x}" y="${c.y}" text-anchor="middle">${esc(c.label || 'Text')}</text>`;
+    else if (c.label && t.lab) {
+      let [lx, ly, an] = t.lab;
+      if (t.valve) lx = -aw(c.la);
+      s += `<text class="lb" x="${c.x + lx}" y="${c.y + (c.flip && !t.valve ? -ly + 8 : ly)}" text-anchor="${an}">${esc(c.label)}</text>`;
+    }
+    if (o.edit && o.sel && o.sel.kind === 'comp' && o.sel.id === c.id) {
+      const [x1, y1, x2, y2] = bboxOf(c);
+      s += `<rect class="selbox" x="${x1 - 3}" y="${y1 - 3}" width="${x2 - x1 + 6}" height="${y2 - y1 + 6}" rx="4"/>`;
+    }
+    s += '</g>';
+  });
+  // Anschlusspunkte (nur im Editor)
+  if (o.edit) {
+    d.comps.forEach(c => portsOf(c).forEach(q => {
+      const key = c.id + ':' + q.p;
+      const pend = o.pending && o.pending.c === c.id && o.pending.p === q.p;
+      if (!used.has(key) || pend) s += `<circle class="pt${pend ? ' pend' : ''}" cx="${q.x}" cy="${q.y}" r="${pend ? 5.5 : 4}"/>`;
+      s += `<circle class="pthit" data-port="${key}" cx="${q.x}" cy="${q.y}" r="13"/>`;
+    }));
+  }
+  return s;
+}
+function contentBox(d) {
+  if (!d.comps.length) return null;
+  let x1 = 1e9, y1 = 1e9, x2 = -1e9, y2 = -1e9;
+  d.comps.forEach(c => {
+    const b = bboxOf(c);
+    x1 = Math.min(x1, b[0]); y1 = Math.min(y1, b[1]); x2 = Math.max(x2, b[2]); y2 = Math.max(y2, b[3] + (c.label && T[c.type].valve ? 16 : 0));
+    if (c.label && c.type !== 'text' && T[c.type].lab) x2 = Math.max(x2, c.x + T[c.type].lab[0] + c.label.length * 8);
+  });
+  d.lines.forEach(ln => {
+    const a = portByRef(d, ln.a.c, ln.a.p), b = portByRef(d, ln.b.c, ln.b.p);
+    if (!a || !b) return;
+    route(a, b).forEach(p => { x1 = Math.min(x1, p.x); y1 = Math.min(y1, p.y); x2 = Math.max(x2, p.x); y2 = Math.max(y2, p.y); });
+  });
+  return [x1, y1, x2, y2];
+}
+
+/* ===================== Analyse / Prüfung ===================== */
+function analyze(d) {
+  const parent = {};
+  const find = k => { if (parent[k] === undefined) parent[k] = k; while (parent[k] !== k) { parent[k] = parent[parent[k]]; k = parent[k]; } return k; };
+  const uni = (a, b) => { parent[find(a)] = find(b); };
+  d.comps.forEach(c => portsOf(c).forEach(q => find(c.id + ':' + q.p)));
+  d.lines.forEach(ln => { const a = ln.a.c + ':' + ln.a.p, b = ln.b.c + ':' + ln.b.p; if (parent[a] !== undefined && parent[b] !== undefined) uni(a, b); });
+  const same = (a, b) => parent[a] !== undefined && parent[b] !== undefined && find(a) === find(b);
+  const keys = Object.keys(parent);
+  // Durchgänge durch passive Bauteile
+  const pass = []; // [from, to]
+  d.comps.forEach(c => {
+    const k = p => c.id + ':' + p;
+    if (c.type === 'behaelter' || c.type === 'drv') { pass.push([k('in'), k('out')], [k('out'), k('in')]); }
+    if (c.type === 'rueck') pass.push([k('in'), k('out')]);
+  });
+  const reach = (start, both) => {
+    const seen = new Set(), stack = [...start];
+    while (stack.length) {
+      const k = stack.pop(); if (seen.has(k)) continue; seen.add(k);
+      keys.forEach(o => { if (!seen.has(o) && same(k, o)) stack.push(o); });
+      pass.forEach(([f, t]) => { if (f === k && !seen.has(t)) stack.push(t); if (both && t === k && !seen.has(f)) stack.push(f); });
+    }
+    return seen;
+  };
+  const sources = d.comps.filter(c => c.type === 'quelle' || c.type === 'kompressor' || c.type === 'pumpe').map(c => c.id + ':P');
+  const sup = reach(sources, false);
+  return {
+    of: (type, pred) => d.comps.filter(c => c.type === type && (!pred || pred(c))),
+    same, supplied: k => sup.has(k),
+    link: (a, b) => reach([a], true).has(b),
+    labeled: () => { const need = d.comps.filter(c => !['abzweig', 'text', 'tank'].includes(c.type)); return need.length > 0 && need.every(c => (c.label || '').trim()); },
+    texts: () => d.comps.filter(c => c.type === 'text').map(c => (c.label || '').trim().toUpperCase())
+  };
+}
+const K = (c, p) => c.id + ':' + p;
+const any = (arr, f) => arr.some(f);
+const pairs = (arr, f) => arr.some((a, i) => arr.some((b, j) => i !== j && f(a, b)));
+
+/* ===================== Aufgaben ===================== */
+const TASKS = [
+  {
+    id: 'A1', title: 'Liftachse', sub: 'Lkw', stars: 1,
+    situation: 'Fährt der Lkw <b>leer</b>, hebt der Fahrer die <b>Liftachse</b> an. Er legt dafür einen <b>Schalter mit Rastung</b> um: Druckluft füllt den <b>Liftbalg</b>. Schaltet er zurück, wird der Liftbalg entlüftet und die Achse senkt sich wieder ab.',
+    req: ['Druckluftquelle (0Z1)', '3/2-Wegeventil, Grundstellung gesperrt, <b>Hebel</b> und <b>Raste</b> (1V1) – in der Bauteil-Leiste „3/2 Hebel / Raste“', 'einfachwirkender Zylinder als Liftbalg (1A1)', 'alle Bauteile gekennzeichnet'],
+    hints: [
+      'Der einfachwirkende Zylinder hat nur <b>einen</b> Anschluss. Zurück fährt er mit der Feder (im Lkw: Gewicht der Achse).',
+      'Anschlüsse am 3/2-Wegeventil: <b>1</b> = Druckluft, <b>2</b> = Arbeitsleitung zum Zylinder, <b>3</b> = Entlüftung (schon eingezeichnet).',
+      'Baue von unten nach oben: Quelle → Anschluss 1 · Anschluss 2 → Zylinder.'
+    ],
+    present: ['Nenne zwei Vorteile, wenn die Liftachse bei Leerfahrt angehoben ist.', 'Warum darf die Liftachse bei voller Beladung nicht angehoben sein?', 'Warum verwendet man ein Ventil mit Raste und keinen Taster?'],
+    rules: G => {
+      const v = G.of('v32', c => c.la === 'hebel' && c.ra === 'raste'), z = G.of('ew');
+      return [
+        ['Einfachwirkender Zylinder (Liftbalg) vorhanden', z.length > 0],
+        ['3/2-Wegeventil mit Hebel und Raste vorhanden', v.length > 0],
+        ['Anschluss 1 des Ventils ist mit der Druckluft verbunden', any(v, x => G.supplied(K(x, '1')))],
+        ['Anschluss 2 des Ventils führt zum Zylinder', any(v, x => any(z, y => G.link(K(x, '2'), K(y, 'A'))))],
+        ['Der Zylinder hängt nicht direkt (ohne Ventil) an der Druckluft', z.length > 0 && z.every(y => !G.supplied(K(y, 'A')))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    }
+  },
+  {
+    id: 'A2', title: 'Reifenmontiermaschine', sub: 'Werkstatt', stars: 2,
+    situation: 'Die Reifenmontiermaschine hat <b>zwei Fußpedale</b>. <b>Pedal 1</b> (Abdrücker): Solange es getreten wird, fährt die Abdrückschaufel aus, beim Loslassen fährt sie zurück. <b>Pedal 2</b> (Spannklauen): Treten → die Klauen spannen und <b>bleiben gespannt</b>, bis das Pedal zurückgestellt wird. Beide Zylinder sind <b>doppeltwirkend</b> und hängen an <b>einer</b> Druckluftversorgung.',
+    req: ['5/2-Wegeventil <b>Pedal / Feder</b> (1V1) mit doppeltwirkendem Zylinder Abdrücker (1A1)', '5/2-Wegeventil <b>Pedal / Raste</b> (2V1) mit doppeltwirkendem Zylinder Spannklauen (2A1)', 'beide Ventile über <b>Abzweige</b> aus einer Druckluftquelle (0Z1) versorgt', 'Grundstellung: beide Zylinder eingefahren', 'alle Bauteile gekennzeichnet'],
+    hints: [
+      'Ein doppeltwirkender Zylinder hat zwei Anschlüsse → du brauchst ein Ventil mit zwei Arbeitsanschlüssen (<b>4</b> und <b>2</b>): das 5/2-Wegeventil.',
+      'Beim 5/2-Ventil ist in Grundstellung <b>1 → 2</b> verbunden. Anschluss 2 gehört an die Kolbenstangenseite (rechter Anschluss), Anschluss 4 an die Kolbenseite (linker Anschluss).',
+      'Für die Versorgung beider Ventile setzt du <b>Abzweige</b> in die Leitung. Die zweite Steuerkette bekommt die Ziffer 2 (2V1, 2A1).'
+    ],
+    present: ['Warum braucht man hier ein 5/2- und kein 3/2-Wegeventil?', 'Warum muss das Pedal für die Spannklauen einrasten?', 'Warum beginnen die Kennzeichnungen einmal mit 1 und einmal mit 2?'],
+    rules: G => {
+      const v1 = G.of('v52', c => c.la === 'pedal' && c.ra === 'feder'), v2 = G.of('v52', c => c.la === 'pedal' && c.ra === 'raste'), z = G.of('dw');
+      const ok = (a, b) => G.link(K(a, '4'), K(b, 'A')) && G.link(K(a, '2'), K(b, 'B'));
+      return [
+        ['5/2-Wegeventil Pedal / Feder vorhanden (Abdrücker)', v1.length > 0],
+        ['5/2-Wegeventil Pedal / Raste vorhanden (Spannklauen)', v2.length > 0],
+        ['Zwei doppeltwirkende Zylinder vorhanden', z.length >= 2],
+        ['Beide Ventile werden an Anschluss 1 versorgt', any(v1, a => G.supplied(K(a, '1'))) && any(v2, a => G.supplied(K(a, '1')))],
+        ['Abdrücker-Ventil: 4 → Kolbenseite, 2 → Kolbenstangenseite', any(v1, a => any(z, b => ok(a, b)))],
+        ['Spannklauen-Ventil steuert den anderen Zylinder genauso an', any(v1, a => any(v2, c => pairs(z, (b1, b2) => ok(a, b1) && ok(c, b2))))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    }
+  },
+  {
+    id: 'A3', title: 'Abreißbremse', sub: 'Lkw-Anhänger', stars: 3,
+    situation: 'Über die <b>rote Vorratsleitung</b> wird der <b>Behälter im Anhänger</b> gefüllt. Reißt die Leitung ab, muss der Anhänger <b>von selbst bremsen</b> – mit der Luft aus seinem Behälter. Ein <b>Rückschlagventil</b> hält die Luft im Behälter. Das <b>Notbremsventil</b> wird vom Druck der roten Leitung zugehalten. Fehlt der Druck, öffnet es und belüftet den Bremszylinder.',
+    req: ['Kupplungskopf rot als 3/2-Wegeventil <b>Hebel / Raste</b> (0V1): betätigt = verbunden, nicht betätigt = abgerissen', 'Rückschlagventil (1V1) und Druckluftbehälter (1Z1)', 'Notbremsventil als <b>3/2-Wegeventil, Grundstellung offen, pneumatisch / Feder</b> (1V2) – Leiste: „3/2 offen, pneumat. / Feder“', 'einfachwirkender Zylinder als Bremszylinder (1A1)', 'alle Bauteile gekennzeichnet'],
+    hints: [
+      'Das Rückschlagventil sitzt zwischen roter Leitung und Behälter. Durchfluss nur <b>zum Behälter hin</b> (mit „Spiegeln“ drehst du die Richtung um).',
+      'Die rote Leitung (Anschluss 2 von 0V1) geht zusätzlich als <b>Steuerleitung</b> an den Anschluss 12 des Notbremsventils. Setze dafür einen <b>Abzweig</b>.',
+      'Der Behälter versorgt Anschluss 1 des Notbremsventils. Anschluss 2 geht zum Bremszylinder. Teste in der Simulation: 0V1 betätigen (Behälter füllt sich) – dann loslassen (Abriss).'
+    ],
+    present: ['Wozu braucht man das Rückschlagventil? Was würde ohne passieren?', 'Warum muss das Notbremsventil in Grundstellung offen sein?', 'Warum kuppelt man zuerst die gelbe und zuletzt die rote Leitung an?'],
+    rules: G => {
+      const k = G.of('v32', c => c.la === 'hebel' && c.ra === 'raste'), r = G.of('rueck'), t = G.of('behaelter');
+      const n = G.of('v32o', c => c.la === 'druck' && c.ra === 'feder'), z = G.of('ew');
+      const tp = b => [K(b, 'in'), K(b, 'out')];
+      return [
+        ['Kupplungskopf 0V1 (3/2 Hebel / Raste) ist an 1 versorgt', any(k, x => G.supplied(K(x, '1')))],
+        ['Rückschlagventil lässt nur von der roten Leitung zum Behälter durch', any(k, x => any(r, y => G.same(K(x, '2'), K(y, 'in')) && any(t, b => tp(b).some(p => G.same(K(y, 'out'), p)))))],
+        ['Notbremsventil: 3/2, Grundstellung offen, pneumatisch / Feder vorhanden', n.length > 0],
+        ['Rote Leitung steuert das Notbremsventil an Anschluss 12', any(k, x => any(n, y => G.same(K(x, '2'), K(y, '12'))))],
+        ['Behälter versorgt Anschluss 1 des Notbremsventils', any(t, b => any(n, y => tp(b).some(p => G.same(p, K(y, '1')))))],
+        ['Anschluss 2 des Notbremsventils führt zum Bremszylinder', any(n, y => any(z, c => G.link(K(y, '2'), K(c, 'A'))))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    }
+  },
+  {
+    id: 'A4', title: 'Bagger-Ausleger', sub: 'Hydraulik', stars: 3,
+    situation: 'Der Ausleger eines Baggers wird von einem <b>doppeltwirkenden Hydraulikzylinder</b> bewegt. Ein <b>4/3-Wegeventil</b> mit Handhebel hat drei Stellungen: Heben – Halten – Senken. In der Mitte fließt das Öl <b>drucklos zurück in den Tank</b> (Umlauf). Ein <b>Druckbegrenzungsventil</b> schützt die Anlage. Die Hydraulik-Bauteile findest du in der Leiste unter „Hydraulik“.',
+    req: ['Hydropumpe mit Motor (0P1)', 'Druckbegrenzungsventil (0V1) zwischen Pumpe und Wegeventil, Ausgang zum Tank', '4/3-Wegeventil mit Umlauf-Mittelstellung (1V1), Anschluss T zum Tank', 'doppeltwirkender Zylinder (1A1): A → Kolbenseite, B → Kolbenstangenseite', 'alle Bauteile gekennzeichnet (Tanks brauchen keine Kennzeichnung)'],
+    hints: [
+      'Hydraulik ist ein <b>Kreislauf</b>: Das Öl muss immer zurück in einen <b>Tank</b>. Du darfst mehrere Tank-Symbole einsetzen.',
+      'Das Druckbegrenzungsventil kommt mit einem <b>Abzweig</b> an die Leitung zwischen Pumpe und Anschluss P. Sein Ausgang geht zum Tank.',
+      'In der Simulation bewegst du den Hebel mit den Knöpfen „Hebel links“ und „Hebel rechts“. Keiner gedrückt = Mittelstellung: der Zylinder bleibt stehen.'
+    ],
+    present: ['Was passiert mit dem Öl, wenn der Zylinder in der Endlage steht und weiter „Heben“ gedrückt wird?', 'Warum verwendet man eine Mittelstellung mit Umlauf?', 'Warum hält ein Hydraulikzylinder den Ausleger genauer als ein Druckluftzylinder?'],
+    rules: G => {
+      const p = G.of('pumpe'), tk = G.of('tank'), d = G.of('dbv'), v = G.of('v43'), z = G.of('dw');
+      return [
+        ['Pumpe vorhanden und mit Anschluss P des 4/3-Wegeventils verbunden', any(v, a => any(p, q => G.same(K(a, 'P'), K(q, 'P'))))],
+        ['Druckbegrenzungsventil: Eingang an der Pumpenleitung', any(d, x => any(p, q => G.same(K(x, 'in'), K(q, 'P'))))],
+        ['Druckbegrenzungsventil: Ausgang zum Tank', any(d, x => any(tk, t => G.same(K(x, 'out'), K(t, 'T'))))],
+        ['Anschluss T des Wegeventils führt zum Tank', any(v, a => any(tk, t => G.same(K(a, 'T'), K(t, 'T'))))],
+        ['A → Kolbenseite, B → Kolbenstangenseite des Zylinders', any(v, a => any(z, b => G.link(K(a, 'A'), K(b, 'A')) && G.link(K(a, 'B'), K(b, 'B'))))],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    }
+  },
+  {
+    id: 'A5', title: 'Müllfahrzeug', sub: 'Tonnenschüttung', stars: 4,
+    situation: 'Die Schüttung hebt die Mülltonne an und senkt sie wieder ab. Sie startet nur, wenn <b>START</b> gedrückt ist <b>UND</b> eine <b>Tonne eingehängt</b> ist <b>UND</b> die Schüttung <b>unten</b> steht. Oben angekommen fährt sie <b>automatisch</b> zurück – und senkt sich <b>langsam</b> ab.',
+    req: ['doppeltwirkender Zylinder (1A1) und <b>5/2-Impulsventil (14 / 12)</b> (1V1)', 'Taster START: 3/2 Taster / Feder (1S1) · Tonne eingehängt: 3/2 Hebel / Raste (1S3)', 'zwei Rollenventile 3/2 Rolle / Feder: <b>1S2</b> „unten“ und <b>1S4</b> „oben“', 'Wegmarken mit dem Baustein <b>Text</b>: „1S2“ über das Ende der <b>eingefahrenen</b> Kolbenstange, „1S4“ weiter rechts, wo die <b>ausgefahrene</b> Kolbenstange endet', 'zwei <b>Zweidruckventile</b> hintereinander (1V2, 1V3) → Anschluss 14', 'Drosselrückschlagventil (1V4): Absenken langsam (Abluftdrosselung)', 'alle Bauteile gekennzeichnet'],
+    hints: [
+      'START <b>UND</b> Tonne <b>UND</b> unten: Ein Zweidruckventil hat nur zwei Eingänge. Der Ausgang des ersten (z. B. Tonne + unten) geht in einen Eingang des zweiten. Der zweite Eingang bekommt START.',
+      'Das Rollenventil 1S4 („oben“) geht direkt an Anschluss <b>12</b> des Impulsventils. Oben angekommen schaltet es zurück – der Zylinder fährt von selbst ein.',
+      'Beim Absenken fährt der Kolben ein. Die Abluft kommt aus der <b>Kolbenseite</b> (linker Anschluss). Dort sitzt das Drosselrückschlagventil – freie Richtung zum Zylinder hin.'
+    ],
+    present: ['Warum darf die Schüttung nur starten, wenn sie ganz unten steht?', 'Was passiert, wenn START dauerhaft betätigt bleibt? Probiere es in der Simulation aus.', 'Zeichne ein Weg-Schritt-Diagramm und schreibe dazu, welches Signal jeden Schritt auslöst.'],
+    rules: G => {
+      const v = G.of('v52', c => c.la === 'druck' && c.ra === 'druck'), z = G.of('dw'), dr = G.of('drv'), u = G.of('zweidruck');
+      const st = G.of('v32', c => c.la === 'knopf' && c.ra === 'feder'), ro = G.of('v32', c => c.la === 'rolle' && c.ra === 'feder');
+      const all32 = G.of('v32'), tx = G.texts();
+      const intoU = x => any(u, g => G.same(K(x, '2'), K(g, 'e1')) || G.same(K(x, '2'), K(g, 'e2')));
+      return [
+        ['5/2-Impulsventil vorhanden und an 1 versorgt', any(v, a => G.supplied(K(a, '1')))],
+        ['4 → Kolbenseite, 2 → Kolbenstangenseite', any(v, a => any(z, b => G.link(K(a, '4'), K(b, 'A')) && G.link(K(a, '2'), K(b, 'B'))))],
+        ['Drosselrückschlagventil an der Kolbenseite: Absenken langsam', any(dr, x => any(z, b => G.same(K(x, 'out'), K(b, 'A'))) && any(v, a => G.same(K(x, 'in'), K(a, '4'))))],
+        ['Zwei Zweidruckventile hintereinander geschaltet', any(u, g1 => any(u, g2 => g1 !== g2 && (G.same(K(g1, 'a'), K(g2, 'e1')) || G.same(K(g1, 'a'), K(g2, 'e2')))))],
+        ['Ausgang des zweiten Zweidruckventils steuert Anschluss 14', any(u, g => any(v, a => G.same(K(g, 'a'), K(a, '14'))))],
+        ['Taster START geht in ein Zweidruckventil', any(st, intoU)],
+        ['Drei Signale (START, Tonne, unten) gehen in die Zweidruckventile', all32.filter(intoU).length >= 3 && all32.filter(x => intoU(x) && G.supplied(K(x, '1'))).length >= 3],
+        ['Ein Rollenventil ist versorgt und steuert Anschluss 12', any(ro, r => G.supplied(K(r, '1')) && any(v, a => G.same(K(r, '2'), K(a, '12'))))],
+        ['Beide Rollenventile haben eine Wegmarke (Text) mit ihrer Kennzeichnung', ro.length >= 2 && ro.filter(r => (r.label || '').trim() && tx.includes(r.label.trim().toUpperCase())).length >= 2],
+        ['Alle Bauteile sind gekennzeichnet', G.labeled()]
+      ];
+    }
+  }
+];
+
+function solData(t) {
+  return {
+    comps: t.sol.comps.map(c => ({ ...c })),
+    lines: t.sol.lines.map(([a, ap, b, bp], i) => ({ id: 'l' + i, a: { c: a, p: ap }, b: { c: b, p: bp }, kind: 'auto' }))
+  };
+}
+
+/* ===================== Zustand ===================== */
+const LS = 'fluidsim-bauen-v1';
+const store = { get(k, d) { try { const v = localStorage.getItem(LS + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(LS + k, JSON.stringify(v)); } catch (e) { } } };
+let cur = Math.min(TASKS.length - 1, Math.max(0, store.get(':cur', 0)));
+{ const hi = TASKS.findIndex(t => t.id === location.hash.slice(1)); if (hi >= 0) cur = hi; }
+let D = null, undo = [], sel = null, pending = null;
+let vb = { x: 0, y: 0, w: 480, h: 600 };
+const done = store.get(':done', {});
+let uid = Date.now() % 100000;
+const nid = p => p + (uid++).toString(36);
+const save = () => store.set(':t' + cur, D);
+function snapshot() { undo.push(JSON.stringify(D)); if (undo.length > 60) undo.shift(); $('bUndo').disabled = false; }
+
+/* ===================== Aufgabe anzeigen ===================== */
+function renderLevels() {
+  $('levels').innerHTML = TASKS.map((t, i) => `<button class="lv${i === cur ? ' active' : ''}${done[i] ? ' done' : ''}" data-i="${i}"><span class="st">${'★'.repeat(t.stars)}${'☆'.repeat(4 - t.stars)}</span><b>${t.id}</b><span>${t.title} · ${t.sub}</span></button>`).join('');
+  $('levels').querySelectorAll('.lv').forEach(b => b.onclick = () => selectTask(+b.dataset.i));
+}
+let hintLevel = 0;
+function renderTask() {
+  const t = TASKS[cur];
+  hintLevel = 0;
+  $('task').innerHTML = `<span class="tag">${t.id} · ${'★'.repeat(t.stars)}</span> <a class="tag" style="text-decoration:none" href="fluidsim-auftraege.html#${t.id}">Situation mit Animation ↗</a>
+    <h2>${t.title}: ${t.sub}</h2>
+    <p>${t.situation}</p>
+    <h3>Dein Schaltplan muss enthalten</h3><ul>${t.req.map(r => `<li>${r}</li>`).join('')}</ul>
+    <div id="hints"></div>
+    <div class="btns"><button class="btn sec" id="bHint">Hilfe 1 anzeigen</button></div>`;
+  $('bHint').onclick = () => {
+    if (hintLevel >= t.hints.length) return;
+    $('hints').insertAdjacentHTML('beforeend', `<div class="hint"><b>Hilfe ${hintLevel + 1}:</b> ${t.hints[hintLevel]}</div>`);
+    hintLevel++;
+    $('bHint').textContent = hintLevel < t.hints.length ? `Hilfe ${hintLevel + 1} anzeigen` : 'Keine weiteren Hilfen';
+    $('bHint').disabled = hintLevel >= t.hints.length;
+  };
+  $('result').innerHTML = ''; $('present').innerHTML = '';
+  $('solbox').open = false;
+  renderSolBox();
+}
+function renderSolBox() {
+  const t = TASKS[cur], sol = SOLS[t.id];
+  $('bLoadSol').style.display = sol ? '' : 'none';
+  if (!sol) {
+    $('solsvg').innerHTML = '';
+    $('sollock').innerHTML = `<p class="small" style="margin-top:6px">🔒 Den Code für <b>${t.id}</b> bekommst du von der Lehrkraft, wenn du deinen Plan gezeigt hast.</p>
+      <form class="namerow" id="solf"><input id="solpw" type="password" placeholder="Code für ${t.id}" autocomplete="off"><button class="btn" type="submit">Entsperren</button></form>
+      <div class="small" id="solerr" style="color:var(--bad);min-height:1.3em;margin-top:4px"></div>`;
+    $('solf').onsubmit = async e => {
+      e.preventDefault(); const id = t.id, pw = $('solpw').value;
+      $('solerr').textContent = 'Prüfe …';
+      try { SOLS[id] = await unlockSol(id, pw); sstore.set('fluidsim-pw-' + id, pw); if (TASKS[cur].id === id) renderSolBox(); }
+      catch (er) { $('solerr').textContent = window.crypto && crypto.subtle ? 'Falscher Code für ' + id + '.' : 'Entsperren klappt nur über die https-Adresse der Lernseite.'; }
+    };
+    return;
+  }
+  $('sollock').innerHTML = '';
+  const sd = solData({ sol }), bb = contentBox(sd), m = 14;
+  $('solsvg').innerHTML = `<svg viewBox="${bb[0] - m} ${bb[1] - m} ${bb[2] - bb[0] + 2 * m} ${bb[3] - bb[1] + 2 * m}" xmlns="${SVGNS}">${renderDiagram(sd)}</svg>`;
+}
+const SOL_BLOB = {"n":150000,"A1":{"s":"MMOYKP1oodvbxjEJhuaoIg==","i":"+FxlnWu51Fai8vm5","c":"y3TmuGKt490ZgZgfMvrfj+rhzZEVk2RGyFD0wbw1bEebTHXJYSApTbZZS2xyTBeGMfMu9RiHCVU2iHCriL3Xum8RS4njy/5Meoio+KtJEut9J5IkGd+OiMvldN+9r8Z95+CrA1N+a+CRplR5oVtOhPtXf0Nc9fh2IjLBdahFf7EUSCE51jAFEhd2OeIjowmZ7QYVsJQiZOEpsN+cv2fRvSIO+9E2+pDM4qqTGC3I938r+jzOq/5a5GbyBhIC05XUTrCzmTzeqxDvSqKiVsFuLRLbQ6yVqgpQJ49Jf2fyp0OZ0fI2C0D/9wRB/clpzfY75t1rMx+8oCNGyQOKyeM7zkV4XD8oxgixUgcgYUFRJg=="},"A2":{"s":"r1QIyxMEFbE6VdtGbb+ocw==","i":"Mknc7mMjkdgNztuZ","c":"jFC6PhupbeVg2NXyafhofweJiNXcbv3LnBtl/8CwmTQUdx8/7+sJ9gxKB2AFC5BX80N3iOq2te8d3vT3gQrr9zWyn+zMz8XTS/8+PmUJ+cApxZNO8CBUjiL9uVUEPOiVEIAUI7HdwQn+WVSAD18HdHOiSGFq7JB1crMuusOVR7kNttM9Lux26mlVusO5J/3ukkOwEstAFCeBubJlT8QaDntMcCTMOIyggU0uF9VwdmKeBcr9MwJlgSraU4qb1WABNLBDnSwxunpYwrZl8DYmUz4V9I12QmY06twMp8wpi/+zoGQGpEJDDOoPp9XgzGIbRN328ontZwvICg+4V7w0mBusZO09Ij9F47Ih/kAW8YgdrjIRqdPyRVhJZq1DtKjLzCr+7iQ+o4EaES6n7Oxm7goBcEeqM+c0T1NVkXSExQrukmKVGXhPog5+DNACFCyv+EAXxeWnuqn0JknJ0SjOJFM2Z5QBDBaluUOYjkmtYQmRWI958EGZswaI36t9hXV1E2Os00EMn8Mw2Ko4uUr6HI/DoMAFTjeEvD4pMsgm7Nl25AzEOMlq8/q1F/0aUrpelC36k3DFZpJyUq/oDODjy+Cdw+y0+v9cralREfnCEzn7W4uDHKOt84f3iVMJ8bCw7q3RWAYQdYh2tLUTx67oLTlKWrCUHe7RuM8mCuFDjFIwZEETErHTDnG5UYQ9stsu69fwdb8DjuYtRAYxMRtLMv86AYQ2H0LCera+lziX6Imqz8n8ZYdMTT35O/YHdNnJ2bUD44mwJVctJcE1l8XwnbXMAc+uSybFslJV7qp07GSOC7Zbr2CU64g3UZnScALq7nvTwxLp5MMB66eFdMO1YMGxawmD0wy303S1kWqJ/3aWQcKqzeVrOnw4+HnYK02Tiobi+6VzLHL+Q5/c7g=="},"A3":{"s":"zdOUU9Gi9LJR/JOejOmZVQ==","i":"mLmzkWGMYJk4LODR","c":"MtfHfN/Rdg7CIM1VqTc6wYqGPv+X8qM+UMuuRhssEjDEcJzRxEgf87ZP+bzOkIPsdTX5+7Maz+4TcfzJllmhhpMSa1xM7bCC3D1GuQeh4jZzKL4paS4rY3SrD7dAFswRXt+ocAgD9W3sFbsf5S9RfSJf2lu1lvFnuBx9HyCqeJx/dHEDdWDHbmH/SZ4Q3x0LQxKE4xiSCgiCY9G/KtjC71ng/w4q3eEHffBc3dT88sKQ7HHW0A0qNVEJe+zTFc3OmujNFrLHXSfAfQh05Eg+20vm15hUKocCacDBaeA1gKzNZWFJBIJuv8h4IJ2gMhBHTrRF0OzH7+YAEmY0qAp4Cdgi+qWiw55r5QpvqnzS/xV0udGTAvzPpqA0sY92VJUYxzjlmmJz1ju0QRoYfWy8kWTt7ExZFdzrO2Cv/6pnO5uQoxVTnvUYMwX6uv9+3q3OM62oomjm5afugMOVb3CNKJgrYs1Jjlw0oMn3Puh5I0eAThHiogA8vXqL4ZtXhseNUo9REro62i3lPcK6Wb0pA82d9jizHzPAMa00TVLtHm2+8cbc93PV7GpUBcoT9m38Zlme6Brd0LzieekRnjPxEzaULZwzich86SI0lqVM5j+lT1zFfwug5Exv3AvVz39y08a8nmVAKEsVoAhSGd+ybY+KWydTUgxcGvyfqR4IDgQWtSqaNINcyQxUx64PrbrBuKTKP7xPP+OaCjE00MP8UJHRhRMGlzcJ87T8v6DvVSSp91K7GyzVpvY2wuWoBNbvnM/r8IvSLDwEAIKCch4kCEmstbrFE5uIc1LjXG/6v8Ha"},"A4":{"s":"9zDOqFDDrhAmWC9OP6ZM9A==","i":"WIuAQaaoEpxKSoZr","c":"vljr/yYHVVEnkOQMZJvsV+NmE8UioVnSMAQIY+5plE8746kFsWtnh5w1b0RGIPmHaFrl+ITivFnpUwpRlXDP2UBvCqFonFFcdZu4tFDAUolCIxDU5TTSd4fJJISwIkNeVXL5iJln8/hCTywUcsVbwBUmaWK8dVqwgxlfbXNp4QDNguac6bAOrBM9K6Q/0/wH6nQE4o2NqwIOcU700MdLQ2YFpsyc6s4bvqXkcnfFQXrwrqlKuewxTONfdjaJXF+e1dmTx7u7ZoIfw22wjmSS8M+mCm7IOuvX5VmnP6SYLCh+li5kPiuKxLnv0pdX7xlS+1oWIz3BT2QxTBuOFIn83ls7OcTTwwr4vz32oe36IySi7qleH+TjtbkE8vsTIvDdZUXp/WJEkqaui4zkuWR12qgMvrMonyEsdJYc5LBE/U8QqSFbyUOlCX898C5K+zo4YakLF9fe8jqvGIj8j86wVlu8waQO3cWoTOOjDcU+vFHQld7/B2AhyK34By+Rhjr8mX11Y4HzTAn0MovJvmupiNDcuYO7HAyZVSsHnkqSB5X4PbGdBuNb1Mje9WQd65Lci3PczGoOHO+HG9ij69xEC4M/x7r01Aad5GVwSzKp22L0gfxxyZ/niYhzF6F6Bof5OfcZl4+42CGudeAyCiPYpcD/hVF6ImGQSoi526ZoSIVUDVBUqdIYqWMlhcPNBCZ278EBN3BsVZN0qHz6eKx+SCPrn9Cq/7Iud5s="},"A5":{"s":"i02HHLQ4E/7s4ravO2Mv2g==","i":"izPLlmR+3stsXgXv","c":"rejw4/KyfFTuZCx5DHrqyDuz92PXJKyLDovdUDEwwC4bmZedVwGcvi9FKVIEP2qmV8SJcG45urUsBkyzZd7kHdnw2sIBf/laejnKp0l/zEsW/duPXukpw+lR+dU22CgOwOHpZ5t6izDny2eNlp1vj/uBwKtb+XRyb6RU5ytbo/P0nUQ84NNYwLJXRxQCoboiz3HhX/lLJ7D/2StxfZgSd2bipNtmKyQ5sTtKHnG0/yDrlCrDkLtA8ERtWlBgerGmw1eLG+aPdxQ7K5mNp3UfEJoeHDMvVrPI9DgAbL/VICTaRMAjVmXjnWAbVPSkUavlIMIPUn9xj2TD1JZQ7VV5TlpU0rnyIfc+PbGKRWyuOhfWKMFmQqjGkI7I3CIpE8NCs1atsslNC1WRPTWNZh1CJXARu+lNgn8RoN0UPvs3t60HN405nFockr6j5c3NpSgEkE8xpIF5hEh7N27g8Q3kvtxt2EUipz9Fzh6gjl86WCWi0TyAkg4kw2ttXrWJAfiFX1xdZL5+vFa5s+XwELR9PqfldBC+xVRpsnVfkSgL9MyTY4XOpfCadhquICngAP5kCbTN5JLlOBANkj2PAYP84INv/5YHVKEq2Fs66n2zArvmtmJHVtAxFlzEhyZCJHCbCASEI1vbe9dE+tx30xcLAP2I/dXONCcQpGjLP0FvEnELFm6C8anJYimJlRNkG0y0nb6BE4Sc/BkULN2FT0LPJftcNXGPrwoOpjM16m1L0ikm/2eYXhAnYQWjXE9bfJ1hRCWea9f33kKelBkBnjhodItCbzbIbV4VFdmGMFLCdE+6xL7zt4PB/ytGpOXpzXXqTqkFonw1vNYkzc9Tktnv64QL4Oq5o553R9bNJV5mqyZ3B+EHsTa9vnfKQTE5fcwv20LpxiAG0NiKGB/xmDRqmUJ5xfjcmK66LPibMg73v6Q25eUTEMGqLwKFdFsiUzxhasFmyOLWLdBPqICOapkg6J+tb/APNR1M24ioho1lyULvEYPIZI8/OEJr0BGsxLzP9QwS4kGmz2T5xSFwFmwAlNi0rrID8ivy3oKVmTa8o8iY6qKN7is4f2uvoy4lcAJlCTh4mzehfS0jRaO+Ijg5RVn2dkDsjdg07Nu4HTV0omFrI4mSYPExVDwEZTqY0qN1P1uTxacPJXsIO2jLyZxM2Y1ukDV1hzmmc7gXkAjZ/bqEItrHvOcTuCCkRkn5UfQAF4hxqaVgUIV/wl60w7SVjgUTvcXPHjpYKv7jD7Q0mIvQCCh6k+7h8NHrNAEcN06cWQ6qW0yWlwSH5W0uBuXE/MxNqA7K7aPLnFNK3IVNr8EtnzL+T5wNrspKir5PngKzUn90QdcdwsVRity86H1TZcMMDvsbCHklixRZyxG5INZJWZkD1ywnViAA0kdFejw02WO0cWtxs5/bXv7frSteUK+WzPOGPAoJE9EUqlWdyoIPKHRJjSmJz0pg9jQDgPyIwuVhWtmk/6GF+/kcorJTKTP/dP4QwnF38C7Mg+xBgRiC0snHL2aaYcjNWrj/aH82/ecBbPUWrRdMNF7D+/dPJRDIohMFPr6uNY4aw96gzqCc6c0yA+LTBxbWxLipKZNaOWmm8zmmTmDWW6yX6KBmTXYJxESI5OX2EDn7PvowOPT+FUlMweAz4rGNPe5LzTEKbMC7+nCgqmjSabp2l0f9ChEgkvSF27Wk7Jjb5pC2WafgkULi4wabjmPxfG6eW98lx138K4tRYj24OVlu1WNkyp0bFPpjCcrMI5n2/Jj6W2iaJOR9/JRszLopB88XUcMu/ljdawDZlKjkTjOOGnMWvynmyMC2byBLp2hAHLEyn1qfhFJLZeYrtpPZ9TZIECX5b5MsOXzUItD7YTjaofN/7As1VXvgHQrV+/IzVingfHVK6tXEyS1IxTp04B8X3BS1Ytn/uAxFSfDhsS/zgKm9o9dpsUju7Ii+p3o5Ia3qcQnEOzNI6RDD5mGvhW9DNQUYCa35lBpAJBXHlnzNcXq4zn1CqLvWwZx1"}};
+const SOLS = {};
+const sstore = { get(k) { try { return sessionStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { sessionStorage.setItem(k, v); } catch (e) {} } };
+const b64 = x => Uint8Array.from(atob(x), ch => ch.charCodeAt(0));
+async function unlockSol(id, pw) {
+  const B = SOL_BLOB[id], enc = new TextEncoder();
+  const base = await crypto.subtle.importKey('raw', enc.encode(pw.trim().toLowerCase()), 'PBKDF2', false, ['deriveKey']);
+  const key = await crypto.subtle.deriveKey({ name: 'PBKDF2', salt: b64(B.s), iterations: SOL_BLOB.n, hash: 'SHA-256' }, base, { name: 'AES-GCM', length: 256 }, false, ['decrypt']);
+  const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: b64(B.i) }, key, b64(B.c));
+  return JSON.parse(new TextDecoder().decode(plain)).sol;
+}
+function selectTask(i) {
+  if (simMode) stopSim();
+  cur = i; store.set(':cur', cur); history.replaceState(null, '', '#' + TASKS[cur].id);
+  $('editor').classList.toggle('simok', !!done[cur]);
+  D = store.get(':t' + cur, null) || { comps: [], lines: [] };
+  undo = []; $('bUndo').disabled = true; sel = null; pending = null;
+  renderLevels(); renderTask(); fitView(); draw();
+}
+
+/* ===================== Editor ===================== */
+const cv = $('cv');
+function setStatus(t) { $('status').textContent = t || ''; }
+function gridSvg() {
+  let g = '';
+  const s = 20, x0 = Math.floor(vb.x / s) * s, y0 = Math.floor(vb.y / s) * s;
+  for (let x = x0; x < vb.x + vb.w; x += s) g += `<line class="gridl" x1="${x}" y1="${vb.y}" x2="${x}" y2="${vb.y + vb.h}"/>`;
+  for (let y = y0; y < vb.y + vb.h; y += s) g += `<line class="gridl" x1="${vb.x}" y1="${y}" x2="${vb.x + vb.w}" y2="${y}"/>`;
+  return g;
+}
+function draw(keepSel) {
+  if (simMode) return simDraw();
+  cv.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  cv.innerHTML = `<g>${gridSvg()}</g>` + renderDiagram(D, { edit: true, sel, pending }) +
+    (D.comps.length ? '' : `<text x="${vb.x + vb.w / 2}" y="${vb.y + vb.h / 2}" text-anchor="middle" style="font:14px system-ui;fill:var(--muted)">Tippe unten auf ein Bauteil, um anzufangen.</text>`);
+  if (!keepSel) renderSel();
+}
+function fitView() {
+  const r = cv.getBoundingClientRect(), asp = (r.height || 600) / (r.width || 480);
+  const bb = contentBox(D) || [80, 150, 400, 450];
+  const m = 30;
+  let w = Math.max(bb[2] - bb[0] + 2 * m, 260), h = Math.max(bb[3] - bb[1] + 2 * m, 260);
+  if (h / w > asp) w = h / asp; else h = w * asp;
+  vb = { x: (bb[0] + bb[2]) / 2 - w / 2, y: (bb[1] + bb[3]) / 2 - h / 2, w, h };
+}
+function zoom(f) {
+  const cx = vb.x + vb.w / 2, cy = vb.y + vb.h / 2;
+  const w = Math.min(2400, Math.max(140, vb.w * f)), h = vb.h * (w / vb.w);
+  vb = { x: cx - w / 2, y: cy - h / 2, w, h }; draw();
+}
+function toWorld(e) {
+  const pt = cv.createSVGPoint(); pt.x = e.clientX; pt.y = e.clientY;
+  return pt.matrixTransform(cv.getScreenCTM().inverse());
+}
+const snap = v => Math.round(v / 10) * 10;
+
+// Palette
+// Palette: Ventile direkt in den gebräuchlichen Betätigungs-Varianten
+const PAL = [
+  { t: 'quelle' }, { t: 'behaelter' }, { t: 'manometer' },
+  { t: 'v32', la: 'knopf', ra: 'feder', n: '3/2 Taster / Feder' },
+  { t: 'v32', la: 'pedal', ra: 'feder', n: '3/2 Pedal / Feder' },
+  { t: 'v32', la: 'hebel', ra: 'raste', n: '3/2 Hebel / Raste' },
+  { t: 'v32', la: 'rolle', ra: 'feder', n: '3/2 Rolle / Feder' },
+  { t: 'v32', la: 'druck', ra: 'feder', n: '3/2 pneumat. / Feder' },
+  { t: 'v32o', la: 'druck', ra: 'feder', n: '3/2 offen, pneumat. / Feder' },
+  { t: 'v52', la: 'pedal', ra: 'feder', n: '5/2 Pedal / Feder' },
+  { t: 'v52', la: 'pedal', ra: 'raste', n: '5/2 Pedal / Raste' },
+  { t: 'v52', la: 'druck', ra: 'feder', n: '5/2 pneumat. (14) / Feder' },
+  { t: 'v52', la: 'druck', ra: 'druck', n: '5/2 Impulsventil (14 / 12)' },
+  { t: 'rueck' }, { t: 'drv' }, { t: 'wechsel' }, { t: 'zweidruck' },
+  { t: 'ew' }, { t: 'dw' },
+  { t: 'pumpe' }, { t: 'tank' }, { t: 'dbv' }, { t: 'v43', n: '4/3 Hebel, Umlauf-Mitte' },
+  { t: 'abzweig' }, { t: 'text' }
+];
+function palPreview(it) {
+  const type = it.t;
+  const c = { id: 'p', type, x: 0, y: 0, la: it.la || T[type].defL, ra: it.ra || T[type].defR, label: '' };
+  const b = T[type].box(c);
+  let inner = `<g transform="translate(0,0)">${T[type].draw(c)}</g>`;
+  if (type === 'abzweig') inner = `<line class="s" x1="-10" y1="0" x2="10" y2="0"/><line class="s" x1="0" y1="0" x2="0" y2="10"/><circle class="f" r="3"/>`;
+  if (type === 'text') inner = `<text x="0" y="0" text-anchor="middle" style="font:700 14px system-ui;fill:var(--accent)">1S3</text>`;
+  const m = 4;
+  return `<svg viewBox="${b[0] - m} ${b[1] - m} ${b[2] - b[0] + 2 * m} ${b[3] - b[1] + 2 * m}">${inner}</svg>`;
+}
+function renderPalette() {
+  let h = '', g = '';
+  PAL.forEach((it, i) => {
+    const t = T[it.t];
+    if (t.grp !== g) { g = t.grp; h += `<span class="pgrp">${g}</span>`; }
+    h += `<button class="pb${t.valve ? ' wide' : ''}" data-i="${i}">${palPreview(it)}${it.n || t.name}</button>`;
+  });
+  $('pal').innerHTML = h;
+  $('pal').querySelectorAll('.pb').forEach(b => b.onclick = () => { const it = PAL[+b.dataset.i]; addComp(it.t, it.la, it.ra); });
+}
+function addComp(type, la, ra) {
+  snapshot();
+  const t = T[type];
+  const c = { id: nid('c'), type, x: 0, y: 0, label: type === 'text' ? '1S3' : '' };
+  if (t.valve) { c.la = la || t.defL; c.ra = ra || t.defR; }
+  const b = t.box(c);
+  // in die Mitte der Ansicht, leicht versetzt wenn belegt
+  let x = snap(vb.x + vb.w / 2 - (b[0] + b[2]) / 2), y = snap(vb.y + vb.h / 2 - (b[1] + b[3]) / 2);
+  for (let i = 0; i < 12 && D.comps.some(o => Math.abs(o.x - x) < 20 && Math.abs(o.y - y) < 20); i++) { x += 20; y += 20; }
+  c.x = x; c.y = y;
+  D.comps.push(c); sel = { kind: 'comp', id: c.id }; pending = null;
+  save(); draw(); showSel();
+  setStatus('Ziehen zum Verschieben · Anschluss antippen für Leitung');
+}
+function delComp(id) {
+  D.comps = D.comps.filter(c => c.id !== id);
+  D.lines = D.lines.filter(l => l.a.c !== id && l.b.c !== id);
+}
+function cleanLines() { D.lines = D.lines.filter(l => portByRef(D, l.a.c, l.a.p) && portByRef(D, l.b.c, l.b.p)); }
+
+// Auswahl-Leiste
+function renderSel() {
+  const bar = $('selbar');
+  if (!sel) { bar.classList.remove('on'); bar.innerHTML = ''; return; }
+  bar.classList.add('on');
+  if (sel.kind === 'line') {
+    const ln = D.lines.find(l => l.id === sel.id); if (!ln) { sel = null; return renderSel(); }
+    const ctrl = isCtrl(D, ln);
+    bar.innerHTML = `<b class="small">Leitung</b>
+      <button class="ib" id="sKind">${ctrl ? '→ Arbeitsleitung (durchgezogen)' : '→ Steuerleitung (gestrichelt)'}</button>
+      <span class="sp" style="flex:1"></span><button class="ib" id="sDel" style="color:var(--bad)">Löschen</button>`;
+    $('sKind').onclick = () => { snapshot(); ln.kind = ctrl ? 'work' : 'ctrl'; save(); draw(); };
+    $('sDel').onclick = () => { snapshot(); D.lines = D.lines.filter(l => l !== ln); sel = null; save(); draw(); };
+    return;
+  }
+  const c = D.comps.find(k => k.id === sel.id); if (!c) { sel = null; return renderSel(); }
+  const t = T[c.type];
+  let h = `<b class="small" style="width:100%">${t.name.replace('­', '')}</b>`;
+  if (c.type !== 'abzweig') h += `<label>${c.type === 'text' ? 'Text' : 'Kennzeichnung'}<input id="sLab" value="${esc(c.label || '')}" placeholder="${c.type === 'text' ? 'Text' : 'z. B. 1V1'}" maxlength="14" autocapitalize="characters"></label>`;
+  if (t.valve && !t.fixed) {
+    h += `<label>Betätigung links<select id="sLa">${LEFT_OPTS.map(o => `<option value="${o}"${c.la === o ? ' selected' : ''}>${ACTNAME[o]}</option>`).join('')}</select></label>`;
+    h += `<label>rechts<select id="sRa">${RIGHT_OPTS.map(o => `<option value="${o}"${c.ra === o ? ' selected' : ''}>${ACTNAME[o]}</option>`).join('')}</select></label>`;
+  }
+  if (t.flip) h += `<button class="ib" id="sFlip">⇅ Spiegeln</button>`;
+  h += `<span style="flex:1"></span><button class="ib" id="sDel" style="color:var(--bad)">Löschen</button>`;
+  bar.innerHTML = h;
+  const lab = $('sLab');
+  if (lab) {
+    lab.onfocus = () => snapshot();
+    lab.oninput = () => { c.label = lab.value.toUpperCase().replace(/\s+/g, ''); if (c.type === 'text') c.label = lab.value; save(); draw(true); };
+    lab.onchange = () => { lab.value = c.label; };
+  }
+  if ($('sLa')) $('sLa').onchange = e => { snapshot(); c.la = e.target.value; cleanLines(); save(); draw(); };
+  if ($('sRa')) $('sRa').onchange = e => { snapshot(); c.ra = e.target.value; cleanLines(); save(); draw(); };
+  if ($('sFlip')) $('sFlip').onclick = () => { snapshot(); c.flip = !c.flip; save(); draw(); };
+  $('sDel').onclick = () => { snapshot(); delComp(c.id); sel = null; save(); draw(); setStatus(''); };
+}
+
+// Pointer
+let drag = null;
+cv.addEventListener('pointerdown', e => {
+  if (e.button && e.button !== 0) return;
+  const tgt = e.target;
+  const portEl = tgt.closest && tgt.closest('[data-port]');
+  const compEl = tgt.closest && tgt.closest('[data-comp]');
+  const lineEl = tgt.closest && tgt.closest('[data-line]');
+  const w = toWorld(e);
+  if (simMode) {
+    if (compEl) { const c = D.comps.find(k => k.id === compEl.dataset.comp); const k = manualKey(c); if (k) { toggleMan(k); return; } }
+    drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+    cv.setPointerCapture(e.pointerId); return;
+  }
+  if (portEl) {
+    const [c, p] = portEl.dataset.port.split(':');
+    const comp = D.comps.find(k => k.id === c);
+    drag = { kind: 'comp', id: c, port: { c, p }, sx: e.clientX, sy: e.clientY, wx: w.x, wy: w.y, ox: comp.x, oy: comp.y, moved: false };
+  } else if (compEl) {
+    const comp = D.comps.find(k => k.id === compEl.dataset.comp);
+    drag = { kind: 'comp', id: comp.id, sx: e.clientX, sy: e.clientY, wx: w.x, wy: w.y, ox: comp.x, oy: comp.y, moved: false };
+  } else if (lineEl) {
+    drag = { kind: 'line', id: lineEl.dataset.line, sx: e.clientX, sy: e.clientY, moved: false };
+  } else {
+    drag = { kind: 'pan', sx: e.clientX, sy: e.clientY, vx: vb.x, vy: vb.y, moved: false };
+  }
+  cv.setPointerCapture(e.pointerId);
+});
+cv.addEventListener('pointermove', e => {
+  if (!drag) return;
+  const dist = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy);
+  if (!drag.moved && dist < 7) return;
+  if (drag.kind === 'comp') {
+    if (!drag.moved) { snapshot(); sel = { kind: 'comp', id: drag.id }; pending = null; }
+    drag.moved = true;
+    const w = toWorld(e), c = D.comps.find(k => k.id === drag.id);
+    c.x = snap(drag.ox + (w.x - drag.wx)); c.y = snap(drag.oy + (w.y - drag.wy));
+    draw();
+  } else if (drag.kind === 'pan') {
+    drag.moved = true;
+    const k = vb.w / cv.getBoundingClientRect().width;
+    vb.x = drag.vx - (e.clientX - drag.sx) * k; vb.y = drag.vy - (e.clientY - drag.sy) * k;
+    draw();
+  } else drag.moved = true;
+});
+cv.addEventListener('pointerup', e => {
+  if (!drag) return;
+  const d = drag; drag = null;
+  if (simMode) return;
+  if (d.moved) { if (d.kind === 'comp') save(); return; }
+  if (d.port) return tapPort(d.port);
+  if (d.kind === 'comp') { sel = { kind: 'comp', id: d.id }; pending = null; setStatus(''); draw(); showSel(); return; }
+  if (d.kind === 'line') { sel = { kind: 'line', id: d.id }; pending = null; setStatus(''); draw(); return; }
+  sel = null; pending = null; setStatus(''); draw();
+});
+cv.addEventListener('pointercancel', () => { drag = null; });
+function showSel() {
+  if ($('editor').classList.contains('full')) return;
+  const r = $('selbar').getBoundingClientRect();
+  if (r.bottom > window.innerHeight) window.scrollBy({ top: r.bottom - window.innerHeight + 12, behavior: 'smooth' });
+}
+function tapPort(pt) {
+  if (!pending) {
+    pending = pt; sel = null;
+    setStatus('Jetzt den zweiten Anschluss antippen');
+    draw(); return;
+  }
+  if (pending.c === pt.c && pending.p === pt.p) { pending = null; setStatus(''); draw(); return; }
+  if (pending.c === pt.c && D.comps.find(c => c.id === pt.c).type !== 'abzweig') {
+    setStatus('Zwei Anschlüsse am selben Bauteil verbinden geht nicht'); pending = null; draw(); return;
+  }
+  const exists = D.lines.some(l => (l.a.c === pending.c && l.a.p === pending.p && l.b.c === pt.c && l.b.p === pt.p) || (l.b.c === pending.c && l.b.p === pending.p && l.a.c === pt.c && l.a.p === pt.p));
+  if (!exists) { snapshot(); D.lines.push({ id: nid('l'), a: { ...pending }, b: { ...pt }, kind: 'auto' }); save(); }
+  pending = null; setStatus('Leitung gezeichnet ✓'); setTimeout(() => { if (!pending) setStatus(''); }, 1400);
+  draw();
+}
+
+// Werkzeugleiste
+$('bUndo').onclick = () => { if (!undo.length) return; D = JSON.parse(undo.pop()); sel = null; pending = null; save(); draw(); $('bUndo').disabled = !undo.length; };
+$('bZoomIn').onclick = () => zoom(1 / 1.25);
+$('bZoomOut').onclick = () => zoom(1.25);
+$('bFit').onclick = () => { fitView(); draw(); };
+$('bClear').onclick = () => { if (!D.comps.length) return; if (!confirm('Den ganzen Schaltplan dieser Aufgabe löschen?')) return; snapshot(); D = { comps: [], lines: [] }; sel = null; pending = null; save(); draw(); };
+$('bFull').onclick = () => {
+  const ed = $('editor'), on = !ed.classList.toggle('full');
+  $('bFull').textContent = on ? 'Vollbild' : 'Fertig';
+  document.body.style.overflow = on ? '' : 'hidden';
+  requestAnimationFrame(() => { fitView(); draw(); });
+};
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select,textarea')) return;
+  if ((e.key === 'Delete' || e.key === 'Backspace') && sel) { $('sDel') && $('sDel').click(); e.preventDefault(); }
+  if (e.key === 'Escape') { pending = null; sel = null; setStatus(''); draw(); }
+  if ((e.ctrlKey || e.metaKey) && e.key === 'z') { $('bUndo').click(); e.preventDefault(); }
+});
+
+
+/* ===================== Simulation ===================== */
+let simMode = false, SIM = null, simRaf = 0, simLast = 0, simLinesSig = '', simSig = '';
+const MANUAL = ['knopf', 'pedal', 'hebel', 'magnet'];
+function manualKey(c) {
+  if (!c || !T[c.type].valve) return null;
+  if (MANUAL.includes(c.la)) return c.id + ':L';
+  if (MANUAL.includes(c.ra)) return c.id + ':R';
+  return null;
+}
+function netFn(d) {
+  const parent = {};
+  const find = k => { if (parent[k] === undefined) parent[k] = k; while (parent[k] !== k) { parent[k] = parent[parent[k]]; k = parent[k]; } return k; };
+  d.comps.forEach(c => portsOf(c).forEach(q => find(c.id + ':' + q.p)));
+  d.lines.forEach(ln => { parent[find(ln.a.c + ':' + ln.a.p)] = find(ln.b.c + ':' + ln.b.p); });
+  return find;
+}
+function simCompute(S) {
+  const K = (c, p) => S.N(c.id + ':' + p);
+  const rollerOn = D.comps.some(c => (c.type === 'ew' || c.type === 'dw') && (S.s[c.id] || 0) >= 0.97);
+  const cyls = D.comps.filter(c => c.type === 'ew' || c.type === 'dw'), marks = D.comps.filter(c => c.type === 'text');
+  const rollerAct = rc => {
+    const lab = (rc.label || '').trim().toUpperCase();
+    const m = lab && marks.find(t => (t.label || '').trim().toUpperCase() === lab);
+    if (!m || !cyls.length) return rollerOn;
+    let best = cyls[0], bd = 1e9;
+    cyls.forEach(c => { const d = Math.hypot(m.x - (c.x + 116), m.y - c.y); if (d < bd) { bd = d; best = c; } });
+    const s = S.s[best.id] || 0;
+    return m.x < best.x + 116 ? s <= 0.03 : s >= 0.97;
+  };
+  S.tank = S.tank || {};
+  const tanks = D.comps.filter(c => c.type === 'behaelter'), checks = D.comps.filter(c => c.type === 'rueck');
+  const pos = { ...S.pos }; let P = new Set();
+  for (let it = 0; it < 12; it++) {
+    P = new Set();
+    D.comps.forEach(c => { if (c.type === 'quelle' || c.type === 'kompressor' || c.type === 'pumpe') P.add(K(c, 'P')); });
+    tanks.forEach(c => { if (S.tank[c.id]) { P.add(K(c, 'in')); P.add(K(c, 'out')); } });
+    for (let j = 0; j < 60; j++) {
+      let ch = false; const add = k => { if (!P.has(k)) { P.add(k); ch = true; } };
+      D.comps.forEach(c => {
+        const t = c.type;
+        if (t === 'behaelter' || t === 'drv') { if (P.has(K(c, 'in')) || P.has(K(c, 'out'))) { add(K(c, 'in')); add(K(c, 'out')); } }
+        else if (t === 'rueck') { if (P.has(K(c, 'in'))) add(K(c, 'out')); }
+        else if (t === 'v32') { if (pos[c.id] === 1 && P.has(K(c, '1'))) add(K(c, '2')); }
+        else if (t === 'v32o') { if (pos[c.id] !== 1 && P.has(K(c, '1'))) add(K(c, '2')); }
+        else if (t === 'v43') { if (P.has(K(c, 'P'))) { if (pos[c.id] === 1) add(K(c, 'A')); if (pos[c.id] === -1) add(K(c, 'B')); } }
+        else if (t === 'v52') { if (P.has(K(c, '1'))) add(K(c, pos[c.id] === 1 ? '4' : '2')); }
+        else if (t === 'wechsel') { if (P.has(K(c, 'e1')) || P.has(K(c, 'e2'))) add(K(c, 'a')); }
+        else if (t === 'zweidruck') { if (P.has(K(c, 'e1')) && P.has(K(c, 'e2'))) add(K(c, 'a')); }
+      });
+      if (!ch) break;
+    }
+    let changed = false;
+    D.comps.forEach(c => {
+      if (!T[c.type].valve) return;
+      const five = c.type === 'v52';
+      const sig = (a, side) => {
+        if (MANUAL.includes(a)) return !!S.man[c.id + ':' + side];
+        if (a === 'druck') return P.has(K(c, side === 'L' ? (five ? '14' : '12') : (five ? '12' : '10')));
+        if (a === 'rolle') return rollerAct(c);
+        return false;
+      };
+      const Ls = sig(c.la, 'L'), Rs = c.type === 'v43' ? !!S.man[c.id + ':R'] : sig(c.ra, 'R');
+      let p = pos[c.id] || 0;
+      if (c.type === 'v43') p = Ls && !Rs ? 1 : (Rs && !Ls ? -1 : 0);
+      else if (c.ra === 'feder' || c.ra === 'raste' || c.ra === 'none') p = Ls ? 1 : 0;
+      else if (Ls && !Rs) p = 1; else if (Rs && !Ls) p = 0;
+      if (p !== (pos[c.id] || 0)) { pos[c.id] = p; changed = true; }
+      S.sig[c.id] = { L: Ls, R: Rs };
+    });
+    if (!changed) break;
+  }
+  S.pos = pos; S.P = P;
+  tanks.forEach(c => { const prot = checks.some(r => [K(c, 'in'), K(c, 'out')].includes(S.N(r.id + ':out'))); S.tank[c.id] = prot && (P.has(K(c, 'in')) || P.has(K(c, 'out'))); });
+}
+function simMove(S, dt) {
+  const drvs = D.comps.filter(c => c.type === 'drv');
+  const thr = (port, supply) => drvs.some(d => S.N(port) === S.N(d.id + (supply ? ':in' : ':out')));
+  let moving = false;
+  D.comps.forEach(c => {
+    if (c.type !== 'ew' && c.type !== 'dw') return;
+    const A = c.id + ':A', B = c.id + ':B';
+    const pA = S.P.has(S.N(A)), pB = c.type === 'dw' && S.P.has(S.N(B));
+    let dir = 0, slow = false;
+    if (c.type === 'ew') { dir = pA ? 1 : -1; slow = pA ? thr(A, true) : thr(A, false); }
+    else if (pA && !pB) { dir = 1; slow = thr(A, true) || thr(B, false); }
+    else if (pB && !pA) { dir = -1; slow = thr(B, true) || thr(A, false); }
+    const s0 = S.s[c.id] || 0, s1 = Math.min(1, Math.max(0, s0 + dir * (slow ? 0.2 : 0.9) * dt));
+    if (s1 !== s0) { S.s[c.id] = s1; moving = true; }
+    S.ch[c.id] = { pA, pB, slow: slow && s1 !== s0 };
+  });
+  return moving;
+}
+function simStateOf(c) {
+  if (T[c.type].valve) { const g = SIM.sig[c.id] || {}; return { pos: SIM.pos[c.id] || 0, onL: g.L, onR: g.R }; }
+  if (c.type === 'ew' || c.type === 'dw') { const h = SIM.ch[c.id] || {}; return { s: SIM.s[c.id] || 0, pA: h.pA, pB: h.pB }; }
+  return undefined;
+}
+function simDraw() {
+  cv.setAttribute('viewBox', `${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  cv.innerHTML = `<g>${gridSvg()}</g><g id="simL"></g><g id="simC"></g>`;
+  simLinesSig = ''; simRender();
+}
+function simRender() {
+  const o = { sim: SIM };
+  const ls = [...SIM.P].sort().join('|');
+  if (ls !== simLinesSig) { simLinesSig = ls; $('simL').innerHTML = renderDiagram(D, { ...o, part: 'lines' }); }
+  $('simC').innerHTML = renderDiagram(D, { ...o, part: 'comps' });
+}
+function simStatus() {
+  const mv = D.comps.filter(c => SIM.ch[c.id] && SIM.ch[c.id].slow);
+  let t = 'Blau = unter Druck. Tippe auf ein Ventil oder unten auf einen Knopf.';
+  if (mv.length) t = 'Kolben fährt gedrosselt (langsam) …';
+  setStatus(t);
+}
+function renderSimBar() {
+  const items = [];
+  D.comps.forEach(c => { const k = manualKey(c); if (!k) return; if (c.type === 'v43') items.push([c, c.id + ':L', 'Hebel links'], [c, c.id + ':R', 'Hebel rechts']); else items.push([c, k, null]); });
+  let h = items.map(([c, k, nm]) => {
+    const side = k.endsWith(':L') ? c.la : c.ra, on = !!SIM.man[k];
+    if (nm) return `<button class="sb${on ? ' on' : ''}" data-k="${k}">${esc(c.label || T[c.type].name)} · ${nm}: ${on ? 'betätigt' : 'nicht betätigt'}</button>`;
+    const verb = side === 'magnet' ? (on ? 'Strom an' : 'Strom aus') : (on ? 'betätigt' : 'nicht betätigt');
+    return `<button class="sb${on ? ' on' : ''}" data-k="${k}">${esc(c.label || T[c.type].name)} · ${ACTNAME[side]}: ${verb}</button>`;
+  }).join('');
+  if (!items.length) h = '<span class="small muted">Keine von Hand betätigten Ventile im Plan.</span>';
+  h += `<button class="sb" id="simReset">↺ Neu starten</button>`;
+  h += `<div class="leg"><i></i>Druckluft · Knopf/Ventil antippen = betätigen, nochmal tippen = loslassen (zwei Taster gleichzeitig: beide antippen)</div>`;
+  $('simbar').innerHTML = h;
+  $('simbar').querySelectorAll('.sb[data-k]').forEach(b => b.onclick = () => toggleMan(b.dataset.k));
+  $('simReset').onclick = () => { SIM.man = {}; SIM.pos = {}; SIM.s = {}; SIM.tank = {}; renderSimBar(); };
+}
+function toggleMan(k) { SIM.man[k] = !SIM.man[k]; renderSimBar(); }
+function simLoop(t) {
+  if (!simMode) return;
+  const dt = Math.min(0.05, (t - simLast) / 1000 || 0); simLast = t;
+  simCompute(SIM); simMove(SIM, dt); simCompute(SIM);
+  const sg = JSON.stringify([SIM.pos, SIM.s, SIM.sig, SIM.ch]) + simLinesSig + [...SIM.P].length;
+  if (sg !== simSig) { simSig = sg; simRender(); simStatus(); }
+  simRaf = requestAnimationFrame(simLoop);
+}
+function startSim() {
+  if (!D.comps.length) return;
+  SIM = { N: netFn(D), pos: {}, man: {}, s: {}, sig: {}, ch: {}, P: new Set() };
+  simMode = true; sel = null; pending = null;
+  $('editor').classList.add('simon');
+  renderSel(); renderSimBar();
+  fitView();
+  const cyls = D.comps.filter(c => c.type === 'ew' || c.type === 'dw');
+  if (cyls.length) {
+    const need = Math.max(...cyls.map(c => c.x)) + 170;
+    if (vb.x + vb.w < need) { const k = (need - vb.x) / vb.w; vb.w *= k; vb.h *= k; }
+  }
+  vb.y -= vb.h * 0.04; vb.h *= 1.1; vb.w *= 1.1;
+  simCompute(SIM); simDraw(); simStatus();
+  simLast = performance.now(); simSig = ''; cancelAnimationFrame(simRaf); simRaf = requestAnimationFrame(simLoop);
+}
+function stopSim() {
+  simMode = false; cancelAnimationFrame(simRaf); SIM = null;
+  $('editor').classList.remove('simon'); setStatus(''); draw();
+}
+$('bSim').onclick = startSim;
+$('bSimStop').onclick = stopSim;
+
+/* ===================== Prüfen ===================== */
+$('bCheck').onclick = () => {
+  const t = TASKS[cur], res = t.rules(analyze(D));
+  const ok = res.filter(r => r[1]).length, all = ok === res.length;
+  $('result').innerHTML = `<ul class="checks">${res.map(([txt, good]) => `<li class="${good ? 'ok' : 'no'}"><span class="i">${good ? '✓' : '✗'}</span><span>${txt}</span></li>`).join('')}</ul>
+    <p class="verdict" style="color:${all ? 'var(--ok)' : 'var(--ink)'}">${all ? 'Super – alles erfüllt! Speichere dein Bild und bereite die Vorstellung vor.' : `${ok} von ${res.length} Punkten erfüllt. Überarbeite die roten Punkte – die Hilfen oben helfen dir.`}</p>`;
+  $('present').innerHTML = all ? `<div class="hint" style="background:var(--ok-soft)"><b style="color:var(--ok)">Zum Vorstellen:</b><ul>${t.present.map(p => `<li>${p}</li>`).join('')}</ul></div>` : '';
+  if (all && !done[cur]) { done[cur] = true; store.set(':done', done); renderLevels(); }
+  $('editor').classList.toggle('simok', all || !!done[cur]);
+  if (all) {
+    $('result').insertAdjacentHTML('beforeend', `<div class="btns"><button class="btn" id="bSimGo" style="background:var(--ok)">▶ Simulation deines Schaltplans starten</button></div>`);
+    $('bSimGo').onclick = () => { startSim(); $('editor').scrollIntoView({ behavior: 'smooth', block: 'start' }); };
+  }
+  $('result').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+};
+$('bLoadSol').onclick = () => {
+  if (D.comps.length && !confirm('Dein eigener Plan wird ersetzt (mit ↶ kannst du zurück). Fortfahren?')) return;
+  if (!SOLS[TASKS[cur].id]) return; snapshot(); D = solData({ sol: SOLS[TASKS[cur].id] }); sel = null; pending = null; save(); fitView(); draw();
+  $('editor').scrollIntoView({ behavior: 'smooth' });
+};
+
+/* ===================== Als Bild speichern ===================== */
+$('names').value = store.get(':names', '');
+$('names').oninput = () => store.set(':names', $('names').value);
+$('bPng').onclick = async () => {
+  if (!D.comps.length) { alert('Der Schaltplan ist noch leer.'); return; }
+  const bb = contentBox(D), m = 24, head = 54;
+  const w = bb[2] - bb[0] + 2 * m, h = bb[3] - bb[1] + 2 * m + head;
+  const t = TASKS[cur], names = $('names').value.trim();
+  const style = `.s{fill:none;stroke:#1d2733;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.f,.jd{fill:#1d2733}.bx{fill:#fff;stroke:#1d2733;stroke-width:1.6}.t{font:600 8.5px Arial,sans-serif;fill:#5d6b7a}.lb{font:700 12px Arial,sans-serif;fill:#1f6fb2}.ln{fill:none;stroke:#1d2733;stroke-width:1.8;stroke-linejoin:round}.ln.ctrl{stroke-dasharray:6 4}`;
+  const svg = `<svg xmlns="${SVGNS}" width="${w * 2}" height="${h * 2}" viewBox="${bb[0] - m} ${bb[1] - m - head} ${w} ${h}"><style>${style}</style>
+    <rect x="${bb[0] - m}" y="${bb[1] - m - head}" width="${w}" height="${h}" fill="#fff"/>
+    <text x="${bb[0] - m + 14}" y="${bb[1] - m - head + 24}" style="font:700 15px Arial,sans-serif;fill:#1d2733">${t.id}: ${esc(t.title)} – ${esc(t.sub)}</text>
+    <text x="${bb[0] - m + 14}" y="${bb[1] - m - head + 42}" style="font:12px Arial,sans-serif;fill:#5d6b7a">${esc(names || 'FluidSIM-Aufträge im Browser')}</text>
+    ${renderDiagram(D)}</svg>`;
+  const img = new Image();
+  img.onload = () => {
+    const cnv = document.createElement('canvas'); cnv.width = w * 2; cnv.height = h * 2;
+    cnv.getContext('2d').drawImage(img, 0, 0);
+    cnv.toBlob(async blob => {
+      const fname = `Schaltplan_${TASKS[cur].id}${names ? '_' + names.replace(/[^\wäöüÄÖÜß-]+/g, '_') : ''}.png`;
+      const file = new File([blob], fname, { type: 'image/png' });
+      try { if (navigator.canShare && navigator.canShare({ files: [file] })) { await navigator.share({ files: [file], title: fname }); return; } } catch (e) { if (e && e.name === 'AbortError') return; }
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click();
+      setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+    }, 'image/png');
+  };
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+};
+
+/* ===================== Start ===================== */
+window.__sp = { TASKS, analyze, solData, startSim, stopSim, SOLS, unlockSol, get D() { return D; }, set D(v) { D = v; }, get SIM() { return SIM; } };
+renderPalette();
+selectTask(cur);
+if (window.crypto && crypto.subtle) TASKS.forEach(t => { const pw = sstore.get('fluidsim-pw-' + t.id); if (pw) unlockSol(t.id, pw).then(x => { SOLS[t.id] = x; if (TASKS[cur].id === t.id) renderSolBox(); }).catch(() => {}); });
+let lastW = cv.getBoundingClientRect().width;
+window.addEventListener('resize', () => { const w = cv.getBoundingClientRect().width; if (Math.abs(w - lastW) > 2) { lastW = w; fitView(); draw(); } });
+})();
+</script>
+</body>
+</html>
