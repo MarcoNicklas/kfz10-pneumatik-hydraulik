@@ -1,0 +1,401 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Türsteuerung · Pneumatikraum</title><style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2733;background:#f4f6f8;--green:#1f6fb2;--soft:#e3eef8;--card:#fff;--muted:#5d6b7a;--ink:#223d42;--pressure:#be4d15;--exhaust:#087e9c;--signal:#7a499c;--edge:#d5dce3}*{box-sizing:border-box}
+body{margin:0;background:#f4f6f8}.site-head{background:#1f6fb2;color:#fff;padding:16px}.site-head .in{max-width:1220px;margin:0 auto}.site-head a{color:#fff;opacity:.85;font-size:.88rem;text-decoration:none}.site-head h1{margin:4px 0 0;font-size:1.35rem;letter-spacing:0;line-height:1.25}.site-head p{margin:2px 0 0;opacity:.9;font-size:.92rem;color:#fff}.site-head .tag{display:inline-block;background:#ffffff26;color:#fff;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;margin-top:6px}.shell{width:min(1220px,100%);margin:auto;padding:16px clamp(13px,3.4vw,52px) 35px}.lesson header{padding:18px 0 20px}.kicker{color:var(--green);font-weight:750;letter-spacing:.07em;font-size:.8rem;text-transform:uppercase}.lesson h1{font-size:clamp(1.5rem,3.4vw,2.3rem);line-height:1.12;letter-spacing:-.03em;margin:6px 0 8px}.lesson header p{margin:0;color:var(--muted);font-size:1.05rem}.grid{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(275px,1fr);gap:15px}
+.card,details{background:var(--card);border:1px solid var(--edge);border-radius:14px}.card{padding:18px}.schematic{display:flex;flex-direction:column}h2{font-size:1.15rem;margin:0;letter-spacing:-.02em}h3{font-size:1rem;margin:0 0 9px}.sub{font-size:.91rem;color:var(--muted);line-height:1.4}.status{color:var(--green);font-size:.87rem;font-weight:700}.top,.row,.settings{display:flex;align-items:center;justify-content:space-between;gap:10px}.top{flex-wrap:wrap}.sheet{margin:12px 0;background-color:#f8fbf9;background-image:radial-gradient(#c7d7cf 1px,transparent 1px);background-size:13px 13px;border:1px solid #dce5df;border-radius:9px;overflow:hidden}.sheet svg{width:100%;display:block}svg text{fill:#223d42;font:600 15px "Segoe UI",system-ui,sans-serif}.sml{font-size:12px}.sym,.valve{stroke:var(--ink);stroke-width:2;fill:white;stroke-linejoin:round}.wire,.pilot,.flow{fill:none;stroke:var(--ink);stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}.pilot{stroke-dasharray:5 5}.pilot.pulse{stroke:var(--signal);stroke-width:4}.air{stroke:var(--pressure)}.vent{stroke:var(--exhaust)}.indicator{font-size:12px;fill:#4b6361}.dot{fill:var(--ink)}.legend{display:flex;flex-wrap:wrap;gap:5px 15px;color:var(--muted);font-size:.83rem}.key:before{content:"";display:inline-block;width:18px;margin:0 5px 3px 0;border-top:3px solid var(--pressure)}.ex:before{border-color:var(--exhaust)}.si:before{border-color:var(--signal);border-top-style:dashed}.aside{display:grid;align-content:start;gap:18px}.control{display:grid;grid-template-columns:1fr 1fr;gap:8px}button,select,input{font:inherit}button,select{border:1px solid #c3cdd7;border-radius:7px;color:var(--ink);background:var(--card)}button{font-weight:650;cursor:pointer;min-height:43px}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #de9d35;outline-offset:3px}.go{background:var(--green);color:white;border-color:var(--green)}button:active{transform:translateY(1px)}.aside section+section{border-top:1px solid var(--edge);padding-top:14px}.aside label{font-weight:600}.value,.times b{font-variant-numeric:tabular-nums}.value{color:var(--green);font-weight:700}.settings{margin-bottom:5px}input[type=range]{width:100%;accent-color:var(--green);margin:6px 0;cursor:pointer}select{width:100%;margin-top:6px;padding:8px}.times{display:grid;grid-template-columns:1fr 1fr;gap:8px}.times div{padding:10px;background:var(--soft);border-radius:7px}.times span{display:block;font-size:.83rem;color:var(--muted)}.times b{font-size:1.35rem}.msg{min-height:2.6em;margin:9px 0 0}.reset{border:0;color:var(--green);font-size:.82rem;min-height:36px;padding:4px 0;background:transparent}.tasks{margin-top:15px}.tasks ol{line-height:1.55;padding-left:1.6em;margin:10px 0 0}.tasks li+li{margin-top:6px}details{margin-top:10px;padding:12px 18px}summary{cursor:pointer;font-weight:650}details p{line-height:1.5}.note{margin:10px 0 0;color:var(--muted);font-size:.83rem}.rail{height:7px;background:var(--soft);border-radius:9px;overflow:hidden}.rail i{display:block;height:100%;background:var(--green);width:0}.progress-row{margin:8px 0 5px;font-size:.84rem;color:var(--muted)}.tap{cursor:pointer}.tap:focus-visible{outline:3px solid #de9d35}fieldset{margin:0;padding:0;border:0;min-width:0}
+@media(max-width:800px){.grid{grid-template-columns:1fr}.aside{grid-template-columns:1fr 1fr}.aside section+section{border-top:0;padding-top:0}.aside section:last-child{grid-column:1/-1}.shell{padding-top:14px}}
+@media(max-width:570px){.aside{grid-template-columns:1fr}.aside section+section{border-top:1px solid var(--edge);padding-top:12px}.card{padding:13px}.sheet{margin:9px -5px}.legend{font-size:.75rem}}
+@media print{body{background:white}.shell{padding:0}.grid{grid-template-columns:3fr 2fr}.card,details{break-inside:avoid}.reset{display:none}}
+[hidden]{display:none!important}.pages{display:flex;gap:5px;padding:5px;background:var(--soft);border-radius:10px;margin-bottom:17px}.pages a{flex:1;text-align:center;color:var(--ink);font-weight:650;font-size:.94rem;padding:10px 7px;border-radius:7px;text-decoration:none}.pages a[aria-current=page]{background:var(--card);color:var(--green);box-shadow:0 1px 4px #213d341c}.bits{display:flex;gap:7px;flex-wrap:wrap}.bits span{padding:6px 10px;border-radius:6px;background:var(--soft)}.bits b{display:inline-block;margin-left:4px}.bits .high{color:#773a91}.control button[aria-pressed=true]{background:#e9d9f0;border-color:#815291;color:#512668}.control button[aria-pressed=false]{background:var(--card);color:var(--ink)}.bottomnav{display:flex;justify-content:space-between;margin-top:20px}.bottomnav a{color:var(--green);font-weight:650}table{border-collapse:collapse;margin-top:14px;width:min(100%,480px)}th,td{padding:5px;text-align:center;border-bottom:1px solid var(--edge)}caption{text-align:left;font-weight:bold;margin:6px 0}a:focus-visible{outline:3px solid #de9d35}@media(max-width:550px){.pages a{font-size:.77rem}.pages{gap:0}.shell{padding-left:10px;padding-right:10px}}@media print{.pages,.bottomnav{display:none}}
+.pagechoice{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);clip-path:inset(50%);overflow:hidden;white-space:nowrap}
+.lesson{display:none}.pages{margin-bottom:0}.pages label,.bottomnav label{display:flex;align-items:center;justify-content:center;text-align:center;min-height:48px;padding:9px 12px;cursor:pointer;touch-action:manipulation;line-height:1.25;font-weight:650;border-radius:8px}
+.pages label{flex:1;min-width:0;font-size:clamp(.78rem,1.7vw,1rem);overflow-wrap:anywhere}
+.bottomnav{gap:10px;flex-wrap:wrap}.bottomnav label{background:var(--card);color:var(--green);border:1px solid #c3cdd7}.bottomnav .advance{margin-left:auto;color:white;background:var(--green);border-color:var(--green)}
+.fallback{margin:0}.fallback svg{display:block;width:100%;height:auto}.fallback .sheet{max-width:760px}
+.lesson header{margin-top:18px}.fallback-note{margin:6px 0 14px;font-size:.9rem;color:var(--muted)}
+@media(max-width:550px){.pages label{padding-inline:5px}.bottomnav label{flex:1}}
+#auswahl-1:checked ~ #aufgabe-1{display:block}
+#auswahl-1:checked ~ .pages label[for="auswahl-1"]{background:var(--card);color:var(--green);box-shadow:0 1px 4px #1d273326}
+#auswahl-1:focus-visible ~ .pages label[for="auswahl-1"]{outline:3px solid #de9d35}
+#auswahl-2:checked ~ #aufgabe-2{display:block}
+#auswahl-2:checked ~ .pages label[for="auswahl-2"]{background:var(--card);color:var(--green);box-shadow:0 1px 4px #1d273326}
+#auswahl-2:focus-visible ~ .pages label[for="auswahl-2"]{outline:3px solid #de9d35}
+#auswahl-3:checked ~ #aufgabe-3{display:block}
+#auswahl-3:checked ~ .pages label[for="auswahl-3"]{background:var(--card);color:var(--green);box-shadow:0 1px 4px #1d273326}
+#auswahl-3:focus-visible ~ .pages label[for="auswahl-3"]{outline:3px solid #de9d35}
+@media(prefers-color-scheme:dark){:root{color:#e6edf3;background:#12171d;--green:#5aa8ec;--ink:#e6edf3;--soft:#1d3346;--card:#1b232c;--muted:#9aa8b6;--edge:#2e3a46}body{background:#12171d}.site-head{background:#174f80}.go,.bottomnav .advance{color:#0d1a26}.control button[aria-pressed=true]{background:#3a2a48;border-color:#a77fbf;color:#f0e4f7}.bits .high{color:#d6a8f0}button,select,.bottomnav label{border-color:#3a4855}.sheet{border-color:#2e3a46;--ink:#223d42}}
+</style></head><body><div class="site-head"><div class="in"><a href="index.html">← Pneumatik &amp; Hydraulik</a><h1>Pneumatische Türsteuerung</h1><p>Praxis im Steuerungstechnik-Raum: Grundschaltung, UND-Ventil und Drosselrückschlagventil – erst simulieren, dann aufbauen.</p><span class="tag">Steuerungstechnik-Raum · Praxis</span></div></div><main class="shell">
+<input class="pagechoice" type="radio" id="auswahl-1" name="aufgabe" aria-label="Aufgabe 1 · Grundschaltung" aria-controls="aufgabe-1" checked>
+<input class="pagechoice" type="radio" id="auswahl-2" name="aufgabe" aria-label="Aufgabe 2 · UND-Ventil" aria-controls="aufgabe-2">
+<input class="pagechoice" type="radio" id="auswahl-3" name="aufgabe" aria-label="Aufgabe 3 · Drosselrückschlagventil" aria-controls="aufgabe-3"><nav class="pages" aria-label="Aufgaben"><label for="auswahl-1">1 · Grundschaltung</label><label for="auswahl-2">2 · UND-Ventil</label><label for="auswahl-3">3 · Drosselrückschlagventil</label></nav><article class="lesson" id="aufgabe-1" aria-labelledby="titel-1"><header><div class="kicker">Pneumatik · Aufgabe 1 von 3</div><h1 id="titel-1">Tür öffnen und schließen</h1><p>Mit zwei Tastern steuerst du einen doppeltwirkenden Zylinder. Verfolge den Luftweg beim Öffnen und Schließen.</p></header><div id="mount-1"></div><section id="still-1" class="card fallback"><h2>Schaltbild</h2><div class="sheet"><svg xmlns="http://www.w3.org/2000/svg" id="stand-1-circuit" viewBox="0 0 600 395" role="img" aria-labelledby="stand-1-sTitle stand-1-sDesc">
+<title id="stand-1-sTitle">Tür öffnen und schließen</title>
+<desc id="stand-1-sDesc">Die Kolbenstange fährt beim Öffnen aus.</desc>
+<defs>
+<marker id="stand-1-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#223d42"/></marker>
+<g id="stand-1-source"><path class="sym" d="M0 0 -6 10 H6Z"/></g><g id="stand-1-exh"><path class="sym" d="M-6 0 H6 L0 10Z"/></g>
+<g id="stand-1-down"><path class="wire" marker-end="url(#stand-1-arr)" d="M0 1 V21"/></g>
+</defs>
+<text x="202" y="25">1A · Türzylinder</text>
+<rect x="198" y="36" width="157" height="39" class="sym"/><rect id="stand-1-chL" x="200" y="38" width="8" height="35" fill="#e2f2f5"/><rect id="stand-1-chR" x="211" y="38" width="142" height="35" fill="#fae6d7"/>
+<g id="stand-1-piston"><rect x="206" y="37" width="6" height="37" fill="#223d42"/><path d="M212 55 H371" stroke="#223d42" stroke-width="5"/></g>
+<path id="stand-1-cap" class="wire vent" d="M202 75 V198 H270 V218"/>
+<path id="stand-1-rod" class="wire air" d="M349 75 V198 H310 V218"/>
+<g id="stand-1-throttleAssembly" display="none"><text x="22" y="133">1V2</text><text x="31" y="151" class="sml">Drosselrückschlag-</text><text x="31" y="166" class="sml">ventil</text>
+<g id="stand-1-throttle">
+<rect x="164" y="118" width="76" height="63" fill="#f8fbf9" stroke="#748b80" stroke-dasharray="5 3"/>
+<path id="stand-1-topFork" class="wire" d="M202 118 V126 H182 V140 M202 126 H222 V139"/>
+<path id="stand-1-bottomFork" class="wire" d="M202 181 V173 H182 V159 M202 173 H222 V158"/>
+<circle class="dot" cx="202" cy="126" r="3"/><circle class="dot" cx="202" cy="173" r="3"/>
+<g id="stand-1-check"><path class="wire" d="M174 150 L182 158 L190 150 M182 158 V160 M182 139 V142"/><circle class="sym" cx="182" cy="147" r="5"/></g>
+<path class="wire" d="M222 138 V160 M213 142 Q220 149 213 157 M231 142 Q224 149 231 157 M210 162 L234 137" marker-end="url(#stand-1-arr)"/>
+</g>
+</g><text x="258" y="210" class="sml">4</text><text x="315" y="210" class="sml">2</text>
+<path id="stand-1-pilotL" class="pilot" d="M114 311 V243 H158"/><path id="stand-1-pilotR" class="pilot" d="M473 311 V243 H342"/>
+<g><g transform="translate(170 218)"><rect class="sym" x="0" width="80" height="50" style="fill:white"/><path class="wire" d="M20 49 V3" marker-end="url(#stand-1-arr)"/><path class="wire" d="M60 2 V47" marker-end="url(#stand-1-arr)"/></g><g transform="translate(250 218)"><rect class="sym" x="0" width="80" height="50" style="fill:#d3ecdd"/><path class="wire" d="M20 49 L60 3" marker-end="url(#stand-1-arr)"/><path class="wire" d="M20 2 L60 47" marker-end="url(#stand-1-arr)"/></g><path class="sym" d="M158 235 v16 l12 -8z M342 235 v16 l-12 -8z"/></g>
+<text x="25" y="226">1V</text><text x="25" y="244" class="sml">4/2 bistabil</text>
+<path d="M270 268 V371 M270 364 H108 V340 M270 364 H467 V340" id="stand-1-supply" class="wire air"/><circle id="stand-1-supplyExtra" display="none" class="dot" cx="201" cy="455" r="3.4"/><circle cy="364" id="stand-1-supplyNode" class="dot" cx="270" r="3.4"/>
+<use y="371" id="stand-1-airSource" href="#stand-1-source" x="270"/><text y="381" id="stand-1-airLabel" x="284" class="sml">Druckluft</text>
+<path class="wire" d="M310 268 V279"/><use href="#stand-1-exh" x="310" y="279"/>
+<text x="254" y="285" class="sml">1</text><text x="321" y="282" class="sml">3</text>
+<g id="stand-1-andGate" display="none">
+  <path id="stand-1-openIn" class="pilot" d="M73 402 V328 H90"/><path id="stand-1-allowIn" class="pilot" d="M207 402 V328 H136"/>
+  <rect x="90" y="312" width="46" height="32" rx="2" class="sym" id="stand-1-gateBody"/>
+  <text x="113" y="334" text-anchor="middle">&amp;</text>
+  <text x="145" y="317" class="sml">1V3 · UND</text>
+</g>
+<g id="stand-1-buttons"><g transform="translate(101 311)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S1 · Öffnen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-1-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-1-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-1-exh" x="21" y="32"/></g><g transform="translate(460 311)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S2 · Schließen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-1-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-1-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-1-exh" x="21" y="32"/></g></g>
+</svg></div><p class="fallback-note">Für die bewegliche Simulation öffne die HTML-Datei in einem Browser mit aktiviertem JavaScript.</p></section><section class="card tasks"><h2>Dein Arbeitsauftrag</h2><ol><li>Die Tür ist geschlossen. Verfolge die Steuerleitung von <b>1S1</b> bis zum Hauptventil <b>1V</b>. Sage voraus, welche Zylinderkammer beim Öffnen Druckluft erhält.</li><li>Tippe kurz auf <b>Öffnen</b>. Beobachte das Steuersignal und den Kolben. Erkläre, warum die Tür ihren Weg nach dem Ende des Signals fortsetzt.</li><li>Schließe die Tür mit <b>1S2</b>. Beschreibe den Weg der Zuluft und der Abluft für diese Bewegung.</li></ol></section>
+<details><summary>Hinweis zum Schaltbild</summary><p>Die dicke Linie im Zylinder ist die Kolbenstange. Das grüne Feld im Hauptventil zeigt die wirksame Schaltstellung. Die gestrichelten Leitungen übertragen die Steuersignale.</p></details>
+<details><summary>Musterlösung anzeigen</summary><p>1S1 schaltet 1V auf Öffnen. Druckluft strömt von Anschluss 1 über 4 in die linke Kammer. Die rechte Kammer entlüftet über 2 und 3. Der Zylinder fährt aus. Das bistabile Ventil behält seine Stellung auch nach dem Loslassen des Tasters.</p><p>1S2 schaltet 1V zurück. Druckluft strömt von 1 über 2 in die rechte Kammer. Die linke Kammer entlüftet über 4 und 3. Die Kolbenstange fährt ein und die Tür schließt.</p></details><nav class="bottomnav" aria-label="Aufgabe wechseln"><label class="advance" for="auswahl-2">Weiter zu Aufgabe 2 →</label></nav></article>
+<article class="lesson" id="aufgabe-2" aria-labelledby="titel-2"><header><div class="kicker">Pneumatik · Aufgabe 2 von 3</div><h1 id="titel-2">Öffnen mit UND-Freigabe</h1><p>Die Tür soll nur öffnen, wenn Öffnungsbefehl und Freigabe gleichzeitig anliegen.</p></header><div id="mount-2"></div><section id="still-2" class="card fallback"><h2>Schaltbild</h2><div class="sheet"><svg xmlns="http://www.w3.org/2000/svg" id="stand-2-circuit" viewBox="0 0 600 486" role="img" aria-labelledby="stand-2-sTitle stand-2-sDesc">
+<title id="stand-2-sTitle">Öffnen mit UND-Freigabe</title>
+<desc id="stand-2-sDesc">Die Kolbenstange fährt beim Öffnen aus.</desc>
+<defs>
+<marker id="stand-2-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#223d42"/></marker>
+<g id="stand-2-source"><path class="sym" d="M0 0 -6 10 H6Z"/></g><g id="stand-2-exh"><path class="sym" d="M-6 0 H6 L0 10Z"/></g>
+<g id="stand-2-down"><path class="wire" marker-end="url(#stand-2-arr)" d="M0 1 V21"/></g>
+</defs>
+<text x="202" y="25">1A · Türzylinder</text>
+<rect x="198" y="36" width="157" height="39" class="sym"/><rect id="stand-2-chL" x="200" y="38" width="8" height="35" fill="#e2f2f5"/><rect id="stand-2-chR" x="211" y="38" width="142" height="35" fill="#fae6d7"/>
+<g id="stand-2-piston"><rect x="206" y="37" width="6" height="37" fill="#223d42"/><path d="M212 55 H371" stroke="#223d42" stroke-width="5"/></g>
+<path id="stand-2-cap" class="wire vent" d="M202 75 V198 H270 V218"/>
+<path id="stand-2-rod" class="wire air" d="M349 75 V198 H310 V218"/>
+<g id="stand-2-throttleAssembly" display="none"><text x="22" y="133">1V2</text><text x="31" y="151" class="sml">Drosselrückschlag-</text><text x="31" y="166" class="sml">ventil</text>
+<g id="stand-2-throttle">
+<rect x="164" y="118" width="76" height="63" fill="#f8fbf9" stroke="#748b80" stroke-dasharray="5 3"/>
+<path id="stand-2-topFork" class="wire" d="M202 118 V126 H182 V140 M202 126 H222 V139"/>
+<path id="stand-2-bottomFork" class="wire" d="M202 181 V173 H182 V159 M202 173 H222 V158"/>
+<circle class="dot" cx="202" cy="126" r="3"/><circle class="dot" cx="202" cy="173" r="3"/>
+<g id="stand-2-check"><path class="wire" d="M174 150 L182 158 L190 150 M182 158 V160 M182 139 V142"/><circle class="sym" cx="182" cy="147" r="5"/></g>
+<path class="wire" d="M222 138 V160 M213 142 Q220 149 213 157 M231 142 Q224 149 231 157 M210 162 L234 137" marker-end="url(#stand-2-arr)"/>
+</g>
+</g><text x="258" y="210" class="sml">4</text><text x="315" y="210" class="sml">2</text>
+<path id="stand-2-pilotL" class="pilot" d="M113 312 V243 H158"/><path id="stand-2-pilotR" class="pilot" d="M473 402 V243 H342"/>
+<g><g transform="translate(170 218)"><rect class="sym" x="0" width="80" height="50" style="fill:white"/><path class="wire" d="M20 49 V3" marker-end="url(#stand-2-arr)"/><path class="wire" d="M60 2 V47" marker-end="url(#stand-2-arr)"/></g><g transform="translate(250 218)"><rect class="sym" x="0" width="80" height="50" style="fill:#d3ecdd"/><path class="wire" d="M20 49 L60 3" marker-end="url(#stand-2-arr)"/><path class="wire" d="M20 2 L60 47" marker-end="url(#stand-2-arr)"/></g><path class="sym" d="M158 235 v16 l12 -8z M342 235 v16 l-12 -8z"/></g>
+<text x="25" y="226">1V</text><text x="25" y="244" class="sml">4/2 bistabil</text>
+<path d="M270 268 V462 M270 455 H67 V431 M270 455 H467 V431 M201 455 v-24" id="stand-2-supply" class="wire air"/><circle id="stand-2-supplyExtra" class="dot" cx="201" cy="455" r="3.4"/><circle cy="455" id="stand-2-supplyNode" class="dot" cx="270" r="3.4"/>
+<use y="462" id="stand-2-airSource" href="#stand-2-source" x="270"/><text y="472" id="stand-2-airLabel" x="284" class="sml">Druckluft</text>
+<path class="wire" d="M310 268 V279"/><use href="#stand-2-exh" x="310" y="279"/>
+<text x="254" y="285" class="sml">1</text><text x="321" y="282" class="sml">3</text>
+<g id="stand-2-andGate">
+  <path id="stand-2-openIn" class="pilot" d="M73 402 V328 H90"/><path id="stand-2-allowIn" class="pilot" d="M207 402 V328 H136"/>
+  <rect x="90" y="312" width="46" height="32" rx="2" class="sym" id="stand-2-gateBody"/>
+  <text x="113" y="334" text-anchor="middle">&amp;</text>
+  <text x="145" y="317" class="sml">1V3 · UND</text>
+</g>
+<g id="stand-2-buttons"><g transform="translate(60 402)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S1 · Öffnen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-2-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-2-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-2-exh" x="21" y="32"/></g><g transform="translate(194 402)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S3</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-2-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-2-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-2-exh" x="21" y="32"/></g><g transform="translate(460 402)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S2 · Schließen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-2-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-2-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-2-exh" x="21" y="32"/></g></g>
+</svg></div><p class="fallback-note">Für die bewegliche Simulation öffne die HTML-Datei in einem Browser mit aktiviertem JavaScript.</p></section><section class="card tasks"><h2>Dein Arbeitsauftrag</h2><ol><li>Teste bei geschlossener Tür zuerst <b>1S1</b> allein und dann <b>1S3</b> allein. Tippe jeweils ein zweites Mal auf den Taster, um ihn loszulassen.</li><li>Prüfe alle vier Kombinationen der beiden Taster. Notiere für jede Kombination die Signale an den Eingängen und am Ausgang des UND-Ventils (0 oder 1). Wann öffnet die Tür?</li><li>Lass beide Taster während des Öffnens los. Erkläre, was mit dem Ausgangssignal und mit der Tür geschieht. Schließe die Tür anschließend mit <b>1S2</b>.</li></ol></section>
+<details><summary>Hinweis zum Schaltbild</summary><p>Das Kästchen mit dem Zeichen &amp; steht für das Zweidruckventil. Eine 1 bedeutet, dass am jeweiligen Anschluss ein Drucksignal anliegt.</p></details>
+<details><summary>Musterlösung anzeigen</summary><table><caption>Öffnungsbefehl am Zweidruckventil</caption><thead><tr><th>Öffnen · 1S1</th><th>Freigabe · 1S3</th><th>Ausgang · 1V3</th></tr></thead><tbody><tr><td>0</td><td>0</td><td>0</td></tr><tr><td>1</td><td>0</td><td>0</td></tr><tr><td>0</td><td>1</td><td>0</td></tr><tr><td>1</td><td>1</td><td>1</td></tr></tbody></table><p>Erst wenn beide Eingangssignale anliegen, schaltet 1V auf Öffnen. Sobald einer der Taster losgelassen wird, fällt der Ausgang auf 0. Das bistabile Hauptventil behält seine Stellung, der Zylinder fährt weiter. Zum Schließen gibt 1S2 einen Impuls auf die Gegenseite von 1V.</p></details><nav class="bottomnav" aria-label="Aufgabe wechseln"><label for="auswahl-1">← Zurück zu Aufgabe 1</label><label class="advance" for="auswahl-3">Weiter zu Aufgabe 3 →</label></nav></article>
+<article class="lesson" id="aufgabe-3" aria-labelledby="titel-3"><header><div class="kicker">Pneumatik · Aufgabe 3 von 3</div><h1 id="titel-3">Türgeschwindigkeit einstellen</h1><p>Die Tür soll zügig öffnen und langsam schließen. Wie muss das Drosselrückschlagventil eingebaut sein?</p></header><div id="mount-3"></div><section id="still-3" class="card fallback"><h2>Schaltbild</h2><div class="sheet"><svg xmlns="http://www.w3.org/2000/svg" id="stand-3-circuit" viewBox="0 0 600 395" role="img" aria-labelledby="stand-3-sTitle stand-3-sDesc">
+<title id="stand-3-sTitle">Türgeschwindigkeit einstellen</title>
+<desc id="stand-3-sDesc">Die Kolbenstange fährt beim Öffnen aus.</desc>
+<defs>
+<marker id="stand-3-arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#223d42"/></marker>
+<g id="stand-3-source"><path class="sym" d="M0 0 -6 10 H6Z"/></g><g id="stand-3-exh"><path class="sym" d="M-6 0 H6 L0 10Z"/></g>
+<g id="stand-3-down"><path class="wire" marker-end="url(#stand-3-arr)" d="M0 1 V21"/></g>
+</defs>
+<text x="202" y="25">1A · Türzylinder</text>
+<rect x="198" y="36" width="157" height="39" class="sym"/><rect id="stand-3-chL" x="200" y="38" width="8" height="35" fill="#e2f2f5"/><rect id="stand-3-chR" x="211" y="38" width="142" height="35" fill="#fae6d7"/>
+<g id="stand-3-piston"><rect x="206" y="37" width="6" height="37" fill="#223d42"/><path d="M212 55 H371" stroke="#223d42" stroke-width="5"/></g>
+<path id="stand-3-cap" class="wire vent" d="M202 75 V118 M202 181 V198 H270 V218"/>
+<path id="stand-3-rod" class="wire air" d="M349 75 V198 H310 V218"/>
+<g id="stand-3-throttleAssembly"><text x="22" y="133">1V2</text><text x="31" y="151" class="sml">Drosselrückschlag-</text><text x="31" y="166" class="sml">ventil</text>
+<g id="stand-3-throttle">
+<rect x="164" y="118" width="76" height="63" fill="#f8fbf9" stroke="#748b80" stroke-dasharray="5 3"/>
+<path id="stand-3-topFork" class="wire" d="M202 118 V126 H182 V140 M202 126 H222 V139"/>
+<path id="stand-3-bottomFork" class="wire" d="M202 181 V173 H182 V159 M202 173 H222 V158"/>
+<circle class="dot" cx="202" cy="126" r="3"/><circle class="dot" cx="202" cy="173" r="3"/>
+<g id="stand-3-check"><path class="wire" d="M174 150 L182 158 L190 150 M182 158 V160 M182 139 V142"/><circle class="sym" cx="182" cy="147" r="5"/></g>
+<path class="wire" d="M222 138 V160 M213 142 Q220 149 213 157 M231 142 Q224 149 231 157 M210 162 L234 137" marker-end="url(#stand-3-arr)"/>
+</g>
+</g><text x="258" y="210" class="sml">4</text><text x="315" y="210" class="sml">2</text>
+<path id="stand-3-pilotL" class="pilot" d="M114 311 V243 H158"/><path id="stand-3-pilotR" class="pilot" d="M473 311 V243 H342"/>
+<g><g transform="translate(170 218)"><rect class="sym" x="0" width="80" height="50" style="fill:white"/><path class="wire" d="M20 49 V3" marker-end="url(#stand-3-arr)"/><path class="wire" d="M60 2 V47" marker-end="url(#stand-3-arr)"/></g><g transform="translate(250 218)"><rect class="sym" x="0" width="80" height="50" style="fill:#d3ecdd"/><path class="wire" d="M20 49 L60 3" marker-end="url(#stand-3-arr)"/><path class="wire" d="M20 2 L60 47" marker-end="url(#stand-3-arr)"/></g><path class="sym" d="M158 235 v16 l12 -8z M342 235 v16 l-12 -8z"/></g>
+<text x="25" y="226">1V</text><text x="25" y="244" class="sml">4/2 bistabil</text>
+<path d="M270 268 V371 M270 364 H108 V340 M270 364 H467 V340" id="stand-3-supply" class="wire air"/><circle id="stand-3-supplyExtra" display="none" class="dot" cx="201" cy="455" r="3.4"/><circle cy="364" id="stand-3-supplyNode" class="dot" cx="270" r="3.4"/>
+<use y="371" id="stand-3-airSource" href="#stand-3-source" x="270"/><text y="381" id="stand-3-airLabel" x="284" class="sml">Druckluft</text>
+<path class="wire" d="M310 268 V279"/><use href="#stand-3-exh" x="310" y="279"/>
+<text x="254" y="285" class="sml">1</text><text x="321" y="282" class="sml">3</text>
+<g id="stand-3-andGate" display="none">
+  <path id="stand-3-openIn" class="pilot" d="M73 402 V328 H90"/><path id="stand-3-allowIn" class="pilot" d="M207 402 V328 H136"/>
+  <rect x="90" y="312" width="46" height="32" rx="2" class="sym" id="stand-3-gateBody"/>
+  <text x="113" y="334" text-anchor="middle">&amp;</text>
+  <text x="145" y="317" class="sml">1V3 · UND</text>
+</g>
+<g id="stand-3-buttons"><g transform="translate(101 311)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S1 · Öffnen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-3-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-3-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-3-exh" x="21" y="32"/></g><g transform="translate(460 311)"><rect x="-44" y="-22" width="130" height="62" fill="none"/><text x="20" y="-7" class="sml">1S2 · Schließen</text><g transform="translate(-27 0)"><rect class="sym" x="0" width="27" height="29" style="fill:white"/><path class="wire" d="M7 28 L13 2" marker-end="url(#stand-3-arr)"/><path class="wire" d="M21 29 V20 M18 20 H24"/><rect class="sym" x="27" width="27" height="29" style="fill:#d3ecdd"/><path class="wire" d="M40 2 L48 27" marker-end="url(#stand-3-arr)"/><path class="wire" d="M34 29 V20 M31 20 H37"/><path class="wire" d="M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3"/></g><path class="wire" d="M21 29 V32"/><use href="#stand-3-exh" x="21" y="32"/></g></g>
+</svg></div><p class="fallback-note">Für die bewegliche Simulation öffne die HTML-Datei in einem Browser mit aktiviertem JavaScript.</p></section><section class="card tasks"><h2>Dein Arbeitsauftrag</h2><ol>
+<li>Wähle Einbaurichtung A und 35 % Drosselöffnung. Öffne und schließe die Tür einmal vollständig. Notiere beide Fahrzeiten.</li>
+<li>Wiederhole den Versuch mit Einbaurichtung B und gleicher Drosselöffnung. Erkläre den Unterschied mit dem Luftweg auf der Kolbenseite.</li>
+<li>Stelle die Schaltung so ein, dass die Tür in höchstens <b>2 Sekunden öffnet</b> und in <b>4 bis 6 Sekunden schließt</b>. Belege deine Einstellung mit beiden Fahrzeiten.</li></ol></section>
+<details><summary>Hinweis zum Schaltbild</summary><p>Die Kolbenseite liegt links vom Kolben, die Stangenseite rechts. Die Kugel verschließt den freien Weg, wenn die Luft sie in den Ventilsitz drückt. In dieser Richtung fließt die Luft durch die einstellbare Drossel. Die grün hinterlegten Schaltfelder zeigen die wirksamen Ventilstellungen.</p></details>
+<details><summary>Musterlösung anzeigen</summary><p>Beim Öffnen fährt der Zylinder aus. In Richtung A strömt Druckluft über das Rückschlagventil frei in die linke Kammer. Beim Schließen fährt er ein. Die Luft aus der linken Kammer drückt die Kugel in ihren Sitz und entweicht durch die Drossel. Diese <b>Abluftdrosselung</b> bremst das Schließen.</p><p>In Richtung B wird die Zuluft beim Öffnen gedrosselt. Beim Schließen kann die Luft frei aus der linken Kammer abströmen. Für den Zielauftrag passt beispielsweise Richtung A mit 35 % Öffnung. Das Modell ergibt rund 1,8 s zum Öffnen und 5,1 s zum Schließen.</p></details>
+<p class="note">Vereinfachtes Bewegungsmodell mit konstantem Tempo je Hub. Die Prozentangabe bestimmt die Geschwindigkeit des gedrosselten Hubs im Modell. Reale Fahrzeiten hängen auch von Last, Reibung und Druck ab.</p>
+<nav class="bottomnav" aria-label="Aufgabe wechseln"><label for="auswahl-2">← Zurück zu Aufgabe 2</label></nav></article>
+<div class="grid" id="liveCircuit" hidden><section class="card schematic"><div class="top"><h2>Schaltbild</h2><span id="status" class="status" role="status"></span></div><div class="sheet"><svg id="circuit" viewBox="0 0 600 395" role="group" aria-labelledby="sTitle sDesc">
+<title id="sTitle">Pneumatische Türsteuerung</title>
+<desc id="sDesc">Die Kolbenstange fährt beim Öffnen aus.</desc>
+<defs>
+<marker id="arr" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="4.5" markerHeight="4.5" orient="auto"><path d="M0 0 8 4 0 8Z" fill="#223d42"/></marker>
+<g id="source"><path class="sym" d="M0 0 -6 10 H6Z"/></g><g id="exh"><path class="sym" d="M-6 0 H6 L0 10Z"/></g>
+<g id="down"><path class="wire" marker-end="url(#arr)" d="M0 1 V21"/></g>
+</defs>
+<text x="202" y="25">1A · Türzylinder</text>
+<rect x="198" y="36" width="157" height="39" class="sym"/><rect id="chL" x="200" y="38" width="8" height="35" fill="#e2f2f5"/><rect id="chR" x="211" y="38" width="142" height="35" fill="#fae6d7"/>
+<g id="piston"><rect x="206" y="37" width="6" height="37" fill="#223d42"/><path d="M212 55 H371" stroke="#223d42" stroke-width="5"/></g>
+<path id="cap" class="wire" d="M202 75 V129 M202 169 V198 H270 V218"/>
+<path id="rod" class="wire" d="M349 75 V198 H310 V218"/>
+<g id="throttleAssembly"><text x="22" y="133">1V2</text><text x="31" y="151" class="sml">Drosselrückschlag-</text><text x="31" y="166" class="sml">ventil</text>
+<g id="throttle">
+<rect x="164" y="118" width="76" height="63" fill="#f8fbf9" stroke="#748b80" stroke-dasharray="5 3"/>
+<path id="topFork" class="wire" d="M202 118 V126 H182 V140 M202 126 H222 V139"/>
+<path id="bottomFork" class="wire" d="M202 181 V173 H182 V159 M202 173 H222 V158"/>
+<circle class="dot" cx="202" cy="126" r="3"/><circle class="dot" cx="202" cy="173" r="3"/>
+<g id="check"><path class="wire" d="M174 150 L182 158 L190 150 M182 158 V160 M182 139 V142"/><circle class="sym" cx="182" cy="147" r="5"/></g>
+<path class="wire" d="M222 138 V160 M213 142 Q220 149 213 157 M231 142 Q224 149 231 157 M210 162 L234 137" marker-end="url(#arr)"/>
+</g>
+</g><text x="258" y="210" class="sml">4</text><text x="315" y="210" class="sml">2</text>
+<path id="pilotL" class="pilot" d="M114 311 V243 H180"/><path id="pilotR" class="pilot" d="M473 311 V243 H400"/>
+<g id="mainValve"></g>
+<text x="25" y="226">1V</text><text x="25" y="244" class="sml">4/2 bistabil</text>
+<path id="supply" class="wire air"/><circle id="supplyExtra" class="dot" cx="201" cy="455" r="3.4"/><circle id="supplyNode" class="dot" cx="270" r="3.4"/>
+<use id="airSource" href="#source" x="270"/><text id="airLabel" x="284" class="sml">Druckluft</text>
+<path class="wire" d="M310 268 V279"/><use href="#exh" x="310" y="279"/>
+<text x="254" y="285" class="sml">1</text><text x="321" y="282" class="sml">3</text>
+<g id="andGate">
+  <path id="openIn" class="pilot" d="M73 402 V328 H90"/><path id="allowIn" class="pilot" d="M207 402 V328 H136"/>
+  <rect x="90" y="312" width="46" height="32" rx="2" class="sym" id="gateBody"/>
+  <text x="113" y="334" text-anchor="middle">&amp;</text>
+  <text x="145" y="317" class="sml">1V3 · UND</text>
+</g>
+<g id="buttons"><g data-action="open"></g><g data-action="allow"></g><g data-action="close"></g></g>
+</svg></div><div class="legend"><span class="key">Druckseite</span><span class="key ex">Abluftseite</span><span class="key si">Steuersignal</span></div>
+<div class="row progress-row"><span>Türöffnung</span><output id="pct">0 %</output></div><div class="rail"><i id="bar"></i></div>
+</section>
+<aside class="card aside">
+<section><h2>Tür bedienen</h2><p class="sub" id="operating"></p><div class="control"><button class="go" id="open">1S1 · Öffnen</button><button id="allow">1S3 · Freigabe</button><button id="close">1S2 · Schließen</button></div></section>
+<section id="signalPanel" hidden><h3>Signale am UND-Ventil</h3><div class="bits"><span>1S1 <b id="bitS1">0</b></span><span>1S3 <b id="bitS3">0</b></span><span>Ausgang <b id="bitAnd">0</b></span></div></section>
+<section id="throttleControls"><fieldset id="setup"><div class="settings"><label for="rate">Drosselöffnung</label><output class="value" id="rateVal">35 %</output></div><input type="range" min="10" max="100" value="35" step="5" id="rate"><label for="direction">Einbaurichtung</label><select id="direction"><option value="exhaust">A · Freier Durchfluss zum Zylinder</option><option value="inlet">B · Freier Durchfluss vom Zylinder</option></select></fieldset><p class="note">Die Einstellung lässt sich in jeder Endlage ändern.</p></section>
+<section><div class="row"><h3 id="resultHeading">Beobachtung</h3><button id="reset" class="reset">Aufgabe neu starten</button></div><div class="times" id="times"><div><span>Öffnen</span><b id="tOpen">–</b></div><div><span>Schließen</span><b id="tClose">–</b></div></div><p class="sub msg" id="message" role="status"></p></section>
+</aside></div></main>
+<script>'use strict';
+const $ = id => document.getElementById(id);
+const pages = [
+  {title:'Tür öffnen und schließen', intro:'Mit zwei Tastern steuerst du einen doppeltwirkenden Zylinder. Verfolge den Luftweg beim Öffnen und Schließen.'},
+  {title:'Öffnen mit UND-Freigabe', intro:'Die Tür soll nur öffnen, wenn Öffnungsbefehl und Freigabe gleichzeitig anliegen.'},
+  {title:'Türgeschwindigkeit einstellen', intro:'Die Tür soll zügig öffnen und langsam schließen. Wie muss das Drosselrückschlagventil eingebaut sein?'}
+];
+function initialState() {
+  return {position:0, opening:false, motion:null, held:{open:false, allow:false, close:false},
+    pulseEnd:0, rate:35, direction:'exhaust', times:[null,null], message:'Starte mit „Öffnen“.'};
+}
+const states = pages.map(initialState);
+let page=0, state=states[0], frame=0, timer=0;
+const isAnd=()=>page===1;
+const isThrottle=()=>page===2;
+const rect=(x,w,h,selected)=>'<rect class="sym" x="'+x+'" width="'+w+'" height="'+h+'" style="fill:'+(selected?'#d3ecdd':'white')+'"/>';
+const wire=d=>'<path class="wire" d="'+d+'"/>';
+const arrow=d=>'<path class="wire" d="'+d+'" marker-end="url(#arr)"/>';
+const at=(x,y,parts)=>'<g transform="translate('+x+' '+y+')">'+parts+'</g>';
+function valveCell(x,extend,selected) {
+  const paths=extend ? arrow('M20 49 V3')+arrow('M60 2 V47') : arrow('M20 49 L60 3')+arrow('M20 2 L60 47');
+  return at(x,218,rect(0,80,50,selected)+paths);
+}
+function drawMainValve() {
+  const opened=state.opening;
+  const x=opened?250:170;
+  $('mainValve').innerHTML=valveCell(x,true,opened)+valveCell(x+80,false,!opened)
+    +'<path class="sym" d="M'+(x-12)+' 235 v16 l12 -8z M'+(x+172)+' 235 v16 l-12 -8z"/>';
+  $('pilotL').setAttribute('d',(isAnd()?'M113 312':'M114 311')+' V243 H'+(x-12));
+  $('pilotR').setAttribute('d','M473 '+(isAnd()?402:311)+' V243 H'+(x+172));
+}
+const actionNames={open:'1S1 · Öffnen',allow:'1S3 · Freigabe',close:'1S2 · Schließen'};
+function drawButton(g) {
+  const action=g.dataset.action;
+  if(action==='allow'&&!isAnd()) { g.setAttribute('display','none'); return; }
+  g.removeAttribute('display');
+  const x=action==='close'?460:action==='allow'?194:isAnd()?60:101;
+  const down=state.held[action];
+  g.setAttribute('transform','translate('+x+' '+(isAnd()?402:311)+')');
+  g.setAttribute('role','button');g.setAttribute('tabindex','0');g.setAttribute('aria-label',actionNames[action]);g.setAttribute('class','tap');
+  if(isAnd()&&action!=='close')g.setAttribute('aria-pressed',down);else g.removeAttribute('aria-pressed');
+  const cells=rect(0,27,29,down)+arrow('M7 28 L13 2')+wire('M21 29 V20 M18 20 H24')+
+    rect(27,27,29,!down)+arrow('M40 2 L48 27')+wire('M34 29 V20 M31 20 H37')+
+    wire('M0 14 H-14 M-14 6 V22 M54 14 h3 l3 -7 4 14 4 -14 4 14 3 -7 h3');
+  g.innerHTML='<rect x="-44" y="-22" width="130" height="62" fill="transparent"/><text x="20" y="-7" class="sml">'+(action==='allow'?'1S3':actionNames[action])+'</text>'+
+    at(down?0:-27,0,cells)+wire('M21 29 V32')+'<use href="#exh" x="21" y="32"/>';
+}
+function circuitLayout() {
+  const y=isAnd()?455:364;
+  $('circuit').setAttribute('viewBox','0 0 600 '+(y+31));
+  $('sTitle').textContent=pages[page].title;
+  $('sDesc').textContent=pages[page].intro;
+  $('throttleAssembly').style.display=isThrottle()?'':'none';
+  $('andGate').style.display=isAnd()?'':'none';
+  $('cap').setAttribute('d',isThrottle()?'M202 75 V118 M202 181 V198 H270 V218':'M202 75 V198 H270 V218');
+  $('supply').setAttribute('d','M270 268 V'+(y+7)+' M270 '+y+' H'+(isAnd()?67:108)+' V'+(y-24)+' M270 '+y+' H467 V'+(y-24)+(isAnd()?' M201 '+y+' v-24':''));
+  $('supplyNode').setAttribute('cy',y);
+  $('supplyExtra').style.display=isAnd()?'':'none';
+  $('airSource').setAttribute('y',y+7);$('airLabel').setAttribute('y',y+17);
+}
+function signals() {
+  const h=state.held;
+  const run=h.open&&(!isAnd()||h.allow);
+  $('pilotL').classList.toggle('pulse',run);$('pilotR').classList.toggle('pulse',h.close);
+  $('openIn').classList.toggle('pulse',h.open);$('allowIn').classList.toggle('pulse',h.allow);
+  $('gateBody').style.fill=run?'#d3ecdd':'white';
+  for(const [id,on] of [['bitS1',h.open],['bitS3',h.allow],['bitAnd',run]]) {
+    $(id).textContent=on?'1':'0';$(id).classList.toggle('high',on);
+  }
+  for(const id of ['open','allow']){
+    if(isAnd()) $(id).setAttribute('aria-pressed',h[id]);else $(id).removeAttribute('aria-pressed');
+  }
+  document.querySelectorAll('#buttons [data-action]').forEach(drawButton);
+}
+function renderMotion(){
+  const p=state.position*130;
+  $('piston').setAttribute('transform','translate('+p+' 0)');
+  $('chL').setAttribute('width',6+p);$('chR').setAttribute('x',212+p);$('chR').setAttribute('width',141-p);
+  const pct=Math.round(state.position*100)+' %';
+  $('pct').textContent=pct;$('bar').style.width=pct.replace(' ','');
+}
+function renderState() {
+  drawMainValve();signals();renderMotion();
+  const opened=state.opening;
+  for(const id of ['cap','topFork','bottomFork']) $(id).setAttribute('class','wire '+(opened?'air':'vent'));
+  $('rod').setAttribute('class','wire '+(opened?'vent':'air'));
+  $('chL').setAttribute('fill',opened?'#fae6d7':'#e2f2f5');$('chR').setAttribute('fill',opened?'#e2f2f5':'#fae6d7');
+  $('status').textContent=state.motion?(opened?'Tür öffnet …':'Tür schließt …'):(opened?'Tür offen':'Tür geschlossen');
+  $('message').textContent=state.message;$('setup').disabled=!!state.motion;
+  $('rate').value=state.rate;$('rateVal').textContent=state.rate+' %';$('direction').value=state.direction;
+  $('check').setAttribute('transform',state.direction==='exhaust'?'':'rotate(180 182 149.5)');
+  for(const [index,id] of ['tClose','tOpen'].entries()){
+    const t=state.times[index];$(id).textContent=t===null?'–':t.toLocaleString('de-DE',{minimumFractionDigits:1,maximumFractionDigits:1})+' s';
+  }
+}
+function updateMotion(now) {
+  const m=state.motion;
+  if(!m)return;
+  const travel=(now-m.start)/1000/m.duration;
+  state.position=Math.max(0,Math.min(1,m.from+(state.opening?travel:-travel)));
+  if(state.position!==Number(state.opening))return;
+  state.motion=null;
+  if(isThrottle()){
+    const complete=m.from===Number(!state.opening);
+    if(complete)state.times[Number(state.opening)]=m.duration;
+    state.message=complete?'Vollständiger Hub gemessen.':'Teilhub beendet. Für eine Messung den gesamten Hub fahren.';
+  }
+}
+function animate(now){
+  updateMotion(now);
+  if(state.motion){renderMotion();frame=requestAnimationFrame(animate);}
+  else renderState();
+}
+function switchValve(open){
+  if(state.opening===open)return;
+  updateMotion(performance.now());
+  state.opening=open;
+  const slowed=isThrottle()&&(open===(state.direction==='inlet'));
+  const duration=slowed?1.8/(state.rate/100):1.8;
+  state.motion={from:state.position,start:performance.now(),duration};
+  state.message=isThrottle()?(slowed?'Die Luft strömt gedrosselt durch 1V2.':'Die Luft strömt frei über das Rückschlagventil.'):
+    (open?'1V verbindet 1 mit 4. Der Zylinder fährt aus.':'1V verbindet 1 mit 2. Der Zylinder fährt ein.');
+  cancelAnimationFrame(frame);frame=requestAnimationFrame(animate);
+}
+function evaluate() {
+  const h=state.held, open=h.open&&(!isAnd()||h.allow);
+  if(open&&h.close) state.message='Beide Steuerseiten erhalten Druck. Im Modell bleibt die zuletzt geschaltete Stellung bestehen.';
+  else if(open) switchValve(true);
+  else if(h.close) switchValve(false);
+  else if(isAnd())state.message=state.opening?'Der UND-Ausgang ist 0. Das bistabile Hauptventil hält die Öffnungsstellung.':
+    h.open||h.allow?'Ein Eingang hat Druck. Am UND-Ausgang liegt noch kein Signal an.':'Beide Eingänge und der UND-Ausgang sind drucklos.';
+  renderState();
+}
+function releasePulse(){
+  const h=state.held;
+  if(!isAnd())h.open=false;
+  h.close=false;state.pulseEnd=0;evaluate();
+}
+function act(action){
+  if(!Object.hasOwn(actionNames,action))return;
+  if(isAnd()&&action!=='close'){
+    state.held[action]=!state.held[action];evaluate();return;
+  }
+  clearTimeout(timer);
+  if(!isAnd())state.held.open=false;
+  state.held.close=false;
+  state.held[action]=true;state.pulseEnd=performance.now()+380;
+  evaluate();timer=setTimeout(releasePulse,380);
+}
+function setThrottle(){
+  if(state.motion||!isThrottle())return;
+  state.rate=Number($('rate').value);state.direction=$('direction').value;state.times=[null,null];
+  state.message='Fahre beide Endlagen an, um die neue Einstellung zu prüfen.';renderState();
+}
+function showPage(){
+  cancelAnimationFrame(frame);clearTimeout(timer);
+  const selected=document.querySelector('input[name="aufgabe"]:checked');
+  page=Number(selected.id.slice(-1))-1;state=states[page];
+  const n=page+1;
+  document.title=pages[page].title+' · Aufgabe '+n;
+  $('mount-'+n).appendChild($('liveCircuit'));
+  $('allow').hidden=!isAnd();$('signalPanel').hidden=!isAnd();
+  $('operating').textContent=isAnd()?'Tippe auf 1S1 oder 1S3, um den Taster gedrückt zu halten. Tippe erneut zum Loslassen. 1S2 gibt einen kurzen Schließimpuls.':'Ein kurzer Tastendruck schaltet das Wegeventil um.';
+  $('throttleControls').hidden=!isThrottle();$('times').hidden=!isThrottle();
+  $('resultHeading').textContent=isThrottle()?'Fahrzeiten':'Beobachtung';
+  circuitLayout();updateMotion(performance.now());
+  if(state.pulseEnd&&state.pulseEnd<=performance.now())releasePulse();
+  else if(state.pulseEnd)timer=setTimeout(releasePulse,state.pulseEnd-performance.now());
+  renderState();if(state.motion)frame=requestAnimationFrame(animate);
+  $('liveCircuit').hidden=false;
+  $('still-'+n).hidden=true;
+}
+for(const id of Object.keys(actionNames)) $(id).onclick=()=>act(id);
+$('buttons').onclick=e=>{const g=e.target.closest('[data-action]');if(g)act(g.dataset.action)};
+$('buttons').onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();const g=e.target.closest('[data-action]');if(g&&!e.repeat)act(g.dataset.action)}};
+$('reset').onclick=()=>{states[page]=initialState();showPage()};
+$('rate').oninput=setThrottle;$('direction').onchange=setThrottle;
+function restoreLocation(){
+  const match=location.hash.match(/^#aufgabe-([123])$/);
+  if(match) $('auswahl-'+match[1]).checked=true;
+  else $('auswahl-1').checked=true;
+  showPage();
+}
+document.querySelectorAll('.pagechoice').forEach(choice=>{
+  choice.addEventListener('change',()=>{
+    if(!choice.checked)return;
+    showPage();
+    const hash='#aufgabe-'+(page+1);
+    if(location.hash!==hash){
+      try {history.pushState(null,'',hash);} catch(error) { /* Local previews can restrict history. */ }
+    }
+    window.scrollTo(0,0);
+  });
+});
+window.addEventListener('popstate',restoreLocation);
+window.addEventListener('hashchange',restoreLocation);
+restoreLocation();
+</script></body></html>
