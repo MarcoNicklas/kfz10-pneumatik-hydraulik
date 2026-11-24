@@ -1,0 +1,724 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Einführung Elektropneumatik</title>
+<style>
+:root{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:#1d2733;background:#f4f6f8;--blue:#1f6fb2;--soft:#e3eef8;--card:#fff;--muted:#5d6b7a;--ink:#223d42;--edge:#d5dce3;--el:#d62828;--elsoft:#fde8e8;--air:#1f5fbf;--airsoft:#dbe8fb;--meas:#7a499c;--ok:#1b7f45;--bad:#b3261e}
+*{box-sizing:border-box}
+body{margin:0;background:#f4f6f8}
+.site-head{background:#1f6fb2;color:#fff;padding:16px}.site-head .in{max-width:1220px;margin:0 auto}.site-head a{color:#fff;opacity:.85;font-size:.88rem;text-decoration:none}.site-head h1{margin:4px 0 0;font-size:1.35rem;line-height:1.25}.site-head p{margin:2px 0 0;opacity:.9;font-size:.92rem}.site-head .tag{display:inline-block;background:#ffffff26;color:#fff;font-size:.78rem;font-weight:600;border-radius:999px;padding:2px 10px;margin-top:6px}
+.shell{width:min(1220px,100%);margin:auto;padding:16px clamp(13px,3.4vw,52px) 40px}
+nav.pages{display:flex;gap:5px;padding:5px;background:var(--soft);border-radius:10px;margin-bottom:18px;overflow-x:auto;position:sticky;top:0;z-index:5}
+nav.pages a{flex:1;white-space:nowrap;text-align:center;color:var(--ink);font-weight:650;font-size:.92rem;padding:9px 10px;border-radius:7px;text-decoration:none}
+nav.pages a:hover{background:var(--card);color:var(--blue)}
+section.block{margin:0 0 30px;scroll-margin-top:60px}
+.kicker{color:var(--blue);font-weight:750;letter-spacing:.07em;font-size:.8rem;text-transform:uppercase}
+h2{font-size:clamp(1.3rem,2.6vw,1.8rem);margin:4px 0 10px;letter-spacing:-.02em}
+h3{font-size:1.05rem;margin:0 0 8px}
+p{line-height:1.55}
+.card{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:18px}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+.muted{color:var(--muted)}
+.merke{border-left:5px solid var(--blue);background:var(--soft);padding:12px 16px;border-radius:0 10px 10px 0;margin:12px 0}
+.merke b:first-child{color:var(--blue)}
+/* Signalkette */
+.chain{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:14px 0}
+.chain .st{flex:1 1 150px;border-radius:10px;padding:12px;margin:4px;position:relative;font-size:.92rem;line-height:1.4}
+.chain .st b{display:block;font-size:.98rem;margin-bottom:3px}
+.chain .e{background:var(--elsoft);border:1px solid #f1b5b5}.chain .m{background:linear-gradient(90deg,var(--elsoft),var(--airsoft));border:1px solid #c9c3e8}.chain .p{background:var(--airsoft);border:1px solid #b5cdf1}
+.chain .ar{align-self:center;font-size:1.4rem;color:var(--muted)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{border-bottom:1px solid var(--edge);padding:8px 10px;text-align:left;vertical-align:top}
+th{background:var(--soft)}
+.tablewrap{overflow-x:auto}
+.ex{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;margin-top:10px}
+.ex div{background:var(--card);border:1px solid var(--edge);border-radius:10px;padding:12px;font-size:.92rem;line-height:1.45}
+.ex b{display:block;margin-bottom:3px}
+/* Bauteile */
+.parts{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.part{background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:12px;display:flex;flex-direction:column}
+.part svg{width:100%;height:120px;background:#f8fbf9;border-radius:8px;border:1px solid #e3ebe6}
+.part h3{margin:10px 0 4px;font-size:1rem}.part h3 small{color:var(--blue);font-weight:700;margin-left:4px}
+.part p{margin:0;font-size:.89rem;color:var(--muted);line-height:1.45}
+/* Simulation */
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0 14px}
+.chips button{border:1px solid #c3cdd7;background:var(--card);border-radius:999px;padding:7px 13px;font:inherit;font-size:.9rem;font-weight:650;cursor:pointer;color:var(--ink)}
+.chips button[aria-pressed=true]{background:var(--blue);color:#fff;border-color:var(--blue)}
+.simgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 280px;gap:12px}
+.panel{background:var(--card);border:1px solid var(--edge);border-radius:14px;padding:12px;display:flex;flex-direction:column;min-width:0}
+.panel h3{display:flex;justify-content:space-between;align-items:baseline;font-size:.95rem;margin:0 0 6px}
+.panel h3 span{font-size:.78rem;color:var(--muted);font-weight:600}
+.sheet{background-color:#f8fbf9;background-image:radial-gradient(#c7d7cf 1px,transparent 1px);background-size:13px 13px;border:1px solid #dce5df;border-radius:9px;overflow:hidden;flex:1;display:flex;align-items:center}
+.sheet svg{width:100%;display:block}
+svg text{fill:#223d42;font:600 13px "Segoe UI",system-ui,sans-serif}
+svg .sm{font-size:10.5px;font-weight:600}
+svg .lbl{font-size:13px;font-weight:700}
+.w{fill:none;stroke:#223d42;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.w.pot{stroke:var(--el);stroke-width:2.6}
+.w.cur{stroke:var(--el);stroke-width:3.6;stroke-dasharray:7 5;animation:flow .7s linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}
+.rail{stroke-width:3}
+.sym{fill:#fff;stroke:#223d42;stroke-width:2}
+.sym.on{fill:#fbd2d2;stroke:var(--el)}
+.pl{fill:none;stroke:#223d42;stroke-width:2;stroke-linejoin:round}
+.pl.on{stroke:var(--air);stroke-width:3.6}
+.vb{fill:#fff;stroke:#223d42;stroke-width:2}
+.fl{stroke:#223d42;stroke-width:1.8;fill:none}
+.ah{fill:#223d42}
+.led{stroke:#7a6b00;stroke-width:1.2;fill:#eee}.led.on{fill:#ffd400;filter:drop-shadow(0 0 4px #ffd400)}
+.mp{cursor:pointer;fill:#fff;stroke:var(--meas);stroke-width:2}.mp.sel{fill:var(--meas)}
+.mpt{fill:var(--meas)!important;font-size:11px!important;font-weight:800!important;cursor:pointer}
+.legend{display:flex;flex-wrap:wrap;gap:4px 14px;color:var(--muted);font-size:.8rem;margin-top:8px}
+.legend span:before{content:"";display:inline-block;width:18px;margin:0 5px 3px 0;border-top:3px solid var(--el)}
+.legend .lc:before{border-top-style:dashed;border-top-width:4px}
+.legend .la:before{border-color:var(--air)}
+.side{display:flex;flex-direction:column;gap:12px}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.btns button{min-height:58px;border-radius:10px;border:2px solid #c3cdd7;background:var(--card);font:inherit;font-weight:700;font-size:.92rem;cursor:pointer;color:var(--ink);touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;line-height:1.2;padding:6px}
+.btns button small{display:block;font-weight:500;font-size:.75rem;color:var(--muted)}
+.btns button.stop{border-color:#e2a3a3}
+.btns button.down,.btns button[aria-pressed=true]{background:#1f6fb2;color:#fff;border-color:#1f6fb2;transform:translateY(1px)}
+.btns button.down small,.btns button[aria-pressed=true] small{color:#dce9f6}
+.btns button.stop.down,.btns button.stop[aria-pressed=true]{background:#b3261e;border-color:#b3261e}
+button:focus-visible,select:focus-visible,input:focus-visible,summary:focus-visible{outline:3px solid #de9d35;outline-offset:2px}
+.stat{display:grid;grid-template-columns:auto 1fr;gap:5px 10px;font-size:.88rem;align-items:center}
+.stat dt{color:var(--muted)}.stat dd{margin:0;font-weight:700;font-variant-numeric:tabular-nums}
+.pill{display:inline-block;padding:1px 8px;border-radius:999px;background:#eef1f4;font-size:.82rem}
+.pill.on{background:#fff2b3;color:#6b5600}
+.pill.el{background:var(--elsoft);color:var(--el)}
+.pill.air{background:var(--airsoft);color:var(--air)}
+.info{margin-top:12px}
+.info ol,.info ul{margin:6px 0 0;padding-left:1.4em;line-height:1.55}
+.info li+li{margin-top:4px}
+.meter{background:#24303c;color:#b9ff9c;border-radius:10px;padding:10px 12px;font-variant-numeric:tabular-nums}
+.meter .v{font-size:1.7rem;font-weight:800;font-family:ui-monospace,Menlo,Consolas,monospace}
+.meter small{display:block;color:#c9d3dc;font-size:.78rem}
+.diag{display:grid;gap:6px}
+.diag label{display:flex;gap:8px;align-items:flex-start;font-size:.89rem;line-height:1.35;padding:6px 8px;border:1px solid var(--edge);border-radius:8px;cursor:pointer;background:#fff}
+.diag label:has(input:checked){border-color:var(--blue);background:var(--soft)}
+.act{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.act button,.q button{border:1px solid var(--blue);background:var(--blue);color:#fff;font:inherit;font-weight:650;border-radius:8px;padding:8px 14px;cursor:pointer;min-height:40px}
+.act button.sec,.q button.sec{background:#fff;color:var(--blue)}
+.fb{margin-top:8px;padding:9px 12px;border-radius:8px;font-size:.92rem;line-height:1.45}
+.fb.ok{background:#e3f4ea;color:#14532d}.fb.no{background:#fbe5e3;color:#7f1d1d}.fb.tip{background:#fff6d6;color:#5b4a00}
+.score{font-size:.86rem;color:var(--muted)}
+/* Quiz */
+.quiz{display:grid;gap:12px}
+.q{background:var(--card);border:1px solid var(--edge);border-radius:12px;padding:16px}
+.q h3{font-size:1rem}.q h3 .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--blue);color:#fff;font-size:.85rem;margin-right:8px}
+.q .opts{display:grid;gap:6px;margin:8px 0}
+.q .opts label{display:flex;gap:8px;align-items:flex-start;padding:7px 10px;border:1px solid var(--edge);border-radius:8px;cursor:pointer;line-height:1.4}
+.q .opts label:has(input:checked){border-color:var(--blue);background:var(--soft)}
+.q .rowsel{display:grid;grid-template-columns:minmax(140px,1fr) minmax(150px,1.2fr);gap:6px 10px;align-items:center;margin:8px 0}
+.q select,.q input[type=text]{font:inherit;padding:7px 8px;border:1px solid #c3cdd7;border-radius:7px;background:#fff;min-width:0;width:100%}
+.q input[type=text]{max-width:160px}
+.progress{display:flex;align-items:center;gap:10px;margin:8px 0 14px;font-size:.9rem;color:var(--muted)}
+.progress .bar{flex:1;height:8px;background:var(--soft);border-radius:9px;overflow:hidden}.progress .bar i{display:block;height:100%;width:0;background:var(--ok);transition:width .3s}
+footer{max-width:1220px;margin:0 auto;padding:10px 16px 30px;color:var(--muted);font-size:.85rem}
+@media(max-width:1100px){.simgrid{grid-template-columns:1fr 1fr}.side{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.simgrid{grid-template-columns:1fr}.side{grid-template-columns:1fr}.card{padding:14px}.q .rowsel{grid-template-columns:1fr}.chain .ar{transform:rotate(90deg);flex-basis:100%;text-align:center}}
+@media print{nav.pages{display:none}body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="site-head"><div class="in"><a href="index.html">← Pneumatik &amp; Hydraulik</a><h1>Einführung in die Elektropneumatik</h1><p>Elektrisch steuern, pneumatisch arbeiten: Taster, Relais, Magnetventil und Zylinder – mit Simulation, Fehlersuche und Übungen.</p><span class="tag">Simulation · Einführung</span></div></div>
+<main class="shell">
+<nav class="pages" aria-label="Abschnitte">
+  <a href="#grundlagen">1 Grundlagen</a><a href="#bauteile">2 Bauteile</a><a href="#simulation">3 Simulation</a><a href="#fehler">4 Fehlersuche</a><a href="#uebungen">5 Übungen</a>
+</nav>
+
+<!-- 1 GRUNDLAGEN -->
+<section class="block" id="grundlagen">
+  <div class="kicker">Teil 1 · Grundlagen</div>
+  <h2>Was ist Elektropneumatik?</h2>
+  <div class="card">
+    <p>In einer rein pneumatischen Steuerung werden Signale mit Druckluft übertragen. Bei der <b>Elektropneumatik</b> läuft die <b>Steuerung elektrisch</b> (Taster, Sensoren, Relais oder Steuergerät), die <b>Arbeit verrichtet weiterhin die Druckluft</b> (Zylinder). Die Verbindung zwischen beiden Welten ist das <b>Magnetventil</b>: Fließt Strom durch seine Spule, schaltet es die Druckluft zum Zylinder.</p>
+    <div class="chain" aria-label="Signalkette">
+      <div class="st e"><b>Signaleingabe</b>Taster -SJ1, Schalter, Sensor -BG1<br><span class="muted">elektrisch</span></div>
+      <div class="ar">→</div>
+      <div class="st e"><b>Signalverarbeitung</b>Relais -KF1, Steuergerät, SPS<br><span class="muted">elektrisch</span></div>
+      <div class="ar">→</div>
+      <div class="st m"><b>Stellglied</b>Magnetventil -QM1 mit Spule -MB1<br><span class="muted">elektrisch → pneumatisch</span></div>
+      <div class="ar">→</div>
+      <div class="st p"><b>Arbeitsglied</b>Zylinder -MM1<br><span class="muted">pneumatisch</span></div>
+    </div>
+    <div class="merke"><b>Merke:</b> Der Strom steuert, die Druckluft arbeitet. Deshalb gibt es immer <b>zwei Schaltpläne</b>: den <b>Stromlaufplan</b> (elektrischer Teil) und den <b>Pneumatikschaltplan</b>. Die Kennzeichnung (z. B. -MB1) verbindet beide Pläne.</div>
+  </div>
+
+  <div class="cols" style="margin-top:14px">
+    <div class="card">
+      <h3>Pneumatisch oder elektropneumatisch?</h3>
+      <div class="tablewrap"><table>
+        <tr><th></th><th>Pneumatisch</th><th>Elektropneumatisch</th></tr>
+        <tr><td><b>Signal</b></td><td>Druckluft</td><td>elektrischer Strom (meist 24 V)</td></tr>
+        <tr><td><b>Lange Wege</b></td><td>Verzögerung und Druckverlust</td><td>praktisch ohne Verzögerung</td></tr>
+        <tr><td><b>Signalglieder</b></td><td>Ventile mit Taster, Rolle, Hebel</td><td>Taster, Schalter, Reedkontakte, Sensoren</td></tr>
+        <tr><td><b>Verknüpfung</b></td><td>Zweidruckventil (UND), Wechselventil (ODER)</td><td>Reihenschaltung (UND), Parallelschaltung (ODER), Relais, Steuergerät</td></tr>
+        <tr><td><b>Arbeit</b></td><td colspan="2">in beiden Fällen der Zylinder mit Druckluft</td></tr>
+      </table></div>
+    </div>
+    <div class="card">
+      <h3>So funktioniert ein Magnetventil</h3>
+      <p>Die Spule (-MB1) wird mit 24 V versorgt. Es entsteht ein <b>Magnetfeld</b>, der Anker wird angezogen und verschiebt den Ventilkolben. Das Ventil schaltet um.</p>
+      <ul style="line-height:1.55;padding-left:1.2em;margin:0">
+        <li><b>monostabil</b> (mit Feder): Strom weg → Feder schiebt das Ventil zurück in die Grundstellung.</li>
+        <li><b>bistabil</b> (Impulsventil, zwei Spulen -MB1/-MB2): Ein kurzer Impuls reicht, das Ventil <b>bleibt</b> in seiner Stellung, bis die andere Spule einen Impuls bekommt.</li>
+      </ul>
+      <p class="muted" style="font-size:.88rem;margin-bottom:0">Viele Ventilstecker haben eine <b>LED</b>: Sie leuchtet, wenn an der Spule Spannung anliegt – wichtig für die Fehlersuche.</p>
+    </div>
+  </div>
+
+  <h3 style="margin-top:18px">Elektropneumatik im Kfz und Nfz</h3>
+  <div class="ex">
+    <div><b>🚌 Bustür</b>Türtaster am Fahrerplatz und an der Tür schalten Magnetventile, die Türzylinder öffnen und schließen die Tür.</div>
+    <div><b>🚛 Liftachse</b>Schalter im Fahrerhaus → Magnetventil → Luftbalg hebt die Achse, Tragbalg wird entlüftet.</div>
+    <div><b>🔥 Motorbremse</b>Schalter/Steuergerät → Magnetventil → Zylinder schließt die Klappe im Auspuff.</div>
+    <div><b>⚙️ Lkw-Getriebe</b>Das Getriebesteuergerät schaltet Magnetventile, Druckluftzylinder legen die Gänge ein.</div>
+    <div><b>🛞 Luftfederung (ECAS)</b>Wegsensoren melden die Höhe, das Steuergerät belüftet oder entlüftet die Bälge über Magnetventile.</div>
+  </div>
+</section>
+
+<!-- 2 BAUTEILE -->
+<section class="block" id="bauteile">
+  <div class="kicker">Teil 2 · Bauteile und Schaltzeichen</div>
+  <h2>Die wichtigsten Bauteile</h2>
+  <div class="parts" id="parts"></div>
+  <div class="merke"><b>Relais-Anschlüsse:</b> Spule <b>A1/A2</b>. Kontakte haben zwei Ziffern: die erste zählt durch, die zweite sagt die Art – <b>1-2 = Öffner</b> (z. B. 11/12), <b>3-4 = Schließer</b> (z. B. 13/14). Im Kfz-Bordnetz heißt dasselbe Relais <b>85/86</b> (Spule) und <b>30/87</b> (Schließer).</div>
+  <div class="card"><h3>Kennzeichnung nach DIN EN 81346</h3><p class="muted" style="margin-top:0;font-size:.9rem">Das Minus vor dem Namen kennzeichnet das Bauteil. Der erste Buchstabe sagt, <b>was das Bauteil tut</b>, der zweite genauer, <b>wie</b>.</p>
+<div class="tablewrap"><table><tr><th>Kennung</th><th>Bauteil</th><th>Merkhilfe</th></tr>
+<tr><td><b>-SJ</b></td><td>Taster, Schalter</td><td>S = Signal von Hand</td></tr>
+<tr><td><b>-BG</b></td><td>Sensor, Reedschalter, Endschalter</td><td>B = Messen/Erfassen</td></tr>
+<tr><td><b>-KF</b></td><td>Relais, Steuergerät</td><td>K = Signal verarbeiten</td></tr>
+<tr><td><b>-MB</b></td><td>Magnetspule am Ventil</td><td>M = Antrieb, B = elektromagnetisch</td></tr>
+<tr><td><b>-QM</b></td><td>Wegeventil</td><td>Q = Steuern eines Stoffstroms</td></tr>
+<tr><td><b>-RN</b></td><td>Drosselrückschlagventil</td><td>R = Begrenzen</td></tr>
+<tr><td><b>-MM</b></td><td>Zylinder</td><td>M = Antrieb</td></tr>
+<tr><td><b>-GQ</b> / <b>-GQA</b></td><td>Druckluftversorgung / Wartungseinheit</td><td>G = Erzeugen, Bereitstellen</td></tr>
+</table></div><p class="muted" style="font-size:.85rem;margin-bottom:0">Ältere Bücher und Pläne nutzen noch S1, K1, Y1, 1B1, 1V1 und 1A1.</p></div>
+</section>
+
+<!-- 3 SIMULATION -->
+<section class="block" id="simulation">
+  <div class="kicker">Teil 3 · Simulation</div>
+  <h2>Schaltungen durchspielen</h2>
+  <p class="muted" style="margin-top:0">Wähle eine Schaltung. Halte die Taster gedrückt (Maus, Finger oder Leertaste) und beobachte beide Pläne gleichzeitig.</p>
+  <div class="chips" id="scChips" role="group" aria-label="Schaltung wählen"></div>
+  <div id="sim1"></div>
+</section>
+
+<!-- 4 FEHLERSUCHE -->
+<section class="block" id="fehler">
+  <div class="kicker">Teil 4 · Fehlersuche wie in der Werkstatt</div>
+  <h2>Fehler finden mit LED und Multimeter</h2>
+  <div class="card" style="margin-bottom:12px">
+    <p style="margin-top:0">In der Schaltung mit Relais ist ein <b>Fehler versteckt</b>. Die Leitungen werden jetzt <b>nicht</b> mehr eingefärbt – wie im echten Leben. Gehe vor wie ein Profi:</p>
+    <ol style="line-height:1.6;margin:0;padding-left:1.4em">
+      <li><b>Sichtprüfung:</b> -SJ1 drücken (rastet hier ein). Was macht der Zylinder? Leuchten die LEDs an -KF1 und -MB1? Was zeigt das Manometer?</li>
+      <li><b>Messen:</b> Tippe auf die violetten Messpunkte <b>①–⑦</b>. Das Multimeter misst die Spannung gegen 0 V.</li>
+      <li><b>Eingrenzen:</b> Wo springt die Spannung von 24 V auf 0 V? Dort sitzt der Fehler.</li>
+      <li><b>Diagnose</b> auswählen und prüfen.</li>
+    </ol>
+  </div>
+  <div id="sim2"></div>
+</section>
+
+<!-- 5 ÜBUNGEN -->
+<section class="block" id="uebungen">
+  <div class="kicker">Teil 5 · Übungen</div>
+  <h2>Teste dein Wissen</h2>
+  <div class="progress"><span id="qProg">0 von 0 richtig</span><div class="bar"><i id="qBar"></i></div></div>
+  <div class="quiz" id="quiz"></div>
+</section>
+</main>
+<footer>Unterrichtsmaterial · Berufsschule Kfz · Elektropneumatik Grundstufe</footer>
+
+<script>
+"use strict";
+/* ======================= Zeichenhilfen ======================= */
+const VW=60,VH=50;
+const L=(x1,y1,x2,y2,c="w")=>`<line class="${c}" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+const T=(x,y,t,c="",a="")=>`<text x="${x}" y="${y}" class="${c}" ${a}>${t}</text>`;
+function arrowLine(x1,y1,x2,y2){
+  const a=Math.atan2(y2-y1,x2-x1),s=7;
+  const p1=[x2-s*Math.cos(a-0.45),y2-s*Math.sin(a-0.45)],p2=[x2-s*Math.cos(a+0.45),y2-s*Math.sin(a+0.45)];
+  return `<line class="fl" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/><polygon class="ah" points="${x2},${y2} ${p1[0]},${p1[1]} ${p2[0]},${p2[1]}"/>`;
+}
+function blockSym(x,yEdge,dir){ // T-Sperre, dir=-1 von unten nach oben
+  const y2=yEdge+dir*11;
+  return `<line class="fl" x1="${x}" y1="${yEdge}" x2="${x}" y2="${y2}"/><line class="fl" x1="${x-6}" y1="${y2}" x2="${x+6}" y2="${y2}"/>`;
+}
+// Kontakt: typ no|nc, closed=aktueller Zustand, act: 'btn'|'relay'|'reed'
+function contactSVG(x,cy,typ,closed,act,label,cls){
+  const c=cls||{};let s="";
+  s+=`<line class="w ${c.top||""}" x1="${x}" y1="${cy-32}" x2="${x}" y2="${cy-14}"/>`;
+  s+=`<line class="w ${c.bot||""}" x1="${x}" y1="${cy+32}" x2="${x}" y2="${cy+14}"/>`;
+  let bx,by;
+  if(typ==="no"){ if(closed){bx=x-2;by=cy-14}else{bx=x-14;by=cy-11} }
+  else { s+=`<line class="w ${c.top||""}" x1="${x}" y1="${cy-14}" x2="${x+11}" y2="${cy-14}"/>`; if(closed){bx=x+11;by=cy-14}else{bx=x-12;by=cy-11} }
+  s+=`<line class="w ${c.bot||""}" x1="${x}" y1="${cy+14}" x2="${bx}" y2="${by}"/>`;
+  const mx=(x+bx)/2, my=(cy+14+by)/2;
+  if(act==="btn"){
+    s+=`<line class="w" x1="${mx-1}" y1="${my}" x2="${x-27}" y2="${my}" stroke-dasharray="3 3"/>`;
+    s+=`<polyline class="w" points="${x-23},${my-7} ${x-27},${my-7} ${x-27},${my+7} ${x-23},${my+7}"/>`;
+    s+=T(x-33,cy+5,label,"lbl",'text-anchor="end"');
+    s+=T(x+6,cy-20,typ==="no"?"3":"1","sm");s+=T(x+6,cy+28,typ==="no"?"4":"2","sm");
+  } else if(act==="reed"){
+    s+=`<line class="w" x1="${mx-1}" y1="${my}" x2="${x-21}" y2="${my}" stroke-dasharray="3 3"/>`;
+    s+=`<polygon class="sym ${closed?"on":""}" points="${x-29},${my} ${x-22},${my-7} ${x-15+0},${my} ${x-22},${my+7}" style="transform:translateX(-8px)"/>`;
+    s+=T(x-40,cy+5,label,"lbl",'text-anchor="end"');
+  } else {
+    s+=T(x-20,cy+5,label,"lbl",'text-anchor="end"');
+    s+=T(x+6,cy-20,typ==="no"?"13":"11","sm");s+=T(x+6,cy+28,typ==="no"?"14":"12","sm");
+  }
+  return s;
+}
+function coilSVG(x,cy,kind,label,on,led,cls){
+  const c=cls||{};let s="";
+  s+=`<line class="w ${c.top||""}" x1="${x}" y1="${cy-32}" x2="${x}" y2="${cy-12}"/>`;
+  s+=`<line class="w ${c.bot||""}" x1="${x}" y1="${cy+32}" x2="${x}" y2="${cy+12}"/>`;
+  s+=`<rect class="sym ${on?"on":""}" x="${x-15}" y="${cy-12}" width="30" height="24" rx="2"/>`;
+  if(kind==="sol") s+=`<line class="w" x1="${x-15}" y1="${cy+12}" x2="${x+15}" y2="${cy-12}"/>`;
+  else {s+=T(x+18,cy-14,"A1","sm");s+=T(x+18,cy+22,"A2","sm");}
+  s+=T(x-21,cy+5,label,"lbl",'text-anchor="end"');
+  if(led!==undefined) s+=`<circle class="led ${led?"on":""}" cx="${x+26}" cy="${cy}" r="5"/>`+T(x+34,cy+4,"LED","sm");
+  return s;
+}
+// Ventil: kind '32'|'52m'|'52b'; x0=linke Kante des Anschlussfeldes; pos 0..1
+function valveSVG(kind,x0,by,pos,Y,label){
+  let s="";const off=pos*VW, bx=x0-VW+off;
+  s+=`<g>`;
+  s+=`<rect class="vb" x="${bx}" y="${by}" width="${VW}" height="${VH}"/><rect class="vb" x="${bx+VW}" y="${by}" width="${VW}" height="${VH}"/>`;
+  const A=(fx1,top1,fx2,top2,b)=>arrowLine(b+fx1*VW,top1?by:by+VH,b+fx2*VW,top2?by:by+VH);
+  if(kind==="32"){
+    s+=A(.3,false,.3,true,bx)+blockSym(bx+.7*VW,by+VH,-1);           // betätigt 1→2
+    s+=A(.3,true,.7,false,bx+VW)+blockSym(bx+VW+.3*VW,by+VH,-1);      // Grundstellung 2→3
+  } else {
+    s+=A(.5,false,.25,true,bx)+A(.75,true,.85,false,bx)+blockSym(bx+.15*VW,by+VH,-1);
+    s+=A(.5,false,.75,true,bx+VW)+A(.25,true,.15,false,bx+VW)+blockSym(bx+VW+.85*VW,by+VH,-1);
+  }
+  // linke Spule -MB1
+  const y1on=Y&&Y["-MB1"];
+  s+=`<rect class="sym ${y1on?"on":""}" x="${bx-22}" y="${by+13}" width="22" height="24"/><line class="w" x1="${bx-22}" y1="${by+37}" x2="${bx}" y2="${by+13}"/>`;
+  s+=T(bx-24,by+8,"-MB1","sm",'text-anchor="end"');
+  const rx=bx+2*VW;
+  if(kind==="52b"){
+    const y2on=Y&&Y["-MB2"];
+    s+=`<rect class="sym ${y2on?"on":""}" x="${rx}" y="${by+13}" width="22" height="24"/><line class="w" x1="${rx}" y1="${by+37}" x2="${rx+22}" y2="${by+13}"/>`;
+    s+=T(rx+24,by+8,"-MB2","sm");
+  } else {
+    const k=8-pos*4; let pts=`${rx},${by+25}`;for(let i=1;i<=6;i++){pts+=` ${rx+i*k*0.62},${by+25+(i%2?-8:8)}`}
+    pts+=` ${rx+7*k*0.62},${by+25}`;
+    s+=`<polyline class="w" points="${pts}"/>`;
+  }
+  s+=`</g>`;
+  if(label) s+=T(x0-VW-34+(kind==="52b"?0:0),by+VH+20,label,"lbl",'text-anchor="middle"');
+  return s;
+}
+function portsOf(kind,x0,by){
+  if(kind==="32") return {p2:[x0+.3*VW,by],p1:[x0+.3*VW,by+VH],p3:[x0+.7*VW,by+VH]};
+  return {p4:[x0+.25*VW,by],p2:[x0+.75*VW,by],p5:[x0+.15*VW,by+VH],p1:[x0+.5*VW,by+VH],p3:[x0+.85*VW,by+VH]};
+}
+function exhaust(x,y){return `<line class="pl" x1="${x}" y1="${y}" x2="${x}" y2="${y+10}"/><polygon points="${x-7},${y+10} ${x+7},${y+10} ${x},${y+20}" fill="#fff" stroke="#223d42" stroke-width="1.8"/>`}
+function source(x,y,on){return `<circle cx="${x}" cy="${y}" r="12" fill="#fff" stroke="#223d42" stroke-width="2"/><polygon points="${x},${y-9} ${x-6},${y+2} ${x+6},${y+2}" fill="${on?"#1f5fbf":"#223d42"}"/>`}
+function cylinderSVG(kind,pos,pCap,pRod,sensors,B){
+  sensors=sensors===true?["-BG1","-BG2"]:(sensors||null);
+  const xp=46+110*pos, s=[];
+  if(pCap) s.push(`<rect x="41" y="61" width="${xp-41}" height="38" fill="#dbe8fb"/>`);
+  if(pRod) s.push(`<rect x="${xp+12}" y="61" width="${219-xp-12}" height="38" fill="#dbe8fb"/>`);
+  s.push(`<rect x="40" y="60" width="180" height="40" fill="none" stroke="#223d42" stroke-width="2.2"/>`);
+  if(kind==="ew"){
+    const a=xp+14,b=217,n=9;let pts=`${a},80`;for(let i=1;i<n;i++)pts+=` ${a+(b-a)*i/n},${80+(i%2?-12:12)}`;pts+=` ${b},80`;
+    s.push(`<polyline class="w" points="${pts}" style="stroke-width:1.5"/>`);
+  }
+  s.push(`<rect x="${xp}" y="61" width="12" height="38" fill="#223d42"/>`);
+  if(sensors) s.push(`<rect x="${xp+2}" y="61" width="8" height="5" fill="#d62828"/>`);
+  s.push(`<rect x="${xp+12}" y="76" width="182" height="8" fill="#fff" stroke="#223d42" stroke-width="2"/>`);
+  s.push(T(20,85,"-MM1","lbl",'text-anchor="middle"'));
+  if(sensors){
+    [["-BG1",52,B["-BG1"]],["-BG2",162,B["-BG2"]]].filter(z=>sensors.includes(z[0])).forEach(([n,x,on])=>{
+      s.push(`<line x1="${x}" y1="44" x2="${x}" y2="60" stroke="#223d42" stroke-width="1.5"/><polygon class="sym ${on?"on":""}" points="${x},30 ${x+8},38 ${x},46 ${x-8},38"/>`+T(x+12,42,n,"sm"));
+    });
+  }
+  return s.join("");
+}
+/* ======================= Schaltungen ======================= */
+const SC={
+ blatt:{name:"★ Arbeitsblatt",title:"Schaltung vom Arbeitsblatt: Impulsventil mit Startbedingung",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"no",id:"-BG1",act:"reed",label:"-BG1"},{t:"sol",id:"-MB1",label:"-MB1"}],[{t:"no",id:"-SJ2",act:"btn",label:"-SJ2"},{t:"sol",id:"-MB2",label:"-MB2"}]],
+  valve:"52b",cyl:"dw",sensors:["-BG1"],throttle:true,supply:"wu",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Ausfahren"},{id:"-SJ2",txt:"-SJ2",sub:"Einfahren"}],
+  text:"Genau die Schaltung vom Arbeitsblatt. <b>-SJ1</b> liegt in Reihe mit dem Reedschalter <b>-BG1</b>: Ausfahren geht nur, wenn der Zylinder <b>-MM1</b> ganz eingefahren ist (Startbedingung). <b>-SJ2</b> schaltet <b>-MB2</b> und fährt ein. Das 5/2-Impulsventil <b>-QM1</b> speichert die Stellung. Mit dem Drosselrückschlagventil <b>-RN1</b> stellst du die Ausfahrgeschwindigkeit ein (Abluftdrosselung). Versorgung über <b>-GQ0</b> und die Wartungseinheit <b>-GQA0</b>.",
+  todo:["Drücke -SJ1 kurz. Warum bleibt der Zylinder ausgefahren, obwohl du losgelassen hast?","Drücke -SJ1 noch einmal, während der Zylinder ausgefahren ist. Warum passiert nichts? Schau auf -BG1.","Drücke -SJ2. Fahre danach während des Einfahrens auf -SJ1 – wann reagiert die Steuerung wieder?","Drehe die Drossel -RN1 zu. Welche Bewegung wird langsamer, welche nicht? Begründe mit dem Rückschlagventil.","Halte -SJ1 und -SJ2 gleichzeitig. Was macht das Ventil?"],
+  merke:"-BG1 in Reihe zu -SJ1 ist eine UND-Verknüpfung: Ausfahren nur aus der Endlage. Das Impulsventil braucht nur einen kurzen Impuls und merkt sich die Stellung. -RN1 drosselt die Abluft der Kolbenstangenseite: Ausfahren langsam, Einfahren schnell über das Rückschlagventil."},
+ direkt:{name:"1 Direkt",title:"Direkte Ansteuerung",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"sol",id:"-MB1",label:"-MB1"}]],
+  valve:"32",cyl:"ew",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Taster (Schließer)"}],
+  text:"Der Taster -SJ1 schaltet die Magnetspule -MB1 <b>direkt</b>. Das 3/2-Wegeventil (monostabil, Federrückstellung) lässt Druckluft zum <b>einfachwirkenden</b> Zylinder. Kfz-Beispiel: Schalter Motorbremse → Magnetventil → Klappenzylinder.",
+  todo:["Drücke -SJ1 kurz und lass sofort los. Was passiert mit dem Zylinder?","Halte -SJ1 gedrückt. Welche Leitungen sind rot, welche blau?","Warum fährt der Zylinder beim Loslassen zurück, obwohl keine Druckluft auf der Kolbenstangenseite ist?"],
+  merke:"Monostabiles Ventil: Strom an → umgeschaltet, Strom weg → Feder stellt zurück. Der Zylinder bleibt nur ausgefahren, solange -SJ1 gedrückt ist."},
+ relais:{name:"2 Relais",title:"Indirekte Ansteuerung mit Relais",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"coil",id:"-KF1",label:"-KF1"}],[{t:"no",id:"k1a",ref:"-KF1",act:"relay",label:"-KF1"},{t:"sol",id:"-MB1",label:"-MB1"}]],
+  valve:"52m",cyl:"dw",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Taster (Schließer)"}],
+  text:"-SJ1 schaltet nur die <b>Relaisspule -KF1</b> (Steuerstromkreis, kleiner Strom). Der Relaiskontakt -KF1 schaltet die Magnetspule -MB1 (Laststromkreis). Das 5/2-Wegeventil steuert einen <b>doppeltwirkenden</b> Zylinder.",
+  todo:["Drücke -SJ1. In welcher Reihenfolge schalten -KF1, -MB1, Ventil und Zylinder?","Im Strompfad 2 steht ein Kontakt mit der Bezeichnung -KF1. Woher bekommt er seinen Befehl?","Nenne einen Vorteil des Relais gegenüber der direkten Ansteuerung."],
+  merke:"Das Relais trennt Steuer- und Laststromkreis: Der Taster muss nur den kleinen Spulenstrom schalten. Gleiches Prinzip wie ein Kfz-Relais (85/86 → 30/87)."},
+ und:{name:"3 UND",title:"UND-Verknüpfung (Reihenschaltung)",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"no",id:"-SJ2",act:"btn",label:"-SJ2"},{t:"sol",id:"-MB1",label:"-MB1"}]],
+  valve:"52m",cyl:"dw",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"linke Hand"},{id:"-SJ2",txt:"-SJ2",sub:"rechte Hand"}],
+  text:"Zwei Schließer in <b>Reihe</b>: Strom fließt nur, wenn -SJ1 <b>und</b> -SJ2 gedrückt sind. Werkstatt-Beispiel: Zweihandbedienung einer Presse – beide Hände sind sicher weg vom Werkzeug.",
+  todo:["Drücke nur -SJ1. Bis wohin liegt Spannung an (rote Leitung)?","Drücke -SJ1 und -SJ2 gleichzeitig (am Handy: zwei Finger).","Welches pneumatische Ventil hat dieselbe Funktion?"],
+  merke:"Reihenschaltung = UND. Pneumatisch entspricht das dem Zweidruckventil."},
+ oder:{name:"4 ODER",title:"ODER-Verknüpfung (Parallelschaltung)",
+  paths:[[{t:"par",id:"P",items:[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"no",id:"-SJ2",act:"btn",label:"-SJ2"}]},{t:"sol",id:"-MB1",label:"-MB1"}]],
+  valve:"52m",cyl:"dw",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Fahrerplatz"},{id:"-SJ2",txt:"-SJ2",sub:"an der Tür"}],
+  text:"Zwei Schließer <b>parallel</b>: Es reicht, wenn -SJ1 <b>oder</b> -SJ2 gedrückt ist. Bus-Beispiel: Die Tür lässt sich vom Fahrerplatz oder außen an der Tür betätigen.",
+  todo:["Drücke abwechselnd -SJ1 und -SJ2. Über welchen Zweig fließt jeweils der Strom?","Was passiert, wenn beide gedrückt sind?","Welches pneumatische Ventil hat dieselbe Funktion?"],
+  merke:"Parallelschaltung = ODER. Pneumatisch entspricht das dem Wechselventil."},
+ halt:{name:"5 Selbsthaltung",title:"Relais mit Selbsthaltung",
+  paths:[[{t:"nc",id:"-SJ2",act:"btn",label:"-SJ2"},{t:"par",id:"P",items:[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"no",id:"k1h",ref:"-KF1",act:"relay",label:"-KF1"}]},{t:"coil",id:"-KF1",label:"-KF1"}],[{t:"no",id:"k1a",ref:"-KF1",act:"relay",label:"-KF1"},{t:"sol",id:"-MB1",label:"-MB1"}]],
+  valve:"52m",cyl:"dw",buttons:[{id:"-SJ1",txt:"-SJ1 EIN",sub:"Schließer"},{id:"-SJ2",txt:"-SJ2 AUS",sub:"Öffner",stop:true}],
+  text:"Ein Kontakt von -KF1 liegt <b>parallel zu -SJ1</b>. Nach dem Loslassen hält sich das Relais selbst. Der Öffner -SJ2 unterbricht den Stromkreis (AUS). Kfz-Beispiel: Liftachse bleibt nach kurzem Tastendruck oben.",
+  todo:["Drücke -SJ1 kurz. Warum bleibt -KF1 angezogen?","Drücke -SJ2. Was passiert?","Halte -SJ1 und -SJ2 gleichzeitig. Wer gewinnt? (dominant AUS)","Warum ist der AUS-Taster ein Öffner? Denke an einen Kabelbruch."],
+  merke:"Selbsthaltung speichert ein Signal elektrisch. Liegt -SJ2 vor der Parallelschaltung, ist AUS dominant. Ein Kabelbruch am Öffner schaltet die Anlage ab – das ist sicher (drahtbruchsicher)."},
+ impuls:{name:"6 Impulsventil",title:"Bistabiles 5/2-Impulsventil",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"sol",id:"-MB1",label:"-MB1"}],[{t:"no",id:"-SJ2",act:"btn",label:"-SJ2"},{t:"sol",id:"-MB2",label:"-MB2"}]],
+  valve:"52b",cyl:"dw",buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Tür zu (ausfahren)"},{id:"-SJ2",txt:"-SJ2",sub:"Tür auf (einfahren)"}],
+  text:"Das Ventil hat <b>zwei Magnetspulen</b> und keine Feder. Ein kurzer Impuls auf -MB1 oder -MB2 genügt, das Ventil <b>merkt sich</b> die Stellung. Bus-Beispiel: Ein Tastendruck öffnet bzw. schließt die Tür.",
+  todo:["Drücke -SJ1 kurz. Bleibt der Zylinder ausgefahren?","Drücke danach -SJ2 kurz.","Halte -SJ1 und -SJ2 gleichzeitig: Was macht das Ventil? Warum sollte man das vermeiden?"],
+  merke:"Bistabil = Speicherverhalten im Ventil. Liegt an beiden Spulen gleichzeitig Strom an, bleibt das Ventil in seiner alten Stellung – solche Überschneidungen vermeidet man."},
+ end:{name:"7 Endschalter",title:"Automatischer Rückhub mit Sensoren",
+  paths:[[{t:"no",id:"-SJ1",act:"btn",label:"-SJ1"},{t:"no",id:"-BG1",act:"reed",label:"-BG1"},{t:"sol",id:"-MB1",label:"-MB1"}],[{t:"no",id:"-BG2",act:"reed",label:"-BG2"},{t:"sol",id:"-MB2",label:"-MB2"}]],
+  valve:"52b",cyl:"dw",sensors:true,buttons:[{id:"-SJ1",txt:"-SJ1",sub:"Start"}],
+  text:"Am Zylinder sitzen zwei <b>Reedschalter</b> (Magnetsensoren). Der Kolben trägt einen Magneten. -BG1 meldet „eingefahren“, -BG2 meldet „ausgefahren“. Kfz-Beispiel: Rückmeldung „Gang eingelegt“ im Lkw-Getriebesteller.",
+  todo:["Drücke -SJ1 kurz. Warum fährt der Zylinder von selbst zurück?","Warum steht -BG1 in Reihe zu -SJ1?","Halte -SJ1 dauerhaft gedrückt. Was passiert? (Dauerlauf)"],
+  merke:"Sensoren melden die Position zurück an die Steuerung. So entstehen automatische Abläufe – die Grundlage jeder Steuergerät-Ansteuerung im Fahrzeug."}
+};
+/* ======================= Simulator ======================= */
+const FAULTS=[
+ {id:"fuse",txt:"Sicherung F1 hat ausgelöst – keine 24 V"},
+ {id:"s1dead",txt:"Taster -SJ1 defekt – Kontakt schließt nicht"},
+ {id:"brk1",txt:"Leitungsbruch zwischen -SJ1 und Relaisspule -KF1"},
+ {id:"coilK1",txt:"Relaisspule -KF1 durchgebrannt"},
+ {id:"brk2",txt:"Leitungsbruch zwischen Kontakt -KF1 und Magnetspule -MB1"},
+ {id:"coilY1",txt:"Magnetspule -MB1 durchgebrannt"},
+ {id:"noair",txt:"Keine Druckluft (Absperrhahn zu)"},
+ {id:"k1stuck",txt:"Relaiskontakt -KF1 verschweißt (klebt)"}
+];
+const FAULT_EXPL={
+ fuse:"Kein einziger Messpunkt hat 24 V, auch nicht direkt an der +24-V-Schiene. Ursache liegt vor der Schaltung: Sicherung oder Netzteil.",
+ s1dead:"Oberhalb von -SJ1 liegen 24 V, unterhalb trotz gedrücktem Taster 0 V. Der Spannungssprung liegt genau im Taster.",
+ brk1:"Unten an -SJ1 liegen 24 V, oben an der Spule -KF1 aber 0 V. Dazwischen ist nur die Leitung – also Leitungsbruch.",
+ coilK1:"Die LED an -KF1 leuchtet (24 V an der Spule), aber der Kontakt -KF1 schaltet nicht: unten am Kontakt 0 V. Die Spule ist unterbrochen.",
+ brk2:"-KF1 zieht an, unten am Kontakt -KF1 liegen 24 V, oben an -MB1 aber 0 V und die LED am Ventilstecker bleibt aus – Leitungsbruch.",
+ coilY1:"An -MB1 liegen 24 V und die LED leuchtet, trotzdem schaltet das Ventil nicht. Die Magnetspule ist defekt (Widerstand messen: unendlich).",
+ noair:"Elektrisch ist alles in Ordnung (-MB1 hat 24 V, LED leuchtet), aber das Manometer zeigt 0 bar. Es fehlt die Druckluft.",
+ k1stuck:"Der Zylinder fährt sofort aus, ohne dass -SJ1 gedrückt ist. An -KF1 liegt keine Spannung, aber der Kontakt -KF1 leitet – er klebt."
+};
+function makeSim(root,opts){
+  const fault=!!opts.fault;
+  let cfg=null, st=null, layout=null, lastE="", lastP="", meas=null, curFault=null, score={ok:0,n:0};
+  root.innerHTML=`
+  <div class="simgrid">
+    <div class="panel"><h3>Stromlaufplan <span>elektrischer Teil</span></h3><div class="sheet"><svg class="esvg" role="img" aria-label="Stromlaufplan"></svg></div></div>
+    <div class="panel"><h3>Pneumatikschaltplan <span>pneumatischer Teil</span></h3><div class="sheet"><svg class="psvg" viewBox="0 0 400 380" role="img" aria-label="Pneumatikschaltplan"></svg></div></div>
+    <div class="side">
+      <div class="panel"><h3>Bedienung</h3><div class="btns"></div><div class="thr" hidden style="margin-top:10px"><label style="font-weight:650;font-size:.9rem">Drossel -RN1: <span class="thv" style="color:#1f6fb2"></span></label><input type="range" min="10" max="100" value="60" style="width:100%;accent-color:#1f6fb2"><small class="muted" style="display:block">links = zu (langsam) · rechts = offen (schnell)</small></div>
+        ${fault?`<p class="muted" style="font-size:.8rem;margin:8px 0 0">-SJ1 rastet hier ein, damit du in Ruhe messen kannst. Nochmal tippen = loslassen.</p>`:""}
+      </div>
+      <div class="panel"><h3>Zustand</h3><dl class="stat"></dl></div>
+      ${fault?`<div class="panel"><h3>Multimeter</h3><div class="meter"><small class="mlab">Messpunkt antippen …</small><div class="v">– – V</div><small>gemessen gegen 0 V</small></div></div>`:""}
+    </div>
+  </div>
+  <div class="legend">${fault?`<span style="display:none"></span>`:`<span>24 V liegen an</span><span class="lc">Strom fließt</span>`}<span class="la">Druckluft</span></div>
+  ${fault?`<div class="cols info"><div class="card"><h3>Deine Diagnose</h3><div class="diag"></div><div class="act"><button class="chk">Diagnose prüfen</button><button class="sec nf">Neuer Fehler</button><button class="sec tp">Tipp</button></div><div class="fbx"></div><p class="score"></p></div></div>`:`<div class="cols info"><div class="card"><h3 class="tt"></h3><p class="tx" style="margin-top:0"></p><div class="merke mk"></div></div><div class="card"><h3>Beobachtungsaufträge</h3><ol class="todo"></ol></div></div>`}`;
+  const esvg=root.querySelector(".esvg"), psvg=root.querySelector(".psvg"), btnBox=root.querySelector(".btns"), statBox=root.querySelector(".stat");
+
+  function uidAll(paths){paths.forEach((p,pi)=>p.forEach((e,i)=>{e.uid=pi+"_"+i;if(e.items)e.items.forEach((s,b)=>s.uid=e.uid+"_"+b)}))}
+  function doLayout(){
+    let x=86;const cols=[];
+    cfg.paths.forEach(p=>{const hasPar=p.some(e=>e.t==="par");cols.push(x);x+=hasPar?190:118});
+    const width=Math.max(x,280);
+    layout={cols,width,ys:cfg.paths.map(p=>{const n=p.length;return p.map((e,i)=>40+(i+1)*320/(n+1))})};
+    esvg.setAttribute("viewBox",`0 0 ${width} 400`);
+  }
+  function load(key){
+    cfg=JSON.parse(JSON.stringify(SC[key]));uidAll(cfg.paths);
+    st={pressed:{},tap:{},relay:{},Y:{},vpos:0,vt:0,cyl:0,res:null};
+    meas=null;lastE=lastP="";doLayout();buildButtons();
+    const th=root.querySelector(".thr");th.hidden=!cfg.throttle;
+    if(!fault){root.querySelector(".tt").textContent=cfg.title;root.querySelector(".tx").innerHTML=cfg.text;root.querySelector(".mk").innerHTML="<b>Merke:</b> "+cfg.merke;
+      root.querySelector(".todo").innerHTML=cfg.todo.map(t=>`<li>${t}</li>`).join("");}
+  }
+  function buildButtons(){
+    btnBox.innerHTML="";
+    cfg.buttons.forEach(b=>{
+      const el=document.createElement("button");el.type="button";el.innerHTML=`${b.txt}<small>${b.sub}</small>`;if(b.stop)el.classList.add("stop");
+      if(fault){el.setAttribute("aria-pressed","false");el.addEventListener("click",()=>{st.pressed[b.id]=!st.pressed[b.id];el.setAttribute("aria-pressed",st.pressed[b.id])});}
+      else{
+        const dn=e=>{e.preventDefault();st.pressed[b.id]=true;st.tap[b.id]=true;el.classList.add("down");if(e.pointerId!==undefined)try{el.setPointerCapture(e.pointerId)}catch(_){}};
+        const up=()=>{st.pressed[b.id]=false;el.classList.remove("down")};
+        el.addEventListener("pointerdown",dn);["pointerup","pointercancel","lostpointercapture"].forEach(ev=>el.addEventListener(ev,up));
+        el.addEventListener("keydown",e=>{if((e.key===" "||e.key==="Enter")&&!e.repeat){e.preventDefault();dn(e)}});
+        el.addEventListener("keyup",e=>{if(e.key===" "||e.key==="Enter")up()});
+        el.addEventListener("contextmenu",e=>e.preventDefault());
+      }
+      btnBox.appendChild(el);
+    });
+  }
+  const F=id=>curFault&&curFault.id===id;
+  function closedOf(e,sens){
+    let c;
+    if(e.act==="btn"){const pr=!!(st.pressed[e.id]||st.tap[e.id]);c=e.t==="no"?pr:!pr;}
+    else if(e.act==="relay") c=e.t==="no"?!!st.relay[e.ref]:!st.relay[e.ref];
+    else if(e.act==="reed") c=!!sens[e.id];
+    if(fault){if(e.id==="-SJ1"&&F("s1dead"))c=false;if(e.ref==="-KF1"&&F("k1stuck"))c=true;}
+    return c;
+  }
+  function evalAll(sens){
+    const rail=!(fault&&F("fuse"));
+    const out={rail,el:{},loads:{},paths:[]};
+    cfg.paths.forEach((p,pi)=>{
+      let pot=rail;const segs=[];
+      p.forEach((e,i)=>{
+        const top=pot;
+        if(e.t==="par"){
+          const cl=e.items.map(s=>closedOf(s,sens));const o=top&&cl.some(Boolean);
+          e.items.forEach((s,b)=>out.el[s.uid]={top,bot:o,closed:cl[b]});
+          out.el[e.uid]={top,bot:o,cl};pot=o;
+        } else if(e.t==="coil"||e.t==="sol"){
+          const intact=!(fault&&((e.id==="-KF1"&&F("coilK1"))||(e.id==="-MB1"&&F("coilY1"))));
+          out.el[e.uid]={top,bot:false};out.loads[e.id]={volt:top,on:top&&intact};pot=false;
+        } else {
+          const c=closedOf(e,sens);const o=top&&c;out.el[e.uid]={top,bot:o,closed:c};pot=o;
+        }
+        // Leitungsbruch nach Element
+        if(fault&&((F("brk1")&&pi===0&&i===0)||(F("brk2")&&pi===1&&i===0))){out.el[e.uid].brkAfter=true;pot=false;}
+      });
+      const load=p[p.length-1];out.paths[pi]={cur:out.loads[load.id].on};
+    });
+    return out;
+  }
+  function tick(dt){
+    const sens={"-BG1":st.cyl<0.03,"-BG2":st.cyl>0.97};
+    let res;
+    for(let k=0;k<6;k++){
+      res=evalAll(sens);const nr={};let same=true;
+      cfg.paths.forEach(p=>{const l=p[p.length-1];if(l.t==="coil"){nr[l.id]=res.loads[l.id].on;if(!!st.relay[l.id]!==nr[l.id])same=false}});
+      st.relay=nr;if(same)break;
+    }
+    st.res=res;st.sens=sens;st.tap={};
+    const Y={"-MB1":!!(res.loads["-MB1"]&&res.loads["-MB1"].on),"-MB2":!!(res.loads["-MB2"]&&res.loads["-MB2"].on)};st.Y=Y;
+    if(cfg.valve==="52b"){if(Y["-MB1"]&&!Y["-MB2"])st.vt=1;else if(Y["-MB2"]&&!Y["-MB1"])st.vt=0;} else st.vt=Y["-MB1"]?1:0;
+    const dv=dt*9;st.vpos+=Math.max(-dv,Math.min(dv,st.vt-st.vpos));
+    const air=!(fault&&F("noair"));st.air=air;
+    const act=st.vpos>0.5;let pCap,pRod;
+    if(cfg.valve==="32"){pCap=air&&act;pRod=false}else{pCap=air&&act;pRod=air&&!act}
+    st.pCap=pCap;st.pRod=pRod;
+    let tgt=st.cyl;
+    if(cfg.cyl==="ew")tgt=pCap?1:0;else{if(pCap&&!pRod)tgt=1;if(pRod&&!pCap)tgt=0}
+    const k=cfg.throttle?(+root.querySelector(".thr input").value)/100:1;st.k=k;
+    const sp=tgt>st.cyl?0.85*k:1.0;const d=dt*sp;st.cyl+=Math.max(-d,Math.min(d,tgt-st.cyl));
+    if(Math.abs(tgt-st.cyl)<0.001)st.cyl=tgt;
+  }
+  /* ---------- Stromlaufplan ---------- */
+  function segCls(pot,cur){if(fault)return "";return cur?"cur":pot?"pot":""}
+  function renderE(){
+    const r=st.res,W=layout.width;let s="";
+    const railC=fault?"":(r.rail?"pot":"");
+    s+=`<line class="w rail ${railC}" x1="40" y1="40" x2="${W-14}" y2="40"/><line class="w rail" x1="40" y1="360" x2="${W-14}" y2="360"/>`;
+    s+=T(6,36,"+24 V","sm")+T(6,376,"0 V","sm");
+    if(fault)s+=`<rect class="sym" x="40" y="33" width="0" height="0"/>`+T(46,30,"nach F1","sm");
+    const mps=[];
+    if(fault)mps.push({x:58,y:40,v:()=>st.res.rail});
+    cfg.paths.forEach((p,pi)=>{
+      const x=layout.cols[pi],ys=layout.ys[pi],cur=r.paths[pi].cur;
+      s+=`<circle cx="${x}" cy="40" r="3" fill="#223d42"/><circle cx="${x}" cy="360" r="3" fill="#223d42"/>`;
+      s+=T(x,393,String(pi+1),"sm",'text-anchor="middle"');
+      let prevY=40;
+      p.forEach((e,i)=>{
+        const cy=ys[i],q=r.el[e.uid];
+        const topY=e.t==="par"?cy-42:cy-32;
+        s+=`<line class="w ${segCls(q.top,cur)}" x1="${x}" y1="${prevY}" x2="${x}" y2="${topY}"/>`;
+        if(e.t==="par"){
+          const x2=x+84;
+          s+=`<line class="w ${segCls(q.top,cur&&q.cl[1])}" x1="${x}" y1="${cy-42}" x2="${x2}" y2="${cy-42}"/><line class="w ${segCls(q.bot,cur&&q.cl[1])}" x1="${x}" y1="${cy+42}" x2="${x2}" y2="${cy+42}"/>`;
+          e.items.forEach((sub,b)=>{const sx=b?x2:x,qq=r.el[sub.uid],bc=cur&&qq.closed;
+            s+=`<line class="w ${segCls(qq.top,bc)}" x1="${sx}" y1="${cy-42}" x2="${sx}" y2="${cy-32}"/><line class="w ${segCls(qq.bot,bc&&qq.closed)}" x1="${sx}" y1="${cy+32}" x2="${sx}" y2="${cy+42}"/>`;
+            s+=contactSVG(sx,cy,sub.t,qq.closed,sub.act,sub.label,{top:segCls(qq.top,bc),bot:segCls(qq.bot&&qq.closed,bc)});});
+          s+=`<circle cx="${x}" cy="${cy-42}" r="3" fill="#223d42"/><circle cx="${x}" cy="${cy+42}" r="3" fill="#223d42"/>`;
+          prevY=cy+42;
+        } else if(e.t==="coil"||e.t==="sol"){
+          const ld=r.loads[e.id];
+          s+=coilSVG(x,cy,e.t,e.label,ld.on,ld.volt,{top:segCls(q.top,cur),bot:segCls(false,cur)});
+          if(fault)mps.push({x:x,y:cy-24,v:()=>st.res.el[e.uid].top,side:1});
+          s+=`<line class="w ${segCls(false,cur)}" x1="${x}" y1="${cy+32}" x2="${x}" y2="360"/>`;
+          if(e.t==="coil"){const where=[];cfg.paths.forEach((pp,pj)=>pp.forEach(ee=>{const chk=z=>{if(z.ref===e.id)where.push(pj+1)};chk(ee);(ee.items||[]).forEach(chk)}));
+            s+=T(x,384,`${e.id}: ${where.join(", ")}`,"sm",'text-anchor="middle" style="fill:#5d6b7a"');}
+          prevY=null;
+        } else {
+          const bc=cur;
+          s+=contactSVG(x,cy,e.t,q.closed,e.act,e.label,{top:segCls(q.top,bc),bot:segCls(q.bot,bc)});
+          if(fault){mps.push({x:x,y:cy-24,v:()=>st.res.el[e.uid].top,side:1});mps.push({x:x,y:cy+24,v:()=>st.res.el[e.uid].bot,side:1});}
+          prevY=cy+32;
+          if(q.brkAfter){/* unsichtbarer Bruch: Spannung endet hier */}
+        }
+      });
+    });
+    if(fault){
+      // Messpunkte nummerieren
+      mps.forEach((m,i)=>{const sel=meas===i;s+=`<g data-mp="${i}" style="cursor:pointer"><circle class="mp ${sel?"sel":""}" cx="${m.x}" cy="${m.y}" r="6"/><circle cx="${m.x+15}" cy="${m.y}" r="9" fill="#fff" stroke="#7a499c" stroke-width="1.4"/>${T(m.x+15,m.y+4,i+1,"mpt",'text-anchor="middle"')}<rect x="${m.x-10}" y="${m.y-12}" width="36" height="24" fill="transparent"/></g>`;});
+      root._mps=mps;
+    }
+    esvg.innerHTML=s;
+  }
+  /* ---------- Pneumatik ---------- */
+  function renderP(){
+    const kind=cfg.valve,x0=200,by=200;let s="";
+    const P=portsOf(kind,x0,by);
+    const air=st.air,act=st.vpos>0.5;
+    const pc=st.pCap,pr=st.pRod;
+    const pl=(pts,on)=>`<polyline class="pl ${on?"on":""}" points="${pts}"/>`;
+    // Leitungen zum Zylinder
+    if(kind==="32"){
+      s+=pl(`${P.p2[0]},${by} ${P.p2[0]},160 54,160 54,100`,pc);
+      s+=exhaust(P.p3[0],by+VH);
+    } else {
+      s+=pl(`${P.p4[0]},${by} ${P.p4[0]},160 54,160 54,100`,pc);
+      if(cfg.throttle){const x=P.p2[0];
+        s+=pl(`${x},${by} ${x},188`,pr)+pl(`${x},152 ${x},140 206,140 206,100`,pr);
+        s+=`<rect x="${x-20}" y="146" width="40" height="48" fill="#fff" stroke="#223d42" stroke-width="1.4" stroke-dasharray="4 3"/>`;
+        s+=`<polyline class="pl ${pr?"on":""}" points="${x},152 ${x-10},156 ${x-10},184 ${x},188 ${x+10},184 ${x+10},156 ${x},152"/>`;
+        s+=`<path d="M${x-14},163 Q${x-10},170 ${x-14},177 M${x-6},163 Q${x-10},170 ${x-6},177" fill="none" stroke="#223d42" stroke-width="1.6"/><line x1="${x-17}" y1="181" x2="${x-3}" y2="159" stroke="#223d42" stroke-width="1.4"/><polygon class="ah" points="${x-3},159 ${x-9},162 ${x-5},166"/>`;
+        s+=`<polyline points="${x+4},172 ${x+10},180 ${x+16},172" fill="none" stroke="#223d42" stroke-width="1.6"/><circle cx="${x+10}" cy="172" r="4.5" fill="#fff" stroke="#223d42" stroke-width="1.6"/>`;
+        s+=T(x+24,170,"-RN1","sm");
+      } else s+=pl(`${P.p2[0]},${by} ${P.p2[0]},140 206,140 206,100`,pr);
+      s+=exhaust(P.p5[0],by+VH)+exhaust(P.p3[0],by+VH);
+    }
+    s+=pl(`${P.p1[0]},${by+VH} ${P.p1[0]},318`,air);
+    if(cfg.supply==="wu"){const x=P.p1[0];
+      s+=pl(`${x},318 ${x},300 ${x-60},300`,air)+`<rect x="${x-110}" y="286" width="50" height="28" fill="#fff" stroke="#223d42" stroke-width="1.8"/>`;
+      s+=`<polygon points="${x-85},289 ${x-77},300 ${x-85},311 ${x-93},300" fill="#fff" stroke="#223d42" stroke-width="1.4"/><line x1="${x-93}" y1="300" x2="${x-77}" y2="300" stroke="#223d42" stroke-dasharray="2 2"/><circle cx="${x-68}" cy="300" r="5" fill="#fff" stroke="#223d42" stroke-width="1.4"/>`;
+      s+=pl(`${x-110},300 ${x-130},300 ${x-130},318`,air)+source(x-130,330,air);
+      s+=T(x-85,280,"-GQA0","sm",'text-anchor="middle"')+T(x-112,350,"-GQ0","sm")+T(x+8,320,air?"6 bar":"0 bar","sm");
+    } else s+=source(P.p1[0],330,air)+T(P.p1[0]+18,334,"-GQ0","sm")+T(P.p1[0]+18,348,air?"6 bar":"0 bar","sm");
+    s+=valveSVG(kind,x0,by,st.vpos,st.Y,"-QM1");
+    // Anschlussnummern
+    Object.entries(P).forEach(([k,[px,py]])=>{const top=py===by;s+=T(px+(top?4:3),top?py-5:py+13,k.slice(1),"sm",'style="fill:#5d6b7a"')});
+    s+=cylinderSVG(cfg.cyl,st.cyl,pc,pr,cfg.sensors,st.sens);
+    psvg.innerHTML=s;
+  }
+  function renderStat(){
+    const r=st.res;const rows=[];
+    const yLed=n=>r.loads[n]?r.loads[n].volt:false;
+    rows.push(["Manometer",`<span class="pill air">${st.air?"6,0":"0,0"} bar</span>`]);
+    if(r.loads["-KF1"]){
+      rows.push(["Relais -KF1",fault?`LED <span class="pill ${r.loads["-KF1"].volt?"on":""}">${r.loads["-KF1"].volt?"an":"aus"}</span>`:`<span class="pill ${st.relay["-KF1"]?"el":""}">${st.relay["-KF1"]?"angezogen":"abgefallen"}</span>`]);
+    }
+    ["-MB1","-MB2"].forEach(n=>{if(r.loads[n])rows.push([`Spule ${n}`,fault?`LED <span class="pill ${yLed(n)?"on":""}">${yLed(n)?"an":"aus"}</span>`:`<span class="pill ${r.loads[n].on?"el":""}">${r.loads[n].on?"Strom":"stromlos"}</span>`])});
+    rows.push(["Ventil -QM1",st.vpos>0.5?"geschaltet":"Grundstellung"]);
+    if(cfg.throttle)root.querySelector(".thv").textContent=Math.round(st.k*100)+" % offen";
+    if(cfg.throttle)rows.push(["Ausfahrzeit",`ca. ${(1/(0.85*st.k)).toFixed(1).replace(".",",")} s`]);
+    const c=st.cyl;rows.push(["Zylinder -MM1",c>=0.999?"ausgefahren":c<=0.001?"eingefahren":(st.pCap&&!st.pRod?"fährt aus …":"fährt ein …")]);
+    statBox.innerHTML=rows.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join("");
+    if(fault){const mv=root.querySelector(".meter .v"),ml=root.querySelector(".mlab");
+      if(meas===null){mv.textContent="– – V";ml.textContent="Messpunkt antippen …"}
+      else{const v=root._mps[meas].v();mv.textContent=(v?"24,0":"0,0")+" V";ml.textContent="Messpunkt "+(meas+1)}}
+  }
+  let last=performance.now();
+  function loop(t,noraf){
+    if(t===undefined)t=performance.now();
+    const dt=Math.min(noraf?1:0.05,Math.max(0,(t-last)/1000));last=t;
+    tick(dt);
+    const sigE=JSON.stringify([st.res,meas,st.pressed]);
+    if(sigE!==lastE){lastE=sigE;renderE()}
+    const sigP=[st.vpos.toFixed(3),st.cyl.toFixed(3),st.pCap,st.pRod,st.air,JSON.stringify(st.Y),JSON.stringify(st.sens)].join();
+    if(sigP!==lastP){lastP=sigP;renderP()}
+    renderStat();
+    if(!noraf)requestAnimationFrame(loop);
+  }
+  setInterval(()=>{const n=performance.now();if(n-last>120)loop(n,true)},50);
+  if(fault){
+    esvg.addEventListener("pointerdown",e=>{const g=e.target.closest("[data-mp]");if(g){meas=+g.dataset.mp;lastE=""}});
+    const diag=root.querySelector(".diag"),fbx=root.querySelector(".fbx"),sc=root.querySelector(".score");
+    diag.innerHTML=FAULTS.map(f=>`<label><input type="radio" name="dg" value="${f.id}"> ${f.txt}</label>`).join("");
+    let tipN=0;
+    const TIPS=["Drücke -SJ1 (eingerastet) und schau dir zuerst Zylinder, Manometer und die beiden LEDs an.","Miss von oben nach unten: Messpunkt 1 (+24-V-Schiene), dann ②, ③ … Wo ist der erste Messpunkt mit 0 V?","Liegt der Sprung von 24 V auf 0 V über einem Bauteil, ist das Bauteil defekt. Liegt er zwischen zwei Bauteilen, ist es die Leitung. Leuchtet eine LED, aber nichts bewegt sich, prüfe Spule und Druckluft."];
+    const newFault=()=>{let f;do{f=FAULTS[Math.floor(Math.random()*FAULTS.length)]}while(curFault&&f.id===curFault.id);curFault=f;
+      load("relais");meas=null;tipN=0;fbx.innerHTML="";diag.querySelectorAll("input").forEach(i=>i.checked=false);};
+    root.querySelector(".nf").onclick=newFault;
+    root.querySelector(".tp").onclick=()=>{fbx.innerHTML=`<div class="fb tip"><b>Tipp ${Math.min(tipN+1,TIPS.length)}:</b> ${TIPS[Math.min(tipN,TIPS.length-1)]}</div>`;tipN++};
+    root.querySelector(".chk").onclick=()=>{const v=(diag.querySelector("input:checked")||{}).value;
+      if(!v){fbx.innerHTML=`<div class="fb tip">Wähle zuerst eine Diagnose aus.</div>`;return}
+      score.n++;if(v===curFault.id){score.ok++;fbx.innerHTML=`<div class="fb ok"><b>Richtig!</b> ${FAULT_EXPL[v]} <br>Klicke auf „Neuer Fehler“ für die nächste Runde.</div>`}
+      else fbx.innerHTML=`<div class="fb no"><b>Noch nicht.</b> Passt deine Diagnose zu allen Messwerten? Miss noch einmal an der Stelle, an der die Spannung verschwindet.</div>`;
+      sc.textContent=`Richtig diagnostiziert: ${score.ok} von ${score.n} Versuchen`;};
+    newFault();
+  }
+  requestAnimationFrame(loop);
+  return {load};
+}
+/* ======================= Start Simulation ======================= */
+const sim1=makeSim(document.getElementById("sim1"),{});
+const chips=document.getElementById("scChips");
+Object.entries(SC).forEach(([k,v],i)=>{const b=document.createElement("button");b.type="button";b.textContent=v.name;b.setAttribute("aria-pressed",i===0);
+  b.onclick=()=>{chips.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");sim1.load(k)};chips.appendChild(b)});
+sim1.load("blatt");
+makeSim(document.getElementById("sim2"),{fault:true});
+
+/* ======================= Bauteile ======================= */
+const PARTS=[
+ {n:"Taster (Schließer)",k:"-SJ1",svg:`<svg viewBox="0 0 160 120">${contactSVG(95,60,"no",false,"btn","-SJ1")}</svg>`,t:"Kontakt ist in Ruhe offen. Drücken schließt den Stromkreis. Loslassen: Feder öffnet wieder."},
+ {n:"Taster (Öffner)",k:"-SJ2",svg:`<svg viewBox="0 0 160 120">${contactSVG(95,60,"nc",true,"btn","-SJ2")}</svg>`,t:"Kontakt ist in Ruhe geschlossen. Drücken unterbricht den Stromkreis – typisch für AUS- oder NOT-HALT-Taster."},
+ {n:"Relais",k:"-KF1",svg:`<svg viewBox="0 0 160 120">${coilSVG(55,60,"coil","-KF1",false)}${contactSVG(130,60,"no",false,"relay","-KF1")}<line x1="70" y1="60" x2="122" y2="60" stroke="#223d42" stroke-dasharray="3 3"/></svg>`,t:"Spule A1/A2 und Kontakte. Strom in der Spule → Anker zieht an → Kontakte schalten. Kleiner Steuerstrom schaltet großen Laststrom."},
+ {n:"Magnetspule",k:"-MB1",svg:`<svg viewBox="0 0 160 120">${coilSVG(80,60,"sol","-MB1",false,false)}</svg>`,t:"Elektromagnet am Ventil. Im Stromlaufplan als Rechteck mit Schrägstrich. Gleicher Name -MB1 im Pneumatikplan."},
+ {n:"Reedschalter / Sensor",k:"-BG1",svg:`<svg viewBox="0 0 160 120">${contactSVG(110,60,"no",false,"reed","-BG1")}</svg>`,t:"Schließt berührungslos, wenn der Magnet am Kolben vorbeikommt. Meldet die Zylinderstellung an die Steuerung."},
+ {n:"3/2-Magnetventil",k:"-QM1",svg:`<svg viewBox="0 0 200 120">${valveSVG("32",110,30,0,{})}${exhaust(110+.7*VW,80)}</svg>`,t:"3 Anschlüsse, 2 Schaltstellungen, monostabil (Feder). In Ruhe gesperrt – für einfachwirkende Zylinder."},
+ {n:"5/2-Magnetventil",k:"-QM1",svg:`<svg viewBox="0 0 200 120">${valveSVG("52m",110,30,0,{})}</svg>`,t:"5 Anschlüsse (1 Druck, 2 und 4 Arbeit, 3 und 5 Entlüftung), 2 Stellungen. Steuert doppeltwirkende Zylinder."},
+ {n:"5/2-Impulsventil",k:"-QM1",svg:`<svg viewBox="0 0 200 120">${valveSVG("52b",95,30,0,{})}</svg>`,t:"Zwei Spulen -MB1/-MB2, keine Feder: bistabil. Behält seine Stellung auch ohne Strom."},
+ {n:"Doppeltwirkender Zylinder",k:"-MM1",svg:`<svg viewBox="0 0 380 120"><g transform="translate(0,-10)">${cylinderSVG("dw",0,false,false,false,{})}<line class="pl" x1="54" y1="100" x2="54" y2="118"/><line class="pl" x1="206" y1="100" x2="206" y2="118"/></g></svg>`,t:"Arbeitet in beide Richtungen mit Druckluft. Anschluss am Kolbenboden: ausfahren, an der Stangenseite: einfahren."}
+];
+document.getElementById("parts").innerHTML=PARTS.map(p=>`<div class="part">${p.svg}<h3>${p.n}<small>${p.k}</small></h3><p>${p.t}</p></div>`).join("");
+
+/* ======================= Übungen ======================= */
+const QUIZ=[
+ {q:"Welche Aufgabe hat das Magnetventil in einer elektropneumatischen Steuerung?",type:"mc",o:["Es erzeugt die Druckluft.","Es wandelt ein elektrisches Signal in ein pneumatisches Signal um.","Es speichert elektrische Energie.","Es misst die Position des Kolbens."],a:1,tips:["Schau dir die Signalkette in Teil 1 an.","Das Magnetventil ist das Bindeglied zwischen den beiden Welten."],ex:"Das Magnetventil ist das Stellglied: Strom in der Spule → Ventil schaltet die Druckluft."},
+ {q:"Welche Vorteile hat die Elektropneumatik gegenüber der reinen Pneumatik? (mehrere richtig)",type:"multi",o:["Signale kommen auch über lange Leitungen ohne Verzögerung an.","Man braucht keine Druckluft mehr.","Verknüpfungen lassen sich einfach mit Relais oder Steuergerät umsetzen.","Sensoren können Rückmeldungen an ein Steuergerät geben.","Die Zylinder werden kleiner und stärker."],a:[0,2,3],tips:["Die Arbeit macht weiterhin die Druckluft.","Denke an einen Gelenkbus: Wie lang wäre eine Druckluft-Steuerleitung vom Fahrer zur hinteren Tür?"],ex:"Elektrische Signale sind schnell, leicht zu verknüpfen und passen zu Steuergeräten. Druckluft bleibt für die Arbeit nötig."},
+ {q:"Ordne die Kennbuchstaben den Bauteilen zu.",type:"sel",rows:["-SJ1","-KF1","-MB1","-BG1","-MM1"],choices:["Taster","Relais","Magnetspule","Sensor (Reedschalter)","Zylinder"],a:[0,1,2,3,4],tips:["S steht für ein Signal von Hand, K für Signalverarbeitung.","B steht für Erfassen (Sensor), M für Antriebe: MB = elektromagnetisch, MM = Zylinder."],ex:"-SJ = Taster, -KF = Relais, -MB = Magnetspule, -BG = Sensor, -MM = Zylinder."},
+ {q:"Bringe den Signalfluss bei der Schaltung mit Relais in die richtige Reihenfolge.",type:"sel",rows:["1. Schritt","2. Schritt","3. Schritt","4. Schritt","5. Schritt"],choices:["-SJ1 wird gedrückt","Relaisspule -KF1 zieht an","Kontakt -KF1 schaltet -MB1","Ventil -QM1 schaltet um","Zylinder -MM1 fährt aus"],a:[0,1,2,3,4],shuffle:true,tips:["Probiere es in der Simulation (Schaltung 2) aus.","Erst elektrisch (Steuerstromkreis, dann Laststromkreis), dann pneumatisch."],ex:"Taster → Relaisspule → Relaiskontakt → Magnetspule/Ventil → Zylinder."},
+ {q:"Ein bistabiles 5/2-Impulsventil wurde über -MB1 umgeschaltet. Dann wird -SJ1 losgelassen. Was passiert?",type:"mc",o:["Das Ventil schaltet durch die Feder zurück.","Das Ventil bleibt in seiner Stellung, der Zylinder bleibt ausgefahren.","Der Zylinder bleibt in der Mitte stehen.","Das Ventil entlüftet beide Zylinderseiten."],a:1,tips:["Hat ein Impulsventil eine Feder?","Teste Schaltung 6 in der Simulation."],ex:"Bistabil heißt: zwei stabile Stellungen. Erst ein Impuls auf -MB2 schaltet zurück."},
+ {q:"Warum wird der AUS-Taster bei der Selbsthaltung als Öffner ausgeführt?",type:"mc",o:["Öffner sind billiger.","Bei einem Kabelbruch schaltet die Anlage dann sicher ab.","Damit die Anlage nach dem Einschalten von selbst wieder ausgeht.","Weil Schließer keine 24 V vertragen."],a:1,tips:["Was passiert bei einem Kabelbruch in der Leitung zum AUS-Taster?","Stelle dir vor, AUS wäre ein Schließer und die Leitung reißt."],ex:"Drahtbruchsicherheit: Ein Bruch wirkt wie „AUS gedrückt“. Mit einem Schließer würde man die Anlage nicht mehr abschalten können."},
+ {q:"Fehlersuche Bustür: Die LED am Ventilstecker von -MB1 leuchtet, das Manometer zeigt 6 bar, die Tür bewegt sich aber nicht. Was ist die wahrscheinlichste Ursache?",type:"mc",o:["Sicherung defekt","Taster -SJ1 defekt","Magnetspule -MB1 defekt oder Ventil klemmt","Leitungsbruch zwischen -SJ1 und -MB1"],a:2,tips:["Die LED zeigt: Spannung kommt am Ventil an.","Strom und Druckluft sind da – was bleibt übrig?"],ex:"Spannung liegt an (LED), Druckluft ist da (Manometer). Also schaltet das Ventil selbst nicht: Spule unterbrochen oder Ventil mechanisch fest."},
+ {q:"Die Magnetspule eines Ventils hat eine Leistung von 4,8 W bei 24 V. Wie groß ist der Strom? (in A)",type:"num",a:0.2,tol:0.005,unit:"A",tips:["Formel: P = U · I","Umgestellt: I = P : U"],ex:"I = P : U = 4,8 W : 24 V = 0,2 A."},
+ {q:"Wie heißen die Anschlüsse eines Relais-Schließerkontakts in der Steuerungstechnik?",type:"mc",o:["11 / 12","13 / 14","A1 / A2","85 / 86"],a:1,tips:["Die zweite Ziffer verrät die Kontaktart.","1-2 = Öffner, 3-4 = Schließer."],ex:"13/14 ist ein Schließer, 11/12 ein Öffner, A1/A2 ist die Spule. 85/86 sind die Spulenanschlüsse beim Kfz-Relais."},
+ {q:"In welcher Schaltung fährt der Zylinder nur aus, wenn -SJ1 und -SJ2 gleichzeitig gedrückt sind?",type:"mc",o:["-SJ1 und -SJ2 in Reihe","-SJ1 und -SJ2 parallel","-SJ1 als Öffner, -SJ2 als Schließer","Mit einem Impulsventil"],a:0,tips:["Strom muss durch beide Kontakte nacheinander.","Schaltung 3 in der Simulation."],ex:"Reihenschaltung = UND-Verknüpfung (z. B. Zweihandbedienung)."}
+];
+const qBox=document.getElementById("quiz");const solved=new Set();
+function updProg(){document.getElementById("qProg").textContent=`${solved.size} von ${QUIZ.length} richtig`;document.getElementById("qBar").style.width=(100*solved.size/QUIZ.length)+"%"}
+QUIZ.forEach((q,qi)=>{
+  const d=document.createElement("div");d.className="q";let body="";
+  if(q.type==="mc"||q.type==="multi"){const tp=q.type==="mc"?"radio":"checkbox";body=`<div class="opts">${q.o.map((o,i)=>`<label><input type="${tp}" name="q${qi}" value="${i}"> ${o}</label>`).join("")}</div>`}
+  else if(q.type==="sel"){
+    let ch=q.choices.map((c,i)=>[c,i]);ch=ch.slice().sort(()=>Math.random()-.5);
+    body=`<div class="rowsel">${q.rows.map((r,i)=>`<b>${r}</b><select data-i="${i}"><option value="">– wählen –</option>${ch.map(([c,j])=>`<option value="${j}">${c}</option>`).join("")}</select>`).join("")}</div>`}
+  else if(q.type==="num"){body=`<p><input type="text" inputmode="decimal" placeholder="z. B. 1,5"> ${q.unit}</p>`}
+  d.innerHTML=`<h3><span class="n">${qi+1}</span>${q.q}</h3>${body}<div class="act"><button class="ck">Prüfen</button><button class="sec tp">Tipp</button></div><div class="fbx"></div>`;
+  let tn=0;const fb=d.querySelector(".fbx");
+  d.querySelector(".tp").onclick=()=>{const t=q.tips[Math.min(tn,q.tips.length-1)];fb.innerHTML=`<div class="fb tip"><b>Tipp ${Math.min(tn+1,q.tips.length)}:</b> ${t}</div>`;tn++};
+  d.querySelector(".ck").onclick=()=>{
+    let ok=false,empty=false;
+    if(q.type==="mc"){const v=d.querySelector("input:checked");if(!v)empty=true;else ok=+v.value===q.a}
+    else if(q.type==="multi"){const v=[...d.querySelectorAll("input:checked")].map(x=>+x.value).sort();if(!v.length)empty=true;else ok=JSON.stringify(v)===JSON.stringify(q.a)}
+    else if(q.type==="sel"){const s=[...d.querySelectorAll("select")];if(s.some(x=>x.value===""))empty=true;else ok=s.every((x,i)=>+x.value===q.a[i]);
+      s.forEach((x,i)=>x.style.borderColor=x.value===""?"":(+x.value===q.a[i]?"#1b7f45":"#b3261e"))}
+    else if(q.type==="num"){const raw=d.querySelector("input").value.replace(",",".").trim();if(!raw)empty=true;else ok=Math.abs(parseFloat(raw)-q.a)<=q.tol}
+    if(empty){fb.innerHTML=`<div class="fb tip">Bitte zuerst eine Antwort eingeben.</div>`;return}
+    if(ok){solved.add(qi);fb.innerHTML=`<div class="fb ok"><b>Richtig!</b> ${q.ex}</div>`}
+    else{solved.delete(qi);fb.innerHTML=`<div class="fb no"><b>Noch nicht richtig.</b> Hol dir einen Tipp oder probiere es in der Simulation aus.</div>`}
+    updProg();
+  };
+  qBox.appendChild(d);
+});
+updProg();
+</script>
+</body>
+</html>
